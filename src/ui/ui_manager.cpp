@@ -22,6 +22,8 @@ static std::atomic<uint8_t> pendingTarget{0};  // ScreenId, 0 = none
 static std::atomic<bool> pendingModalClose{false};
 static Screen* pendingModal;
 static bool booting;
+static uint8_t lastLang;
+static bool pendingRebuild;
 static uint32_t bootStart, lastTick, lastSwitch;
 static lv_obj_t* bootObj;
 
@@ -32,11 +34,15 @@ static void onGesture(Gesture g) {  // indev callback: flag only
 void uiRequest(ScreenId id) { pendingTarget = (uint8_t)id; }
 void uiNext() { pendingDir = 1; }
 void uiPrev() { pendingDir = -1; }
-void uiOpenModal(Screen* s) { pendingModal = s; }
+void uiOpenModal(Screen* s) {
+  delete pendingModal;
+  pendingModal = s;
+}
 void uiCloseModal() { pendingModalClose = true; }
 
 void uiInit() {
-  i18nSetLang((Lang)cfg().tft_lang);
+  lastLang = cfg().tft_lang;
+  i18nSetLang((Lang)lastLang);
   touchSetGestureSink(onGesture);
   bootObj = bootScreenCreate();
   lv_screen_load(bootObj);
@@ -44,7 +50,7 @@ void uiInit() {
   bootStart = millis();
 }
 
-static void show(ScreenId id) {
+static void showForce(ScreenId id) {
   lv_obj_t* obj = lv_obj_create(nullptr);
   Screen* s = createScreen(id);
   s->create(obj);
@@ -55,6 +61,11 @@ static void show(ScreenId id) {
   cur = s;
   curObj = obj;
   lastSwitch = millis();
+}
+
+static void show(ScreenId id) {
+  if (cur && cur->id() == id) return;
+  showForce(id);
 }
 
 static void closeModal() {
@@ -75,6 +86,10 @@ void uiHandleEvent(const UiEvent& e) {
     case EventKind::ConfigChanged:
       cfgRefreshUiSnapshot();
       i18nSetLang((Lang)cfg().tft_lang);
+      if (cfg().tft_lang != lastLang) {
+        lastLang = cfg().tft_lang;
+        if (cur) pendingRebuild = true;  // applied in uiTick
+      }
       break;
     default: overlayShow(e); break;
   }
@@ -84,6 +99,7 @@ void uiTick(uint32_t now) {
   if (now - lastTick < 100) return;
   lastTick = now;
 
+  overlayTick(now);
   if (booting) {
     NetStatus n;
     g_store.net.read([&](const NetStatus& s) { n = s; });
@@ -91,11 +107,12 @@ void uiTick(uint32_t now) {
     uint32_t el = now - bootStart;
     if (el < BOOT_MAX_MS && (el < BOOT_MIN_MS || !n.sta)) return;
     booting = false;
+    pendingDir = 0;
+    pendingTarget = 0;
     show(carouselNext(0, 1));
     return;
   }
 
-  overlayTick(now);
   if (pendingModalClose.exchange(false)) closeModal();
   if (pendingModal) {
     closeModal();
@@ -113,6 +130,10 @@ void uiTick(uint32_t now) {
   bool locked = modal || overlayActive() || (cur && cur->blocksSwipe());
   int8_t dir = pendingDir.exchange(0);
   uint8_t target = pendingTarget.exchange(0);
+  if (pendingRebuild) {
+    pendingRebuild = false;
+    showForce(cur->id());
+  }
   if (target) {
     show((ScreenId)target);
   } else if (dir && !locked) {

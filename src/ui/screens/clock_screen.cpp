@@ -84,7 +84,8 @@ class ClockScreen : public Screen {
     if (timeValid()) {
       time_t now = time(nullptr);
       struct tm tm;
-      if (local) localTimeOf(now, tm); else gmtime_r(&now, &tm);
+      if (local) now += (time_t)(cfg().timezone * 3600.0f);  // UI snapshot, same math as localTimeOf
+      gmtime_r(&now, &tm);
       if (tm.tm_sec != lastSec_ || lastLocal_ != local) {
         lastSec_ = tm.tm_sec;
         lastLocal_ = local;
@@ -93,8 +94,9 @@ class ClockScreen : public Screen {
         lv_label_set_text_fmt(date_, "%s, %d %s %d", tr((Tr)((int)Tr::WeekdaySunday + tm.tm_wday)), tm.tm_mday,
                               tr((Tr)((int)Tr::MonthJanuary + tm.tm_mon)), tm.tm_year + 1900);
       }
-    } else if (lastSec_ != -2) {
+    } else if (lastSec_ != -2 || lastLocal_ != local) {
       lastSec_ = -2;
+      lastLocal_ = local;
       lv_label_set_text(time_, "--:--:--");
       lv_label_set_text(mode_, tr(local ? Tr::LocalTime : Tr::Utc));
       lv_label_set_text(date_, "");
