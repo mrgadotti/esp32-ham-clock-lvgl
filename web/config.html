@@ -48,7 +48,7 @@ const PT={"Save":"Salvar","Saved":"Salvo","Saved, restarting...":"Salvo, reinici
 let L="en";try{L=localStorage.getItem("lang")||"en"}catch(x){}
 const T=s=>L=="pt"&&PT[s]||s;
 // types: s text, p password, i int, f float, b bool, a textarea, o select
-const SCR=[[1,"HamClock"],[2,"DX Cluster"],[3,"Sunspots"],[4,"Band info"],[5,"Weather"],[6,"APRS list"],[7,"POTA"],[8,"HamAlert"],[9,"APRS radar"],[10,"Matrix"],[12,"Forecast"],[13,"Location"]];
+const SCR=[[1,"HamClock"],[2,"DX Cluster"],[3,"Sunspots"],[4,"Band info"],[5,"Weather"],[6,"APRS list"],[7,"POTA"],[8,"HamAlert"],[9,"APRS radar"],[12,"Forecast"],[13,"Location"]];
 const S=[
 ["WiFi",[["wifi_ssid","s","SSID 1"],["wifi_pass","p","Password 1"],["wifi_ssid2","s","SSID 2"],["wifi_pass2","p","Password 2"],["ap_pass","p","AP password (min 8 chars)"]]],
 ["Station",[["user_callsign","s","Callsign"],["user_locator","s","Locator"],["user_lat","f","Latitude"],["user_lon","f","Longitude"],["user_lat_lon_valid","b","Valid lat/lon"],["timezone","f","Timezone (hours)"],["use_gps_if_active","b","Use GPS position when active"]]],

@@ -9,6 +9,3 @@ void uiHandleEvent(const UiEvent&);  // UI task: ConfigChanged, StartTouchCal, a
 void uiRequest(ScreenId);
 void uiNext();
 void uiPrev();
-void uiOpenModal(Screen*);  // takes ownership; shown full-screen on lv_layer_top
-void uiCloseModal();
-bool uiModalActive();  // a modal is open or queued

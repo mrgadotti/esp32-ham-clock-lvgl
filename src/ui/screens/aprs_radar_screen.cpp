@@ -120,12 +120,26 @@ class AprsRadarScreen : public Screen {
     d.start_angle = 0; d.end_angle = 360;
     lv_draw_arc(l, &d);
   }
-  static void text(lv_layer_t* l, const char* s, int x, int y, lv_color_t c, bool center) {
+  // Draws s at (x, y) (centred on x when `center`) and records its box in `used`. Optional labels
+  // (`optional`) are skipped when they would overlap an earlier one, so text never overprints.
+  static void text(lv_layer_t* l, const char* s, int x, int y, lv_color_t c, bool center, lv_area_t* used, int& nu,
+                   bool optional = false) {
+    int w = 0;  // ASCII only
+    for (const char* q = s; *q; q++) w += lv_font_get_glyph_width(&font_14, (uint8_t)*q, 0);
+    if (center) x -= w / 2;
+    lv_area_t a = {x, y, x + w, y + 16};
+    for (int i = 0; i < nu; i++) {
+      const lv_area_t& u = used[i];
+      if (a.x1 <= u.x2 && u.x1 <= a.x2 && a.y1 <= u.y2 && u.y1 <= a.y2) {
+        if (optional) return;
+        break;
+      }
+    }
+    if (nu < MAXN + 8) used[nu++] = a;
     lv_draw_label_dsc_t d;
     lv_draw_label_dsc_init(&d);
     d.color = c; d.font = &font_14; d.text = s; d.text_local = 1;  // copied: s may be a stack buffer
-    if (center) { d.align = LV_TEXT_ALIGN_CENTER; x -= 40; }
-    lv_area_t a = {x, y, x + (center ? 80 : 60), y + 16};
+    a.x2 += 4;  // slack so the label box never wraps the last glyph
     lv_draw_label(l, &d, &a);
   }
   static void km(char* b, size_t n, float v) {
@@ -148,11 +162,14 @@ class AprsRadarScreen : public Screen {
     arc(l, qx, qy, rOut, 1, grey);
     if (rAlert >= 1 && rAlert <= 2000) arc(l, qx, qy, rAlert, 1, lv_color_make(70, 130, 190));
     char b[16];
+    lv_area_t used[MAXN + 8];
+    int nu = 0;
+    used[nu++] = {272 - 8, 208 - 8, 320, 240};  // the 1x button (with its extended click area)
     km(b, sizeof b, range);
-    if (qy - rOut + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut + 2, txt, false);
+    if (qy - rOut + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut + 2, txt, false, used, nu);
     km(b, sizeof b, range / 2);
-    if (qy - rOut / 2 + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut / 2 + 2, txt, false);
-    text(l, "N", OX - 4, HEADER_H + 1, txt, false);
+    if (qy - rOut / 2 + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut / 2 + 2, txt, false, used, nu);
+    text(l, "N", OX - 4, HEADER_H + 1, txt, false, used, nu);
     if (qx >= 0 && qx < 320 && qy >= HEADER_H && qy < 240) arc(l, qx, qy, 4, 4, lv_color_hex(0xFF8C00));
 
     const bool labels = v.zoom >= 2 || s->n_ <= 11;
@@ -164,7 +181,7 @@ class AprsRadarScreen : public Screen {
       if (y < HEADER_H + 3 || y > 236) continue;
       if (x > 256 && y > 192) continue;  // keep clear of the 1\xC3\x97 button
       arc(l, x, y, 3, 3, t.col);
-      if (labels) text(l, t.call, x, y - 18 < HEADER_H ? y + 4 : y - 18, t.col, true);
+      if (labels) text(l, t.call, x, y - 18 < HEADER_H ? y + 4 : y - 18, t.col, true, used, nu, true);
     }
   }
 };

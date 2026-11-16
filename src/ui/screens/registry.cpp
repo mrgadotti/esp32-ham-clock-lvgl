@@ -9,8 +9,8 @@
 #include "forecast_screen.h"
 #include "propagation_screen.h"
 #include "bands_screen.h"
-#include "matrix_screen.h"
 #include "aprs_radar_screen.h"
+#include "location_screen.h"
 #include "../fonts/fonts.h"
 #include "../widgets/header.h"
 #include "i18n.h"
@@ -40,8 +40,6 @@ class PlaceholderScreen : public Screen {
       case ScreenId::Pota: return Tr::Pota;
       case ScreenId::HamAlert: return Tr::HamAlert;
       case ScreenId::AprsRadar: return Tr::AprsRadar;
-      case ScreenId::Matrix: return Tr::Matrix;
-      case ScreenId::Game: return Tr::GameTitle;
       case ScreenId::Forecast: return Tr::Forecast;
       case ScreenId::Location: return Tr::Location;
       case ScreenId::Settings: return Tr::Settings;
@@ -63,7 +61,7 @@ Screen* createScreen(ScreenId id) {
   if (id == ScreenId::Settings) return createSettingsScreen();
   if (id == ScreenId::Weather) return createWeatherScreen();
   if (id == ScreenId::Forecast) return createForecastScreen();
-  if (id == ScreenId::Matrix) return createMatrixScreen();
   if (id == ScreenId::AprsRadar) return createAprsRadarScreen();
+  if (id == ScreenId::Location) return createLocationScreen();
   return new PlaceholderScreen(id);
 }

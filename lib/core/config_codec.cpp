@@ -101,8 +101,8 @@ const ConfigField kFields[] = {
 };
 const size_t kFieldCount = sizeof(kFields) / sizeof(kFields[0]);
 
-static const uint32_t kScrEnMask = 0x37FE;  // ScreenId bits 1..13 except 11 (Game)
-static const uint8_t kDefaultOrder[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 10, 13};
+static const uint32_t kScrEnMask = 0x33FE;  // ScreenId bits 1..13 except 10 (Matrix, removed) and 11 (Game, removed)
+static const uint8_t kDefaultOrder[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 13, 0};
 
 static void setStr(char* dst, size_t size, const char* src) {
   snprintf(dst, size, "%s", src);

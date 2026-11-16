@@ -21,11 +21,8 @@ Screens, in swipe order:
 - HF bands
 - Weather
 - Forecast
-- Matrix clock
 - Location
 - Settings
-
-A hidden game is also included.
 
 - Swipe left or right to change screen (wraps around).
 - Lists scroll by dragging vertically.

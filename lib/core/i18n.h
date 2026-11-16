@@ -34,11 +34,11 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(TimeMode, "TIME MODE", "MODO DE HORA") \
   X(Gps, "GPS", "GPS") \
   /* table columns */ \
-  X(ColCall, "CALL", "INDIC.") \
-  X(ColCallsign, "CALLSIGN", "INDICATIVO") \
+  X(ColCall, "CALL", "CALL") \
+  X(ColMod, "MOD", "MOD") \
   X(ColMsg, "MSG", "MSG") \
   X(ColCountry, "COUNTRY", "PAÍS") \
-  X(ColSymbol, "SYMBOL", "SÍMBOLO") \
+  X(ColSymbol, "SYM", "SYM") \
   X(ColKm, "KM", "KM") \
   X(ColFreq, "FREQ", "FREQ") \
   X(ColDay, "DAY", "DIA") \
@@ -97,19 +97,6 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(NoForecast, "No forecast", "Sem previsão") \
   X(ForecastNoData, "Forecast: no data from API", "Previsão: sem dados da API") \
   X(WeatherForLocation, "Weather for location: ", "Clima para localização: ") \
-  /* matrix / game */ \
-  X(Matrix, "MATRIX CLOCK", "RELÓGIO MATRIX") \
-  X(GameTitle, "UNLIS HUNTER GAME", "JOGO UNLIS HUNTER") \
-  X(GameHint1, "Use a Yagi antenna to catch", "Use uma antena Yagi para captar") \
-  X(GameHint2, "and jam its signal by pressing", "e interferir no sinal pressionando") \
-  X(GameHint3, "PTT on it.", "PTT nela.") \
-  X(GameStart, "START", "INICIAR") \
-  X(GameStop, "STOP", "PARAR") \
-  X(GamePtt, "PTT", "PTT") \
-  X(GameExit, "EXIT", "SAIR") \
-  X(GameUnlis, "* Unlis = Unlicensed", "* Unlis = Sem licença") \
-  X(GameBand, "BAND:", "BANDA:") \
-  X(GameOver, "GAME OVER", "FIM DE JOGO") \
   /* location */ \
   X(Location, "LOCATION", "LOCALIZAÇÃO") \
   X(GpsLabel, "GPS:", "GPS:") \
@@ -121,6 +108,8 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(Lon, "LON:", "LON:") \
   X(Speed, "SPEED:", "VELOC:") \
   X(Locator, "LOCATOR:", "LOCATOR:") \
+  X(Saved, "SAVED", "SALVO") \
+  X(NoFix, "NO FIX", "SEM FIX") \
   /* settings */ \
   X(Settings, "SETTINGS", "CONFIGURAÇÕES") \
   X(DisplaySettings, "DISPLAY SETTINGS", "AJUSTES DE TELA") \
@@ -171,11 +160,11 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(DayFri, "Fri", "Sex") \
   X(DaySat, "Sat", "Sáb") \
   X(WeekdaySunday, "Sunday", "Domingo") \
-  X(WeekdayMonday, "Monday", "Segunda-feira") \
-  X(WeekdayTuesday, "Tuesday", "Terça-feira") \
-  X(WeekdayWednesday, "Wednesday", "Quarta-feira") \
-  X(WeekdayThursday, "Thursday", "Quinta-feira") \
-  X(WeekdayFriday, "Friday", "Sexta-feira") \
+  X(WeekdayMonday, "Monday", "Segunda") \
+  X(WeekdayTuesday, "Tuesday", "Terça") \
+  X(WeekdayWednesday, "Wednesday", "Quarta") \
+  X(WeekdayThursday, "Thursday", "Quinta") \
+  X(WeekdayFriday, "Friday", "Sexta") \
   X(WeekdaySaturday, "Saturday", "Sábado") \
   X(MonthJanuary, "January", "janeiro") \
   X(MonthFebruary, "February", "fevereiro") \
@@ -203,7 +192,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(SymHouse, "HOUSE", "CASA") \
   X(SymCar, "CAR", "CARRO") \
   X(SymDigi, "DIGI", "DIGI") \
-  X(SymRepeater, "REPEATER", "REPETIDORA") \
+  X(SymRepeater, "REPEATER", "REPET.") \
   X(SymHuman, "HUMAN", "PESSOA") \
   X(SymLaptop, "LAPTOP", "LAPTOP") \
   X(SymLogin, "LOGIN", "LOGIN") \
@@ -213,7 +202,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(SymBike, "BIKE", "BIKE") \
   X(SymIcp, "ICP", "ICP") \
   X(SymFire, "FIRE", "BOMBEIRO") \
-  X(SymFiretruck, "FIRETRK", "AUTOBOMBA") \
+  X(SymFiretruck, "FIRETRK", "AUTOB.") \
   X(SymHospital, "HOSP", "HOSP") \
   X(SymYagi, "YAGI", "YAGI") \
   X(SymGlider, "GLIDER", "PLANADOR") \
@@ -234,7 +223,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(DescRepeater, "Repeater", "Repetidora") \
   X(DescHuman, "Pedestrian", "Pedestre") \
   X(DescLaptop, "Laptop", "Laptop") \
-  X(DescWx, "Weather station", "Estação meteorológica") \
+  X(DescWx, "Weather station", "Estação meteo.") \
   X(DescShip, "Ship", "Navio") \
   X(DescAmbulance, "Ambulance", "Ambulância") \
   X(DescBike, "Bicycle", "Bicicleta") \

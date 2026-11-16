@@ -24,9 +24,9 @@ void test_defaults_match_original() {
   TEST_ASSERT_EQUAL_INT(100, c.tft_backlight);
   TEST_ASSERT_EQUAL_INT(30, c.tft_sw_sec);
   TEST_ASSERT_EQUAL_STRING("0", c.aprs_passcode);
-  TEST_ASSERT_EQUAL_HEX32(0x37FE, c.scr_en);
+  TEST_ASSERT_EQUAL_HEX32(0x33FE, c.scr_en);
   TEST_ASSERT_EQUAL_STRING("1234567890", c.ap_pass);
-  const uint8_t order[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 10, 13};
+  const uint8_t order[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 13, 0};
   TEST_ASSERT_EQUAL_MEMORY(order, c.screen_order, 12);
 }
 
@@ -115,13 +115,13 @@ void test_needs_restart() {
 void test_screen_bits_and_order() {
   Config c = defaults();
   TEST_ASSERT_TRUE(configApplyJson(c, "{\"scr_en\":65535,\"screen_order\":[1,1,11,14,2,12,0,0,13,3]}").ok);
-  TEST_ASSERT_EQUAL_HEX32(0x37FE, c.scr_en);
-  const uint8_t want[12] = {1, 0, 0, 0, 2, 12, 0, 0, 13, 3, 10, 13};  // slots 0..9 from the JSON, dups and out-of-range reset to 0
+  TEST_ASSERT_EQUAL_HEX32(0x33FE, c.scr_en);
+  const uint8_t want[12] = {1, 0, 0, 0, 2, 12, 0, 0, 13, 3, 0, 0};  // slots 0..9 from the JSON, dups and out-of-range reset to 0
   uint8_t tail[12];
   memcpy(tail, c.screen_order, 12);
   TEST_ASSERT_EQUAL_MEMORY(want, tail, 10);
-  TEST_ASSERT_EQUAL_UINT8(10, tail[10]);
-  TEST_ASSERT_EQUAL_UINT8(0, tail[11]);
+  TEST_ASSERT_EQUAL_UINT8(0, tail[10]);
+  TEST_ASSERT_EQUAL_UINT8(0, tail[11]);  // default 13 duplicates slot 8, reset to 0
 }
 
 void test_tft_rot_only_1_or_3() {

@@ -14,11 +14,13 @@
 #include "net/wifi_manager.h"
 #include "svc/aprs_ingest.h"
 #include "svc/aprs_is.h"
+#include "svc/aprs_beacon.h"
 #include "svc/dx_cluster.h"
 #include "svc/hamalert.h"
 #include "svc/pota.h"
 #include "svc/propagation.h"
 #include "svc/qrz.h"
+#include "svc/uart2.h"
 #include "svc/weather.h"
 #include "ui/fonts/fonts.h"
 #include "ui/theme.h"
@@ -117,6 +119,7 @@ static void netTask(void*) {
     timeTick(now);
     dxTick(now);
     aprsIsTick(now);
+    aprsBeaconTick(now);
     rgbLedTick(now);
     potaTick(now);
     hamalertTick(now);
@@ -126,10 +129,6 @@ static void netTask(void*) {
     memLogTick(now);
     vTaskDelay(pdMS_TO_TICKS(20));
   }
-}
-
-static void uartTask(void*) {
-  for (;;) vTaskDelay(pdMS_TO_TICKS(100));  // filled in by Task 17
 }
 
 void setup() {
@@ -146,11 +145,11 @@ void setup() {
   eventsInit();
   qrzInit();
   aprsIngestInit();
-  TaskHandle_t hUi, hNet;
+  TaskHandle_t hUi, hNet, hUart;
   xTaskCreatePinnedToCore(uiTask, "ui", 8192, nullptr, 3, &hUi, 1);
   xTaskCreatePinnedToCore(netTask, "net", 8192, nullptr, 1, &hNet, 0);
-  memLogSetTasks(hNet, hUi);
-  xTaskCreatePinnedToCore(uartTask, "uart", 4096, nullptr, 2, nullptr, 1);
+  xTaskCreatePinnedToCore(uart2Task, "uart", 6144, nullptr, 2, &hUart, 1);
+  memLogSetTasks(hNet, hUi, hUart);
 }
 
 void loop() { vTaskDelete(NULL); }

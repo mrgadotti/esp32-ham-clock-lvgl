@@ -4,16 +4,26 @@
 
 #include "../fonts/fonts.h"
 #include "../theme.h"
+#include "header.h"
 
 namespace {
 struct State {
   SpotTableCols cols;
 };
 
+// Zebra stripe: odd rows get a gray fill (original 0x0841 is ~#080808, invisible on the panel).
+void stripeRow(lv_draw_task_t* t, const lv_draw_dsc_base_t* base) {
+  lv_draw_fill_dsc_t* fd = lv_draw_task_get_fill_dsc(t);
+  if (!fd) return;
+  fd->opa = (base->id1 & 1) ? LV_OPA_COVER : LV_OPA_TRANSP;
+  fd->color = lv_color_hex(0x2A2A2A);
+}
+
 void onDraw(lv_event_t* e) {
   lv_draw_task_t* t = lv_event_get_draw_task(e);
   auto* base = static_cast<lv_draw_dsc_base_t*>(lv_draw_task_get_draw_dsc(t));
   if (base->part != LV_PART_ITEMS) return;
+  stripeRow(t, base);
   lv_draw_label_dsc_t* ld = lv_draw_task_get_label_dsc(t);
   if (!ld) return;
   auto* st = static_cast<State*>(lv_obj_get_user_data(lv_event_get_target_obj(e)));
@@ -30,10 +40,11 @@ lv_obj_t* spotTableCreate(lv_obj_t* parent, const SpotTableCols& cols) {
   lv_obj_remove_style_all(t);
   lv_obj_set_style_text_font(t, &font_14, LV_PART_ITEMS);
   lv_obj_set_style_text_color(t, COL_TEXT, LV_PART_ITEMS);
-  lv_obj_set_style_bg_opa(t, LV_OPA_TRANSP, LV_PART_ITEMS);
+  lv_obj_set_style_bg_opa(t, LV_OPA_COVER, LV_PART_ITEMS);  // fill task must exist; stripeRow sets real opa
   lv_obj_set_style_border_width(t, 0, LV_PART_ITEMS);
   lv_obj_set_style_pad_all(t, 0, LV_PART_ITEMS);
-  lv_obj_set_style_pad_left(t, 3, LV_PART_ITEMS);
+  lv_obj_set_style_pad_left(t, 2, LV_PART_ITEMS);
+  lv_obj_set_style_pad_right(t, 2, LV_PART_ITEMS);
   lv_obj_set_scroll_dir(t, LV_DIR_VER);
   lv_obj_add_flag(t, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
   int w = 0;
@@ -43,6 +54,13 @@ lv_obj_t* spotTableCreate(lv_obj_t* parent, const SpotTableCols& cols) {
     w += cols.width[c];
   }
   lv_obj_set_width(t, w);
+  // Header separator (original: 1 px muted gray under the column titles); sits in the 18 px header band above the table.
+  lv_obj_t* sep = lv_obj_create(parent);
+  lv_obj_remove_style_all(sep);
+  lv_obj_set_style_bg_opa(sep, LV_OPA_COVER, 0);
+  lv_obj_set_style_bg_color(sep, lv_color_hex(0xD3D3D3), 0);  // TFT_LIGHTGREY (dark-theme muted)
+  lv_obj_set_size(sep, 320, 1);
+  lv_obj_set_pos(sep, 0, HEADER_H + 17);
   lv_obj_set_user_data(t, new State{cols});
   lv_obj_add_event_cb(t, onDraw, LV_EVENT_DRAW_TASK_ADDED, nullptr);
   lv_obj_add_event_cb(t, onDelete, LV_EVENT_DELETE, nullptr);

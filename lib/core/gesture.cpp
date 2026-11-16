@@ -10,7 +10,7 @@ uint8_t nextScreen(const uint8_t order[12], uint16_t enabledMask, uint8_t cur, i
   uint8_t list[13]; int n = 0;
   for (int i = 0; i < 12; ++i) {
     uint8_t id = order[i];
-    if (id && id != scr::Settings && id != scr::Game && id < 16 && (enabledMask & (1u << id))) list[n++] = id;
+    if (id && id != scr::Settings && id != scr::Matrix && id != scr::Game && id < 16 && (enabledMask & (1u << id))) list[n++] = id;
   }
   list[n++] = scr::Settings;
   int idx = -1;
