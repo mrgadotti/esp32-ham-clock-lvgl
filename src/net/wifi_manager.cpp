@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <lwip/dns.h>
 
 #include "app/config_store.h"
 #include "app/data_store.h"
@@ -96,6 +97,15 @@ void wifiTick(uint32_t now) {
         retryFromAp = false;
         stopAp();
         Serial.printf("[WIFI] connected, IP %s\n", WiFi.localIP().toString().c_str());
+        // This router's DHCP offers DNS 0.0.0.0 (option 6 unusable), so lwIP has no resolver: use public ones.
+        if (WiFi.dnsIP(0) == IPAddress(0, 0, 0, 0)) {
+          ip_addr_t d;
+          IP_ADDR4(&d, 1, 1, 1, 1);
+          dns_setserver(0, &d);
+          IP_ADDR4(&d, 8, 8, 8, 8);
+          dns_setserver(1, &d);
+          Serial.println("[WIFI] DHCP gave no DNS, using 1.1.1.1 / 8.8.8.8");
+        }
         st = St::Connected;
       } else if (now - stamp > kConnectTimeoutMs) {
         WiFi.disconnect();
