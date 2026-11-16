@@ -10,10 +10,19 @@ struct State {
   SpotTableCols cols;
 };
 
+// Zebra stripe: odd rows get a gray fill (original 0x0841 is ~#080808, invisible on the panel).
+void stripeRow(lv_draw_task_t* t, const lv_draw_dsc_base_t* base) {
+  lv_draw_fill_dsc_t* fd = lv_draw_task_get_fill_dsc(t);
+  if (!fd) return;
+  fd->opa = (base->id1 & 1) ? LV_OPA_COVER : LV_OPA_TRANSP;
+  fd->color = lv_color_hex(0x2A2A2A);
+}
+
 void onDraw(lv_event_t* e) {
   lv_draw_task_t* t = lv_event_get_draw_task(e);
   auto* base = static_cast<lv_draw_dsc_base_t*>(lv_draw_task_get_draw_dsc(t));
   if (base->part != LV_PART_ITEMS) return;
+  stripeRow(t, base);
   lv_draw_label_dsc_t* ld = lv_draw_task_get_label_dsc(t);
   if (!ld) return;
   auto* st = static_cast<State*>(lv_obj_get_user_data(lv_event_get_target_obj(e)));
@@ -30,7 +39,7 @@ lv_obj_t* spotTableCreate(lv_obj_t* parent, const SpotTableCols& cols) {
   lv_obj_remove_style_all(t);
   lv_obj_set_style_text_font(t, &font_14, LV_PART_ITEMS);
   lv_obj_set_style_text_color(t, COL_TEXT, LV_PART_ITEMS);
-  lv_obj_set_style_bg_opa(t, LV_OPA_TRANSP, LV_PART_ITEMS);
+  lv_obj_set_style_bg_opa(t, LV_OPA_COVER, LV_PART_ITEMS);  // fill task must exist; stripeRow sets real opa
   lv_obj_set_style_border_width(t, 0, LV_PART_ITEMS);
   lv_obj_set_style_pad_all(t, 0, LV_PART_ITEMS);
   lv_obj_set_style_pad_left(t, 2, LV_PART_ITEMS);
