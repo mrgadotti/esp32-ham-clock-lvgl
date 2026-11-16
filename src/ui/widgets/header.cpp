@@ -17,14 +17,15 @@ lv_obj_t* headerCreate(lv_obj_t* parent, Tr title) {
   lv_label_set_text(t, tr(title));
   lv_obj_align(t, LV_ALIGN_LEFT_MID, 6, 0);
 
-  lv_obj_t* c = lv_label_create(bar);  // child index 1 = clock
+  lv_obj_t* c = lv_label_create(bar);
   lv_label_set_text(c, "");
   lv_obj_align(c, LV_ALIGN_RIGHT_MID, -6, 0);
+  lv_obj_set_user_data(bar, c);  // clock label
   return bar;
 }
 
 void headerSetClock(lv_obj_t* header, const char* text) {
-  lv_obj_t* c = lv_obj_get_child(header, 1);
+  lv_obj_t* c = static_cast<lv_obj_t*>(lv_obj_get_user_data(header));
   if (!c) return;
   lv_label_set_text(c, text);
   lv_obj_align(c, LV_ALIGN_RIGHT_MID, -6, 0);
