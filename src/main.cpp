@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <lvgl.h>
 
+#include "app/config_store.h"
 #include "board.h"
 #include "hal/display.h"
 #include "hal/touch.h"
@@ -23,6 +24,9 @@ static void bar(int x, uint32_t color, const char* text, bool darkText) {
 
 void setup() {
   Serial.begin(115200);
+  Config boot;
+  configStoreLoad(boot);
+  Serial.printf("[CFG] callsign=%s ssid=%s\n", boot.user_callsign, boot.wifi_ssid);
   displayInit(1, DISPLAY_INVERT_DEFAULT);
   lv_obj_set_style_bg_color(lv_screen_active(), lv_color_black(), 0);
   bar(0, 0xFF0000, "RED", false);
