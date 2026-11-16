@@ -16,6 +16,7 @@
 #include "svc/pota.h"
 #include "svc/propagation.h"
 #include "svc/qrz.h"
+#include "svc/weather.h"
 #include "ui/fonts/fonts.h"
 #include "ui/theme.h"
 #include "ui/ui_manager.h"
@@ -115,6 +116,7 @@ static void netTask(void*) {
     potaTick(now);
     hamalertTick(now);
     qrzTick(now);
+    weatherTick(now);
     propTick(now);
     memLogTick(now);
     vTaskDelay(pdMS_TO_TICKS(20));

@@ -4,6 +4,7 @@
 #include <lvgl.h>
 
 #include "board.h"
+#include "app/config_store.h"
 
 static TFT_eSPI tft;
 static lv_display_t* disp;
@@ -35,6 +36,11 @@ static void flushCb(lv_display_t* d, const lv_area_t* a, uint8_t* px) {
 void displaySetBacklight(uint8_t percent) {
   percent = constrain(percent, 5, 100);
   ledcWrite(0, (uint32_t)percent * 255 / 100);
+}
+
+void displayApplyNightDim(bool night) {
+  int bl = cfg().tft_backlight, nd = cfg().tft_ndim;
+  displaySetBacklight(night && nd > 0 ? bl * (100 - nd) / 100 : bl);  // displaySetBacklight clamps to >= 5
 }
 
 void displaySetInvert(bool invert) {

@@ -6,7 +6,9 @@
 #include "i18n.h"
 #include "../app/config_store.h"
 #include "../app/data_store.h"
+#include "../hal/display.h"
 #include "../hal/touch.h"
+#include "weather_json.h"
 #include "../hal/touch_cal_ui.h"
 #include "overlays/alert_overlay.h"
 #include "screens/boot_screen.h"
@@ -26,6 +28,10 @@ static uint8_t lastLang;
 static bool pendingRebuild;
 static uint32_t bootStart, lastTick, lastSwitch;
 static lv_obj_t* bootObj;
+static bool night;
+static uint32_t lastWxVer = ~0u;
+
+static void applyNight() { displayApplyNightDim(night); }
 
 static void onGesture(Gesture g) {  // indev callback: flag only
   pendingDir = (g == Gesture::SwipeLeft) ? 1 : -1;
@@ -86,6 +92,7 @@ void uiHandleEvent(const UiEvent& e) {
     case EventKind::StartTouchCal: touchCalRun(nullptr); break;
     case EventKind::ConfigChanged:
       cfgRefreshUiSnapshot();
+      applyNight();
       i18nSetLang((Lang)cfg().tft_lang);
       if (cfg().tft_lang != lastLang) {
         lastLang = cfg().tft_lang;
@@ -101,6 +108,14 @@ void uiTick(uint32_t now) {
   lastTick = now;
 
   overlayTick(now);
+  if (uint32_t v = g_store.weather.version(); v != lastWxVer) {
+    lastWxVer = v;
+    char ic[8];
+    g_store.weather.read([&](const WeatherData& w) { memcpy(ic, w.iconCode, sizeof ic); });
+    ic[7] = 0;
+    night = isNightFromIcon(ic);
+    applyNight();
+  }
   if (booting) {
     NetStatus n;
     g_store.net.read([&](const NetStatus& s) { n = s; });
