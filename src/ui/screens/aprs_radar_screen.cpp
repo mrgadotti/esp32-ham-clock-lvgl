@@ -54,17 +54,18 @@ class AprsRadarScreen : public Screen {
     lv_obj_add_event_cb(b, onReset, LV_EVENT_CLICKED, this);
     lv_obj_t* l = lv_label_create(b);
     lv_obj_set_style_text_font(l, &font_14, 0);
-    lv_label_set_text(l, "1x");
+    lv_label_set_text(l, "1\xC3\x97");
     lv_obj_center(l);
   }
 
   void tick(uint32_t) override {
     if (view_.zoom <= 1.0f) headerTickUtc(hdr_);
     uint32_t v = g_store.aprs.version();
-    if (v == ver_) return;
-    ver_ = v;
-    double la, lo;
+    double la = 0, lo = 0;
     bool me = serviceCoords(la, lo);
+    // QTH or radius change moves every station: recompute, not only on new data
+    if (v == ver_ && me == me_ && la == la_ && lo == lo_) return;
+    ver_ = v; me_ = me; la_ = la; lo_ = lo;
     n_ = 0;
     g_store.aprs.read([&](const RingBuffer<AprsStation, 30>& r) {
       for (size_t i = 0; i < r.size() && n_ < MAXN; i++) {
@@ -86,11 +87,13 @@ class AprsRadarScreen : public Screen {
   Pt pts_[MAXN];
   int n_ = 0;
   uint32_t ver_ = ~0u;
+  bool me_ = false;
+  double la_ = 0, lo_ = 0;
 
   void viewChanged() {
     if (view_.zoom > 1.0f) {
       char b[8];
-      snprintf(b, sizeof b, "x%d", (int)view_.zoom);
+      snprintf(b, sizeof b, "\xC3\x97%d", (int)view_.zoom);
       headerSetClock(hdr_, b);
     } else {
       headerTickUtc(hdr_);
@@ -145,9 +148,9 @@ class AprsRadarScreen : public Screen {
     arc(l, qx, qy, rOut, 1, grey);
     if (rAlert >= 1 && rAlert <= 2000) arc(l, qx, qy, rAlert, 1, lv_color_make(70, 130, 190));
     char b[16];
-    km(b, sizeof b, range / v.zoom);
+    km(b, sizeof b, range);
     if (qy - rOut + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut + 2, txt, false);
-    km(b, sizeof b, range / v.zoom / 2);
+    km(b, sizeof b, range / 2);
     if (qy - rOut / 2 + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut / 2 + 2, txt, false);
     text(l, "N", OX - 4, HEADER_H + 1, txt, false);
     if (qx >= 0 && qx < 320 && qy >= HEADER_H && qy < 240) arc(l, qx, qy, 4, 4, lv_color_hex(0xFF8C00));
@@ -159,6 +162,7 @@ class AprsRadarScreen : public Screen {
       if (t.distKm <= 0 || t.distKm > range) continue;
       if (!radarProject(v, t.distKm, t.bearing, range, R_PX, OX, OY, x, y)) continue;
       if (y < HEADER_H + 3 || y > 236) continue;
+      if (x > 256 && y > 192) continue;  // keep clear of the 1\xC3\x97 button
       arc(l, x, y, 3, 3, t.col);
       if (labels) text(l, t.call, x, y - 18 < HEADER_H ? y + 4 : y - 18, t.col, true);
     }
