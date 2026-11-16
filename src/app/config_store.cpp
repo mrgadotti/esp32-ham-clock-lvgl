@@ -98,17 +98,20 @@ bool cfgUpdate(void (*fn)(Config&)) {
   return ok;
 }
 
+// On an NVS save failure the new values stay applied in RAM, but out.ok is false (error "nvs_save").
 bool cfgApplyJson(const char* json, ApplyResult& out) {
   xSemaphoreTake(g_mutex, portMAX_DELAY);
   Config c = g_cfg;
   out = configApplyJson(c, json);
-  bool ok = out.ok;
-  if (ok) {
+  if (out.ok) {
     g_cfg = c;
-    ok = configStoreSave(c);
-    if (!ok) snprintf(out.error, sizeof out.error, "nvs_save");
+    if (!configStoreSave(c)) {
+      out.ok = false;
+      snprintf(out.error, sizeof out.error, "nvs_save");
+    }
   }
+  bool applied = out.ok || !strcmp(out.error, "nvs_save");
   xSemaphoreGive(g_mutex);
-  if (out.ok) onConfigChanged();
-  return ok;
+  if (applied) onConfigChanged();
+  return out.ok;
 }

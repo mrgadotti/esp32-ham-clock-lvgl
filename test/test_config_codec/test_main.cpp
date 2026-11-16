@@ -116,7 +116,7 @@ void test_screen_bits_and_order() {
   Config c = defaults();
   TEST_ASSERT_TRUE(configApplyJson(c, "{\"scr_en\":65535,\"screen_order\":[1,1,11,14,2,12,0,0,13,3]}").ok);
   TEST_ASSERT_EQUAL_HEX32(0x37FE, c.scr_en);
-  const uint8_t want[12] = {1, 0, 0, 0, 2, 12, 0, 0, 13, 3, 10, 13};  // tail keeps defaults, dup 13 reset
+  const uint8_t want[12] = {1, 0, 0, 0, 2, 12, 0, 0, 13, 3, 10, 13};  // slots 0..9 from the JSON, dups and out-of-range reset to 0
   uint8_t tail[12];
   memcpy(tail, c.screen_order, 12);
   TEST_ASSERT_EQUAL_MEMORY(want, tail, 10);
@@ -141,6 +141,12 @@ void test_readonly_and_ascii() {
   TEST_ASSERT_EQUAL_STRING("caf??", c.aprs_comment);
 }
 
+void test_ssid_keeps_utf8() {
+  Config c = defaults();
+  TEST_ASSERT_TRUE(configApplyJson(c, "{\"wifi_ssid\":\"Caf\\u00e9\"}").ok);
+  TEST_ASSERT_EQUAL_STRING("Caf\xc3\xa9", c.wifi_ssid);
+}
+
 void test_nvs_keys_fit() {
   for (size_t i = 0; i < kFieldCount; i++)
     if (kFields[i].nvsKey) TEST_ASSERT_TRUE_MESSAGE(strlen(kFields[i].nvsKey) <= 15, kFields[i].nvsKey);
@@ -160,6 +166,7 @@ int main() {
   RUN_TEST(test_screen_bits_and_order);
   RUN_TEST(test_tft_rot_only_1_or_3);
   RUN_TEST(test_readonly_and_ascii);
+  RUN_TEST(test_ssid_keeps_utf8);
   RUN_TEST(test_nvs_keys_fit);
   return UNITY_END();
 }

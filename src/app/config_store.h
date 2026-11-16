@@ -14,7 +14,8 @@ void cfgRefreshUiSnapshot();          // UI task: call at boot and when handling
 // Mutate a copy, clamp, publish, save to NVS, then call onConfigChanged(). Returns false if the save failed.
 bool cfgUpdate(void (*fn)(Config&));
 
-// Applies a JSON patch under the mutex; on success saves and fires onConfigChanged().
+// Applies a JSON patch under the mutex; saves and fires onConfigChanged(). If the NVS save fails, out.ok is false
+// ("nvs_save") but the change stays applied in RAM. Callers must check out.ok.
 bool cfgApplyJson(const char* json, ApplyResult& out);
 
 // Weak no-op here; the UI layer overrides it to post EventKind::ConfigChanged.

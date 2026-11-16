@@ -241,10 +241,16 @@ ApplyResult configApplyJson(Config& cfg, const char* json) {
         if (n >= f.size) n = f.size - 1;
         memcpy(p, s, n);
         p[n] = 0;
-        if (!f.isSecret)  // printable ASCII only (newline kept for the cluster filter list)
+        if (f.offset == OFS(wifi_ssid) || f.offset == OFS(wifi_ssid2)) {  // keep UTF-8 SSID bytes, drop control bytes
+          size_t w = 0;
+          for (size_t k = 0; k < n; k++)
+            if (p[k] >= 0x20) p[w++] = p[k];
+          p[w] = 0;
+        } else if (!f.isSecret) {  // printable ASCII only (newline kept for the cluster filter list)
           for (size_t k = 0; k < n; k++)
             if (((char*)p)[k] != '\n' || f.offset != OFS(cluster_filters))
               if (p[k] < 0x20 || p[k] > 0x7E) p[k] = '?';
+        }
         break;
       }
       case FT_INT:
