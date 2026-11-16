@@ -121,6 +121,8 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(Lon, "LON:", "LON:") \
   X(Speed, "SPEED:", "VELOC:") \
   X(Locator, "LOCATOR:", "LOCATOR:") \
+  X(Saved, "SAVED", "SALVO") \
+  X(NoFix, "NO FIX", "SEM FIX") \
   /* settings */ \
   X(Settings, "SETTINGS", "CONFIGURAÇÕES") \
   X(DisplaySettings, "DISPLAY SETTINGS", "AJUSTES DE TELA") \

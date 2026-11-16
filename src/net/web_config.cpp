@@ -8,6 +8,7 @@
 #include "app/config_store.h"
 #include "app/data_store.h"
 #include "svc/qrz.h"
+#include "svc/uart2.h"
 #include "app/events.h"
 #include "board.h"
 #include "config_html.h"
@@ -88,7 +89,46 @@ void handleStatus() {
   sendJson(200, s);
 }
 
-void handleBridgeStub() { sendJson(200, "{\"enabled\":false}"); }  // Task 17 replaces
+void handleUartStatus() {
+  Config c;
+  cfgGet(c);
+  GpsState g;
+  g_store.gps.read([&](const GpsState& v) { g = v; });
+  JsonDocument d;
+  d["uart2_connected_module"] = c.uart2_cmod;
+  d["gps_active"] = g.active;
+  d["gps_fix"] = g.fix;
+  d["bt_active"] = uart2BridgeEnabled();
+  d["aprs_uart_active"] = !strncmp(c.uart2_cmod, "aprs_tnc", 8);
+  String s;
+  serializeJson(d, s);
+  sendJson(200, s);
+}
+
+void handleBridgeStatus() {
+  JsonDocument d;
+  uart2BridgeStatus(d);
+  String s;
+  serializeJson(d, s);
+  sendJson(200, s);
+}
+
+void handleBridgeScan() {
+  if (!uart2BridgeEnabled()) return sendJson(400, "{\"status\":\"error\",\"message\":\"bridge_mode_required\"}");
+  if (!uart2BridgeScan()) return sendJson(503, "{\"status\":\"error\",\"message\":\"busy\"}");
+  sendJson(200, "{\"status\":\"ok\",\"action\":\"scan_started\"}");
+}
+
+void handleBridgePair() {
+  if (!uart2BridgeEnabled()) return sendJson(400, "{\"status\":\"error\",\"message\":\"bridge_mode_required\"}");
+  JsonDocument d;
+  if (deserializeJson(d, server.arg("plain"))) return sendJson(400, "{\"status\":\"error\",\"message\":\"json_parse\"}");
+  const char* pw = d["password"] | "";
+  if (strlen(pw) > 16) return sendJson(400, "{\"status\":\"error\",\"message\":\"password_too_long\"}");
+  if (!uart2BridgePair(d["name"] | "", d["address"] | "", pw))
+    return sendJson(400, "{\"status\":\"error\",\"message\":\"pair_start_failed\"}");
+  sendJson(200, "{\"status\":\"ok\",\"action\":\"pair_started\"}");
+}
 }  // namespace
 
 void webInit() {
@@ -97,10 +137,10 @@ void webInit() {
   server.on("/api/save", HTTP_POST, handleSave);
   server.on("/api/reset_touch", HTTP_POST, handleResetTouch);
   server.on("/api/status", HTTP_GET, handleStatus);
-  server.on("/api/uart_status", HTTP_GET, handleBridgeStub);
-  server.on("/api/bridge_bt_status", HTTP_GET, handleBridgeStub);
-  server.on("/api/bridge_bt_scan", HTTP_POST, handleBridgeStub);
-  server.on("/api/bridge_bt_pair", HTTP_POST, handleBridgeStub);
+  server.on("/api/uart_status", HTTP_GET, handleUartStatus);
+  server.on("/api/bridge_bt_status", HTTP_GET, handleBridgeStatus);
+  server.on("/api/bridge_bt_scan", HTTP_POST, handleBridgeScan);
+  server.on("/api/bridge_bt_pair", HTTP_POST, handleBridgePair);
 }
 
 void webTick() {

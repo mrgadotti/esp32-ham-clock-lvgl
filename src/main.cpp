@@ -19,6 +19,7 @@
 #include "svc/pota.h"
 #include "svc/propagation.h"
 #include "svc/qrz.h"
+#include "svc/uart2.h"
 #include "svc/weather.h"
 #include "ui/fonts/fonts.h"
 #include "ui/theme.h"
@@ -128,10 +129,6 @@ static void netTask(void*) {
   }
 }
 
-static void uartTask(void*) {
-  for (;;) vTaskDelay(pdMS_TO_TICKS(100));  // filled in by Task 17
-}
-
 void setup() {
   Serial.begin(115200);
   Config boot;
@@ -148,7 +145,7 @@ void setup() {
   xTaskCreatePinnedToCore(uiTask, "ui", 8192, nullptr, 3, &hUi, 1);
   xTaskCreatePinnedToCore(netTask, "net", 10240, nullptr, 1, &hNet, 0);
   memLogSetTasks(hNet, hUi);
-  xTaskCreatePinnedToCore(uartTask, "uart", 4096, nullptr, 2, nullptr, 1);
+  xTaskCreatePinnedToCore(uart2Task, "uart", 6144, nullptr, 2, nullptr, 1);
 }
 
 void loop() { vTaskDelete(NULL); }

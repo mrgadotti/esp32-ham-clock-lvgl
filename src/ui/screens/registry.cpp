@@ -11,6 +11,7 @@
 #include "bands_screen.h"
 #include "matrix_screen.h"
 #include "aprs_radar_screen.h"
+#include "location_screen.h"
 #include "../fonts/fonts.h"
 #include "../widgets/header.h"
 #include "i18n.h"
@@ -65,5 +66,6 @@ Screen* createScreen(ScreenId id) {
   if (id == ScreenId::Forecast) return createForecastScreen();
   if (id == ScreenId::Matrix) return createMatrixScreen();
   if (id == ScreenId::AprsRadar) return createAprsRadarScreen();
+  if (id == ScreenId::Location) return createLocationScreen();
   return new PlaceholderScreen(id);
 }

@@ -4,7 +4,7 @@
 #include <WiFi.h>
 
 #include "app/config_store.h"
-#include "app/data_store.h"
+#include "svc/uart2.h"
 
 bool timeValid() {
   time_t t = time(nullptr);
@@ -24,9 +24,7 @@ void timeTick(uint32_t now) {
   static uint32_t last = 0;
   static bool started = false;
   if (WiFi.status() != WL_CONNECTED) return;
-  bool gpsTime = false;
-  g_store.gps.read([&](const GpsState& g) { gpsTime = g.active && g.fix && g.utc != 0; });
-  if (gpsTime) return;
+  if (gpsTimeValid()) return;
   if (!started || now - last >= 3600000UL) {
     configTime(0, 0, "pool.ntp.org", "time.google.com");  // re-calling re-syncs
     started = true;
