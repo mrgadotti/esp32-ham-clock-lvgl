@@ -52,6 +52,7 @@ struct GpsState {
   bool active, fix; double lat, lon; float speedKmh;
   uint8_t sats, satsGps, satsGlo, satsGal, satsBds;
   uint32_t utc; uint32_t lastFixMs;
+  uint32_t date;  // ddmmyy, 0 = unknown (added in Task 17 for clock sync)
 };
 
 struct NetStatus { bool sta; bool ap; char ip[16]; char ssid[33]; int8_t rssi; };
