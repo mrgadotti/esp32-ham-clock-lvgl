@@ -12,6 +12,8 @@
 #include "net/web_config.h"
 #include "net/wifi_manager.h"
 #include "svc/dx_cluster.h"
+#include "svc/hamalert.h"
+#include "svc/pota.h"
 #include "svc/qrz.h"
 #include "ui/fonts/fonts.h"
 #include "ui/theme.h"
@@ -64,6 +66,8 @@ static void netTask(void*) {
     webTick();
     timeTick(now);
     dxTick(now);
+    potaTick(now);
+    hamalertTick(now);
     qrzTick(now);
     memLogTick(now);
     vTaskDelay(pdMS_TO_TICKS(20));
