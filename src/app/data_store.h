@@ -39,4 +39,7 @@ struct DataStore {
   Guarded<NetStatus> net;
 };
 // Heap-allocated at startup: ~28 KB of static DRAM would not fit next to WiFi and LVGL.
-extern DataStore& g_store;
+extern DataStore* g_storePtr;
+#define g_store (*g_storePtr)
+// Call first thing in setup(): a global constructor runs before the heap has its full DRAM and cannot fit 22 KB.
+void dataStoreInit();

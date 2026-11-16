@@ -132,6 +132,7 @@ static void netTask(void*) {
 }
 
 void setup() {
+  dataStoreInit();
   Serial.begin(115200);
   Serial.printf("[MEM] boot largest=%u free=%u\n", (unsigned)memLargest8(), (unsigned)ESP.getFreeHeap());
   Config boot;

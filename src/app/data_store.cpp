@@ -1,3 +1,4 @@
 #include "data_store.h"
 
-DataStore& g_store = *new DataStore();
+DataStore* g_storePtr = nullptr;
+void dataStoreInit() { g_storePtr = new DataStore(); }
