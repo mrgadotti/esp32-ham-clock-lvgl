@@ -1,0 +1,148 @@
+#include "weather_json.h"
+#include <string.h>
+#include <stdlib.h>
+
+static void copyText(char* dst, size_t cap, const char* src) {
+  size_t n = 0;
+  for (const unsigned char* p = (const unsigned char*)(src ? src : ""); *p && n + 1 < cap; p++) {
+    if (*p >= 0x20 && *p < 0x7F) dst[n++] = (char)*p;
+    else if ((*p == 0xC2 || *p == 0xC3) && (p[1] & 0xC0) == 0x80 && !(*p == 0xC2 && p[1] < 0xA0)) {
+      if (n + 2 >= cap) break;
+      dst[n++] = (char)*p; dst[n++] = (char)p[1]; p++;
+    }  // else dropped (other lead bytes are dropped; their continuation bytes fail the test above)
+  }
+  dst[n] = 0;
+}
+
+bool isNightFromIcon(const char* c) {
+  size_t n = c ? strlen(c) : 0;
+  return n > 0 && c[n - 1] == 'n';
+}
+
+bool weatherParseCurrent(JsonDocument& doc, WeatherData& out) {
+  if (!doc.is<JsonObject>()) return false;
+  if (!doc["cod"].isNull() && doc["cod"].as<int>() != 200) return false;
+  if (!doc["main"]["temp"].is<float>() || doc["weather"][0].isNull()) return false;
+  JsonObject w = doc["weather"][0];
+  copyText(out.description, sizeof out.description, w["description"] | "");
+  if (!out.description[0]) strcpy(out.description, "--");
+  copyText(out.cityName, sizeof out.cityName, doc["name"] | "");
+  copyText(out.iconCode, sizeof out.iconCode, w["icon"] | "");
+  out.weatherId = w["id"] | 800;
+  out.tempC = doc["main"]["temp"] | 0.0f;
+  out.humidity = doc["main"]["humidity"] | 0;
+  out.pressure = doc["main"]["pressure"] | 0;
+  out.windMs = doc["wind"]["speed"] | 0.0f;
+  out.valid = true;
+  out.lastError[0] = 0;
+  return true;
+}
+
+bool weatherParseAir(JsonDocument& doc, WeatherData& out) {
+  JsonObject c = doc["list"][0]["components"];
+  if (c.isNull()) return false;
+  out.pm25 = c["pm2_5"] | 0.0f;
+  out.pm10 = c["pm10"] | 0.0f;
+  return true;
+}
+
+bool weatherParseForecast(JsonDocument& doc, WeatherData& out, long nowUnix, long tz) {
+  if (!doc.is<JsonObject>()) return false;
+  if (!doc["cod"].isNull() && doc["cod"].as<int>() != 200) return false;
+  JsonArray list = doc["list"].as<JsonArray>();
+  if (list.isNull() || list.size() == 0) return false;
+  const int n = (int)list.size();
+  const bool haveClock = nowUnix > 100000L;
+
+  // Next-6h storm / wind scan (feeds the alert scheduler).
+  int stormEta = 0; float maxWind = 0, maxGust = 0;
+  if (haveClock) {
+    for (JsonObject e : list) {
+      long dt = e["dt"] | 0L, delta = dt - nowUnix;
+      if (dt <= 0 || delta < 0 || delta > 6L * 3600L) continue;
+      float ws = e["wind"]["speed"] | 0.0f, g = e["wind"]["gust"] | 0.0f;
+      if (ws > maxWind) maxWind = ws;
+      if (g > maxGust) maxGust = g;
+      int id = e["weather"][0]["id"] | 800;
+      if (id >= 200 && id < 300) {
+        int eta = (int)((delta + 59) / 60);
+        if (eta < 1) eta = 1;
+        if (stormEta == 0 || eta < stormEta) stormEta = eta;
+      }
+    }
+  }
+
+  const long targetOffsets[WX_DETAIL_COLS] = {3L * 3600, 6L * 3600, 24L * 3600, 48L * 3600, 72L * 3600};
+  const int fallbackIdx[WX_DETAIL_COLS] = {0, 1, 7, 15, 23};
+  const long baseDay = ((nowUnix + tz) / 86400L) * 86400L;
+
+  WeatherData t = out;  // commit only at the end
+  for (int s = 0; s < WX_DETAIL_COLS; s++) {
+    int idx = -1;
+    if (s >= 2 && haveClock) {
+      const long dayStart = baseDay + (long)(s - 1) * 86400L, noon = dayStart + 12L * 3600L;
+      long best = 0x7FFFFFFF;
+      for (int i = 0; i < n; i++) {
+        long dt = list[i]["dt"] | 0L;
+        if (dt <= 0) continue;
+        long l = dt + tz;
+        if ((l / 86400L) * 86400L != dayStart) continue;
+        int h = (int)((l % 86400L) / 3600L);
+        const char* ic = list[i]["weather"][0]["icon"] | "";
+        size_t il = strlen(ic);
+        bool day = (h >= 9 && h <= 18) || (il && ic[il - 1] == 'd');
+        long score = labs(l - noon) + (day ? 0 : 12L * 3600L);
+        if (score < best) { best = score; idx = i; }
+      }
+    }
+    if (idx < 0 && haveClock) {
+      long target = nowUnix + targetOffsets[s], best = 0x7FFFFFFF;
+      for (int i = 0; i < n; i++) {
+        long dt = list[i]["dt"] | 0L;
+        if (dt <= 0) continue;
+        long d = labs(dt - target);
+        if (d < best) { best = d; idx = i; }
+      }
+    }
+    if (idx < 0) idx = fallbackIdx[s] < n ? fallbackIdx[s] : n - 1;
+    JsonObject e = list[idx];
+    t.detailTempC[s] = e["main"]["temp"] | 0.0f;
+    t.detailHumidity[s] = e["main"]["humidity"] | 0;
+    t.detailWindMs[s] = e["wind"]["speed"] | 0.0f;
+    t.detailWeatherId[s] = e["weather"][0]["id"] | 800;
+    copyText(t.detailIconCode[s], sizeof t.detailIconCode[s], e["weather"][0]["icon"] | "");
+    t.detailValid[s] = true;
+  }
+
+  // Night minimum for the next two days: entry closest to 02:00, else the day's coldest.
+  for (int d = 0; d < 2; d++) {
+    t.nightTempValid[d] = false;
+    if (!haveClock) continue;
+    const long dayStart = baseDay + (long)(d + 1) * 86400L;
+    int bestNight = -1, bestAny = -1; long bestScore = 0x7FFFFFFF; float bestTemp = 1000.0f;
+    for (int i = 0; i < n; i++) {
+      long dt = list[i]["dt"] | 0L;
+      if (dt <= 0) continue;
+      long l = dt + tz;
+      if ((l / 86400L) * 86400L != dayStart) continue;
+      float temp = list[i]["main"]["temp"] | 0.0f;
+      if (bestAny < 0 || temp < bestTemp) { bestTemp = temp; bestAny = i; }
+      int h = (int)((l % 86400L) / 3600L);
+      if (h > 6 && h < 21) continue;
+      long score = labs((long)(h >= 21 ? 24 + h : h) - 26L);
+      if (score < bestScore) { bestScore = score; bestNight = i; }
+    }
+    int pick = bestNight >= 0 ? bestNight : bestAny;
+    if (pick >= 0) { t.nightTempC[d] = list[pick]["main"]["temp"] | 0.0f; t.nightTempValid[d] = true; }
+  }
+
+  t.forecast3hTempC = t.detailTempC[0]; t.forecast3hWindMs = t.detailWindMs[0];
+  strcpy(t.forecast3hDesc, "--"); t.forecast3hValid = true;
+  t.forecastNextDayTempC = t.detailTempC[2]; t.forecastNextDayWindMs = t.detailWindMs[2];
+  strcpy(t.forecastNextDayDesc, "--"); t.forecastNextDayValid = true;
+  t.forecastError[0] = 0;
+  if (!t.cityName[0]) copyText(t.cityName, sizeof t.cityName, doc["city"]["name"] | "");
+  t.stormEtaMin = stormEta; t.fcWindMaxMs = maxWind; t.fcWindGustMs = maxGust;
+  out = t;
+  return true;
+}
