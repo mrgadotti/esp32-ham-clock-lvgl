@@ -16,7 +16,7 @@
 #include "../widgets/spot_table.h"
 
 namespace {
-const uint8_t kBands[] = {BAND_160M, BAND_80M, BAND_40M, BAND_20M, BAND_17M, BAND_15M,
+const uint8_t kBands[] = {BAND_160M, BAND_80M, BAND_40M, BAND_30M, BAND_20M, BAND_17M, BAND_15M,
                           BAND_12M,  BAND_10M, BAND_VHF, BAND_UHF, BAND_SHF};
 int32_t pendMode, pendBand;  // cfgUpdate takes a plain function pointer
 
@@ -38,7 +38,8 @@ class DxScreen : public Screen {
     const lv_color_t c[] = {lv_color_hex(0xC0C0C0), COL_TEXT, COL_FREQ, COL_MODE, COL_ACCENT};
     for (int i = 0; i < 5; i++) { cols_.width[i] = w[i]; cols_.color[i] = c[i]; }
     hdr_ = headerCreate(p, Tr::DxCluster);
-    lv_obj_align(lv_obj_get_child(hdr_, 0), LV_ALIGN_LEFT_MID, 46, 0);
+    title_ = lv_obj_get_child(hdr_, 0);  // headerCreate adds the title first
+    lv_obj_align(title_, LV_ALIGN_LEFT_MID, 46, 0);
     lv_obj_t* btn = lv_obj_create(hdr_);
     lv_obj_remove_style_all(btn);
     lv_obj_set_size(btn, 40, HEADER_H);
@@ -95,13 +96,15 @@ class DxScreen : public Screen {
  private:
   static inline DxScreen* self_ = nullptr;
   SpotTableCols cols_{};
-  lv_obj_t *hdr_, *table_, *wait_;
+  lv_obj_t *hdr_, *title_, *table_, *wait_;
   uint8_t mode_;
   uint16_t band_;
   uint32_t ver_;
   int lastMin_ = -1;
   uint8_t idx_[100];  // filtered position -> store index
   size_t n_ = 0;
+  size_t cachedRow_ = (size_t)-1;
+  Spot cached_;
 
   static void onFilter(lv_event_t*) {
     if (!self_) return;
@@ -118,8 +121,11 @@ class DxScreen : public Screen {
 
   static bool cell(size_t row, uint8_t col, char* out, size_t cap, void* ctx) {
     auto* s = static_cast<DxScreen*>(ctx);
-    Spot sp;
-    g_store.dx.read([&](const RingBuffer<Spot, 100>& r) { sp = r.at(s->idx_[row]); });
+    if (row != s->cachedRow_) {  // one lock + copy per row, reused for its cells
+      g_store.dx.read([&](const RingBuffer<Spot, 100>& r) { s->cached_ = r.at(s->idx_[row]); });
+      s->cachedRow_ = row;
+    }
+    const Spot& sp = s->cached_;
     switch (col) {
       case 0: snprintf(out, cap, "%02u%02u", (unsigned)(sp.utc % 86400 / 3600), (unsigned)(sp.utc % 3600 / 60)); break;
       case 1: snprintf(out, cap, "%s", sp.call); break;
@@ -139,6 +145,7 @@ class DxScreen : public Screen {
     });
     lv_obj_set_flag(wait_, LV_OBJ_FLAG_HIDDEN, n_ != 0);
     lv_obj_set_flag(table_, LV_OBJ_FLAG_HIDDEN, n_ == 0);
+    cachedRow_ = (size_t)-1;
     spotTableSet(table_, n_, cell, this);
   }
 };

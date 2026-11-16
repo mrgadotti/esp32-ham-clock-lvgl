@@ -50,6 +50,7 @@ lv_obj_t* tile(lv_obj_t* p, const char* txt, int x, int y, int w, int h, lv_even
 }
 
 void onMode(lv_event_t* e) {
+  if (!m) return;
   intptr_t i = (intptr_t)lv_event_get_user_data(e);
   if (i == 0) m->mode = 0;
   else m->mode ^= (1 << (i - 1));
@@ -57,6 +58,7 @@ void onMode(lv_event_t* e) {
 }
 
 void onBand(lv_event_t* e) {
+  if (!m) return;
   intptr_t i = (intptr_t)lv_event_get_user_data(e);
   if (i == 0) m->band = 0;
   else m->band ^= (1u << m->bands[i - 1]);
@@ -64,6 +66,7 @@ void onBand(lv_event_t* e) {
 }
 
 void finish(bool save) {
+  if (!m) return;
   void (*cb)() = nullptr;
   if (save) {
     *m->bandOut = m->band;

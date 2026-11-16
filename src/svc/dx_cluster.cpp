@@ -11,8 +11,9 @@
 #include "backoff.h"
 #include "dx_parse.h"
 #include "geo.h"
+#include "net/time_service.h"
 
-__attribute__((weak)) void dxOnNewSpot(const Spot&) {}
+__attribute__((weak)) void qrzOnNewSpot(const Spot&) {}
 
 namespace {
 const uint32_t kLoginDelayMs = 1000, kCmdGapMs = 50, kKeepAliveMs = 30000, kSilenceMs = 5UL * 60 * 1000;
@@ -21,6 +22,7 @@ const int32_t kConnectTimeoutMs = 4000;  // blocks the net task while connecting
 WiFiClient client;
 bool up = false, haveAttempt = false, gotData = false, discard = false, loginSent = false;
 uint8_t failures = 0;
+uint32_t dropped = 0;
 uint32_t lastAttempt, loginAt, lastRx, lastKeep, lastCmd;
 char line[256];
 size_t len;
@@ -60,6 +62,10 @@ void buildQueue() {
 
 void onLine() {
   line[len] = 0;
+  if (!timeValid()) {  // spot dates need a valid clock
+    if (!dropped++) Serial.println("[DX] clock not set: dropping spots");
+    return;
+  }
   Spot s;
   if (!parseDxLine(line, (uint32_t)time(nullptr), s)) return;
   double la, lo, ml, mo;
@@ -67,7 +73,7 @@ void onLine() {
     s.lat = (float)la; s.lon = (float)lo; s.hasLatLon = true;
     if (serviceCoords(ml, mo)) s.distKm = (int16_t)distanceKm(ml, mo, la, lo);
   }
-  dxOnNewSpot(s);
+  qrzOnNewSpot(s);
   g_store.dx.write([&](RingBuffer<Spot, 100>& r) { r.pushFront(s); });
 }
 
