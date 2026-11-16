@@ -54,9 +54,8 @@ static void fetchCurrent(uint32_t now, double lat, double lon) {
     af["list"][0]["components"]["pm10"] = true;
     url(u, sizeof u, "air_pollution", lat, lon, "");
     if (httpGetJson(u, ad, &af)) weatherParseAir(ad, s_w);
-  } else {
-    strlcpy(s_w.lastError, "fetch failed", sizeof s_w.lastError);
   }
+  s_w.fetchFailed = !ok;
   g_store.weather.write([](WeatherData& w) { w = s_w; });
   s_curFirst = false;
   s_nextCur = now + (ok ? CUR_MS : RETRY_MS);
@@ -81,7 +80,7 @@ static void fetchForecast(uint32_t now, double lat, double lon) {
   long t = timeValid() ? (long)time(nullptr) : 0;
   bool ok = httpGetJson(u, doc, &f) && weatherParseForecast(doc, s_w, t, (long)(s_cfg.timezone * 3600.0f));
   if (ok) s_w.forecastFetchedAt = now | 1;
-  else strlcpy(s_w.forecastError, "forecast fetch failed", sizeof s_w.forecastError);
+  s_w.forecastFetchFailed = !ok;
   g_store.weather.write([](WeatherData& w) { w = s_w; });
   s_fcFirst = false;
   s_nextFc = now + (ok ? FC_MS : RETRY_MS);
@@ -93,7 +92,7 @@ void weatherTick(uint32_t now) {
     cfgGet(s_cfg);
     g_store.weather.read([](const WeatherData& w) { s_w = w; });
     WxAlertCfg ac{s_cfg.wx_al_st, s_cfg.wx_al_wi, s_cfg.wx_w_thr};
-    UiEvent e;
+    UiEvent e{};
     if (s_w.valid && s_sched.due(s_w, now, ac, e.wx)) {
       e.kind = EventKind::WeatherAlert;
       postUiEvent(e);

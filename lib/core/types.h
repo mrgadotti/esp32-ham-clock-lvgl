@@ -40,6 +40,7 @@ struct WeatherData {
   float detailWindMs[WX_DETAIL_COLS]; int detailWeatherId[WX_DETAIL_COLS]; bool detailValid[WX_DETAIL_COLS];
   float nightTempC[2]; bool nightTempValid[2];
   bool valid; uint32_t fetchedAt;
+  bool fetchFailed, forecastFetchFailed;  // set by the service; screens map them to translated text
   // Forecast-derived alert inputs (next 6 h); stormEtaMin 0 = no storm. forecastFetchedAt (ms) is set by the service.
   int stormEtaMin; float fcWindMaxMs, fcWindGustMs; uint32_t forecastFetchedAt;
 };

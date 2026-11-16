@@ -53,9 +53,9 @@ void overlayShow(const UiEvent& e) {
         if (e.wx.maxWindGustMs > 0)
           snprintf(body + n, sizeof body - n, "%s %.1f %s\n", tr(Tr::Gust), (double)e.wx.maxWindGustMs, tr(Tr::Ms));
       }
-      if (e.wx.stormPossible) {  // stormEtaHours carries the repeat interval in minutes
+      {  // stormEtaHours carries the storm repeat interval in minutes; wind alone repeats every minute
         size_t n = strlen(body);
-        snprintf(body + n, sizeof body - n, "%s %u %s", tr(Tr::Repeat), (unsigned)e.wx.stormEtaHours, tr(Tr::Min));
+        snprintf(body + n, sizeof body - n, "%s %u %s", tr(Tr::Repeat), e.wx.stormPossible ? (unsigned)e.wx.stormEtaHours : 1u, tr(Tr::Min));
       }
       break;
     default:

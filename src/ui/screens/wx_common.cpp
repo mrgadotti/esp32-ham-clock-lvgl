@@ -72,11 +72,18 @@ void wxLocalClock(char* out, size_t n, struct tm* tmOut) {
   if (tmOut) *tmOut = tm;
 }
 
-void wxFooter(char* out, size_t n, const WeatherData& w, bool haveKey) {
-  if (!haveKey) snprintf(out, n, "OpenWeather API key not set");
-  else if (!w.valid) snprintf(out, n, "%s", w.lastError[0] ? w.lastError : tr(Tr::WaitingForData));
+void wxFooter(char* out, size_t n, const WeatherData& w, bool haveKey, bool forecast) {
+  bool ok = w.valid;
+  uint32_t at = w.fetchedAt;
+  if (forecast) {
+    ok = false;
+    for (int i = 0; i < WX_DETAIL_COLS; i++) ok |= w.detailValid[i];
+    at = w.forecastFetchedAt;
+  }
+  if (!haveKey) snprintf(out, n, "%s", tr(Tr::NoApiKey));
+  else if (!ok) snprintf(out, n, "%s", (forecast ? w.forecastFetchFailed : w.fetchFailed) ? tr(forecast ? Tr::ForecastNoData : Tr::NoData) : tr(Tr::WaitingForData));
   else {
-    unsigned mins = w.fetchedAt ? (unsigned)((millis() - w.fetchedAt) / 60000UL) : 0;
+    unsigned mins = at ? (unsigned)((millis() - at) / 60000UL) : 0;
     snprintf(out, n, "%s%s  (%u %s)", tr(Tr::WeatherForLocation), w.cityName, mins, tr(Tr::Min));
   }
 }

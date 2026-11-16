@@ -19,6 +19,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(Mode, "MODE", "MODO") \
   X(Band, "BAND", "BANDA") \
   X(NoData, "No data", "Sem dados") \
+  X(NoApiKey, "OpenWeather API key not set", "Chave da OpenWeather não configurada") \
   X(ErrorPrefix, "ERROR: ", "ERRO: ") \
   X(Page, "Page", "Página") \
   X(SwitchScreen, "SWITCH SCREEN", "TROCAR TELA") \

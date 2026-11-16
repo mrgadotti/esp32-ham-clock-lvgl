@@ -69,16 +69,16 @@ class ForecastScreen : public Screen {
     g_store.weather.read([&](const WeatherData& s) { w = s; });
     const bool haveKey = cfg().weather_key[0] != 0;
     char b[96];
-    wxFooter(b, sizeof b, w, haveKey);
+    wxFooter(b, sizeof b, w, haveKey, true);
     if (strcmp(b, foot2_) != 0) { strcpy(foot2_, b); lv_label_set_text(foot_, b); }
 
     bool any = false;
-    for (int c = 0; c < COLS; c++) any |= w.valid && w.detailValid[c];
+    for (int c = 0; c < COLS; c++) any |= w.detailValid[c];
     if (!any) {
-      lv_label_set_text(msg_, !haveKey ? "OpenWeather API key not set"
-                              : !w.valid ? (w.lastError[0] ? w.lastError : tr(Tr::NoData))
-                                         : (w.forecastError[0] ? w.forecastError : tr(Tr::NoForecast)));
-      lv_obj_set_style_text_color(msg_, w.valid && haveKey ? COL_FREQ : COL_ERROR, 0);
+      lv_label_set_text(msg_, tr(!haveKey ? Tr::NoApiKey
+                                 : w.forecastFetchFailed ? Tr::ForecastNoData
+                                 : w.fetchFailed || !w.valid ? Tr::NoData : Tr::NoForecast));
+      lv_obj_set_style_text_color(msg_, haveKey && w.valid && !w.forecastFetchFailed ? COL_FREQ : COL_ERROR, 0);
     }
     lv_obj_set_flag(msg_, LV_OBJ_FLAG_HIDDEN, any);
     for (int c = 0; c < COLS; c++) {
