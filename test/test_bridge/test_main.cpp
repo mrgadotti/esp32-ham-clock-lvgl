@@ -22,9 +22,17 @@ void test_bridge_btspp_retry() {
   BridgeFsm f; char c[BRIDGE_CMD_MAX];
   f.tick(100);
   f.onLine("[BT] AUTO CONNECT OK");
-  int sent = 0; uint32_t t = 100;
-  for (; t <= 10000; t += 50) { f.tick(t); while (f.popCommand(c, sizeof c)) { TEST_ASSERT_EQUAL_STRING("BTSPP_ON", c); sent++; } if (sent == 1 && t < 2100) TEST_ASSERT_EQUAL_INT(1, sent); }
+  uint32_t at[8]; int sent = 0; bool gaveUpEarly = false;
+  for (uint32_t t = 100; t <= 10000; t += 50) {
+    f.tick(t);
+    while (f.popCommand(c, sizeof c)) { TEST_ASSERT_EQUAL_STRING("BTSPP_ON", c); at[sent++] = t; }
+    if (f.lastError[0] && t < 6100) gaveUpEarly = true;  // give-up only after the 3rd retry window
+  }
   TEST_ASSERT_EQUAL_INT(3, sent);
+  TEST_ASSERT_UINT32_WITHIN(50, 100, at[0]);
+  TEST_ASSERT_UINT32_WITHIN(50, 2100, at[1]);
+  TEST_ASSERT_UINT32_WITHIN(50, 4100, at[2]);
+  TEST_ASSERT_FALSE(gaveUpEarly);
   TEST_ASSERT_EQUAL_STRING("BTSPP_ON_NO_ACK", f.lastError);
 }
 

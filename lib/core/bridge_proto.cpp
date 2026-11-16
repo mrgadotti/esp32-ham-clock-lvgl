@@ -69,8 +69,10 @@ bool bridgeParseNameLine(const char* line, char* name, size_t nameCap, char* add
   return true;
 }
 
-void BridgeFsm::push(const char* cmd) {
-  if (qn_ < 4) snprintf(q_[qn_++], BRIDGE_CMD_MAX, "%s", cmd);
+bool BridgeFsm::push(const char* cmd) {
+  if (qn_ >= 4) return false;
+  snprintf(q_[qn_++], BRIDGE_CMD_MAX, "%s", cmd);
+  return true;
 }
 
 bool BridgeFsm::popCommand(char* out, size_t cap) {
@@ -90,7 +92,7 @@ void BridgeFsm::serviceRetry() {
     snprintf(lastError, sizeof lastError, "BTSPP_ON_NO_ACK");
     return;
   }
-  push("BTSPP_ON");
+  if (!push("BTSPP_ON")) return;  // outbox full: try again next tick
   retries_++;
   retryAt_ = now_ + RETRY_MS;
 }
@@ -100,9 +102,9 @@ void BridgeFsm::tick(uint32_t nowMs) {
   serviceRetry();
   // Boot fallback: GPS ON at 60 s, BTSPP_ON 10 s later, regardless of connect status.
   if (!gpsOnSent_ && nowMs >= FORCE_GPS_ON_MS) {
-    push("GPS ON"); gpsOnSent_ = true; gpsOnAt_ = nowMs;
+    if (push("GPS ON")) { gpsOnSent_ = true; gpsOnAt_ = nowMs; }
   } else if (gpsOnSent_ && !btsppOnSent_ && (int32_t)(nowMs - (gpsOnAt_ + FORCE_BTSPP_DELAY_MS)) >= 0) {
-    push("BTSPP_ON"); btsppOnSent_ = true;
+    if (push("BTSPP_ON")) btsppOnSent_ = true;
   }
 }
 

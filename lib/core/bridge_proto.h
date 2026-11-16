@@ -29,7 +29,7 @@ public:
   bool autoConnectPending = false;         // pair with the saved device when the scan list ends
 
   void onLine(const char* line);
-  void tick(uint32_t nowMs);
+  void tick(uint32_t nowMs);               // call before popCommand(): it supplies the clock for cooldown/retries
   bool popCommand(char* out, size_t cap);  // false if empty or inside the 250 ms command cooldown
   void startScan();                        // BTSPP_OFF -> (ACK) -> BT SCAN
   bool pair(const char* name, const char* addr, const char* password);
@@ -41,6 +41,6 @@ private:
   bool hasTx_ = false, awaitScanOffAck_ = false, awaitOnAck_ = false, gpsOnSent_ = false, btsppOnSent_ = false;
   uint8_t retries_ = 0;
   char pendAddr_[13] = "", pendName_[41] = "";
-  void push(const char* cmd);
+  bool push(const char* cmd);
   void serviceRetry();
 };
