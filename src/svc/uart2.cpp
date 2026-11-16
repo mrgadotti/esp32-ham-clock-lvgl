@@ -13,6 +13,7 @@
 #include "board.h"
 #include "bridge_proto.h"
 #include "nmea.h"
+#include "net/time_service.h"
 
 namespace {
 enum Mode : uint8_t { M_NONE, M_GPS, M_TNC, M_KISS, M_BRIDGE };
@@ -66,21 +67,20 @@ int64_t daysFromCivil(int y, int m, int d) {
 void syncClock(const GpsState& g, uint32_t now) {
   if (!g.fix || !g.date || !g.utc) return;
   if (g_timeSetMs && now - g_timeSetMs < 60000UL) return;
+  if (ntpSyncedWithin(2UL * 3600 * 1000)) return;
   int d = g.date / 10000, mo = g.date / 100 % 100, y = 2000 + g.date % 100;
   int hh = g.utc / 10000, mi = g.utc / 100 % 100, ss = g.utc % 100;
-  if (mo < 1 || mo > 12 || d < 1 || d > 31 || hh > 23 || mi > 59 || ss > 59) return;
+  if (y < 2024 || mo < 1 || mo > 12 || d < 1 || d > 31 || hh > 23 || mi > 59 || ss > 59) return;
   struct timeval tv = {(time_t)(daysFromCivil(y, mo, d) * 86400 + hh * 3600 + mi * 60 + ss), 0};
   settimeofday(&tv, nullptr);
   g_timeSetMs = now | 1;
 }
 
-void saveBridgePair(const char* addr, const char* name) {
-  static char a[13], n[41];  // cfgUpdate takes a plain function pointer
-  strlcpy(a, addr, sizeof a);
-  strlcpy(n, name, sizeof n);
+char g_saveAddr[13], g_saveName[41];  // cfgUpdate takes a plain function pointer
+void saveBridgePair() {
   cfgUpdate([](Config& c) {
-    strlcpy(c.br_pair_addr, a, sizeof c.br_pair_addr);
-    strlcpy(c.br_pair_name, n, sizeof c.br_pair_name);
+    strlcpy(c.br_pair_addr, g_saveAddr, sizeof c.br_pair_addr);
+    strlcpy(c.br_pair_name, g_saveName, sizeof c.br_pair_name);
   });
 }
 }  // namespace
@@ -91,8 +91,10 @@ bool gpsTimeValid() {
 }
 
 bool uart2SendKiss(const uint8_t* frame, size_t len) {
-  if (g_mode != M_KISS) return false;
-  return Serial2.write(frame, len) == len;
+  if (!g_mu || xSemaphoreTake(g_mu, pdMS_TO_TICKS(200)) != pdTRUE) return false;
+  bool ok = g_mode == M_KISS && Serial2.write(frame, len) == len;  // mutex: port cannot close mid-write
+  xSemaphoreGive(g_mu);
+  return ok;
 }
 
 bool uart2BridgeEnabled() { return g_mode == M_BRIDGE; }
@@ -159,7 +161,10 @@ void uart2Task(void*) {
       readPortCfg(n);
       if (first || !samePort(n, cur)) {
         first = false;
+        xSemaphoreTake(g_mu, portMAX_DELAY);
+        g_mode = M_NONE;
         if (open) Serial2.end();
+        xSemaphoreGive(g_mu);
         open = false;
         cur = n;
         ln = 0;
@@ -167,16 +172,23 @@ void uart2Task(void*) {
         xSemaphoreTake(g_mu, portMAX_DELAY);
         delete g_fsm;
         g_fsm = cur.mode == M_BRIDGE ? new BridgeFsm() : nullptr;
+        if (g_fsm) {
+          static Config sc;
+          cfgGet(sc);
+          strlcpy(g_fsm->pairedAddr, sc.br_pair_addr, sizeof g_fsm->pairedAddr);
+          strlcpy(g_fsm->pairedName, sc.br_pair_name, sizeof g_fsm->pairedName);
+          g_fsm->autoConnectPending = true;
+        }
         g_pairPending = false;
         xSemaphoreGive(g_mu);
         if (cur.mode == M_KISS && !kiss) kiss = new KissRx();
         if (cur.mode != M_KISS && kiss) { delete kiss; kiss = nullptr; }
-        g_mode = cur.mode;
         if (cur.mode != M_NONE) {
           Serial2.setRxBufferSize(1024);  // must precede begin()
           Serial2.begin(cur.baud, serialCfg(cur), PIN_UART2_RX, PIN_UART2_TX);
           open = true;
         }
+        g_mode = cur.mode;  // published only once the port is open
       }
     }
 
@@ -214,16 +226,22 @@ void uart2Task(void*) {
       if (cur.mode == M_BRIDGE) {
         char cmd[BRIDGE_CMD_MAX];
         bool have = false;
+        bool save = false;
         xSemaphoreTake(g_mu, portMAX_DELAY);
         if (g_fsm) {
           g_fsm->tick(now);
           have = g_fsm->popCommand(cmd, sizeof cmd);
           if (g_pairPending && g_fsm->pairResult != 0) {
             g_pairPending = false;
-            if (g_fsm->pairResult > 0) saveBridgePair(g_fsm->pairedAddr, g_fsm->pairedName);
+            if (g_fsm->pairResult > 0) {
+              strlcpy(g_saveAddr, g_fsm->pairedAddr, sizeof g_saveAddr);
+              strlcpy(g_saveName, g_fsm->pairedName, sizeof g_saveName);
+              save = true;
+            }
           }
         }
         xSemaphoreGive(g_mu);
+        if (save) saveBridgePair();
         if (have) Serial2.println(cmd);
       }
 

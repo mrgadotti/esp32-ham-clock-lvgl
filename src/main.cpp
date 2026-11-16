@@ -141,11 +141,11 @@ void setup() {
   eventsInit();
   qrzInit();
   aprsIngestInit();
-  TaskHandle_t hUi, hNet;
+  TaskHandle_t hUi, hNet, hUart;
   xTaskCreatePinnedToCore(uiTask, "ui", 8192, nullptr, 3, &hUi, 1);
   xTaskCreatePinnedToCore(netTask, "net", 10240, nullptr, 1, &hNet, 0);
-  memLogSetTasks(hNet, hUi);
-  xTaskCreatePinnedToCore(uart2Task, "uart", 6144, nullptr, 2, nullptr, 1);
+  xTaskCreatePinnedToCore(uart2Task, "uart", 6144, nullptr, 2, &hUart, 1);
+  memLogSetTasks(hNet, hUi, hUart);
 }
 
 void loop() { vTaskDelete(NULL); }

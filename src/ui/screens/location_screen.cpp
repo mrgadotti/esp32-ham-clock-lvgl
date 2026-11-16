@@ -65,7 +65,7 @@ class LocationScreen : public Screen {
     char loc[7] = "------", buf[256];
     if (fix) latLonToLocator(g_.lat, g_.lon, loc);
     int n = snprintf(buf, sizeof buf, "%s %s  %s %s\n%s %u (G%u R%u E%u B%u)\n", tr(Tr::GpsLabel),
-                     tr(g_.active ? Tr::GpsActive : Tr::GpsInactive), tr(Tr::Fix), fix ? "YES" : "NO", tr(Tr::Sats),
+                     tr(g_.active ? Tr::GpsActive : Tr::GpsInactive), tr(Tr::Fix), tr(fix ? Tr::Yes : Tr::No), tr(Tr::Sats),
                      g_.sats, g_.satsGps, g_.satsGlo, g_.satsGal, g_.satsBds);
     if (fix)
       snprintf(buf + n, sizeof buf - n, "%s %.5f\n%s %.5f\n%s %.1f km/h\n%s %s", tr(Tr::Lat), g_.lat, tr(Tr::Lon), g_.lon,
