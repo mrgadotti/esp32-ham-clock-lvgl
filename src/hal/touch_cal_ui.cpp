@@ -1,22 +1,23 @@
 #include "touch_cal_ui.h"
 
-#include <Preferences.h>
 #include <lvgl.h>
 #include <math.h>
+#include <string.h>
 
+#include "app/config_store.h"
 #include "touch.h"
+
+static_assert(sizeof(TouchCal) == sizeof(Config::tcal), "tcal blob layout");
 
 static const int16_t TARGETS[3][2] = {{32, 24}, {288, 120}, {160, 216}};
 static const int16_t VERIFY[2] = {160, 120};
 
 bool touchCalLoadSaved() {
-  Preferences p;
-  TouchCal c = {};
-  bool ok = false;
-  if (p.begin("hamclk", true)) {
-    ok = p.getBytesLength("tcal") == sizeof(c) && p.getBytes("tcal", &c, sizeof(c)) == sizeof(c);
-    p.end();
-  }
+  Config cf;
+  cfgGet(cf);
+  TouchCal c;
+  memcpy(&c, cf.tcal, sizeof c);
+  bool ok = c.a != 0 || c.b != 0;  // all zero = never calibrated
   const float v[6] = {c.a, c.b, c.c, c.d, c.e, c.f};
   for (float f : v) ok = ok && isfinite(f);
   if (ok) touchSetCal(c);
@@ -90,10 +91,9 @@ static void onTap() {
   int16_t x, y;
   touchCalApply(S.cal, S.sample[0], S.sample[1], x, y);
   if (hypotf(x - VERIFY[0], y - VERIFY[1]) > 8) { S.step = 0; showMsg("Too inaccurate, retry"); return; }
-  Preferences p;
-  bool saved = p.begin("hamclk", false) && p.putBytes("tcal", &S.cal, sizeof(S.cal)) == sizeof(S.cal);
-  p.end();
-  finish(saved);
+  static TouchCal toSave;
+  toSave = S.cal;
+  finish(cfgUpdate([](Config& cf) { memcpy(cf.tcal, &toSave, sizeof toSave); }));
 }
 
 static void tick(lv_timer_t*) {

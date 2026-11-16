@@ -26,12 +26,12 @@ void test_pota_fixture() {
   TEST_ASSERT_TRUE(potaFromJson(doc[0].as<JsonObjectConst>(), a));
   TEST_ASSERT_TRUE(potaFromJson(doc[1].as<JsonObjectConst>(), b));
   TEST_ASSERT_EQUAL_STRING("K1ABC", a.call); TEST_ASSERT_EQUAL_UINT32(14074, a.khz);
-  TEST_ASSERT_EQUAL(MODE_DIGI, a.mode); TEST_ASSERT_EQUAL(B20, a.band);
+  TEST_ASSERT_EQUAL(MODE_DIGI, a.mode); TEST_ASSERT_EQUAL(BAND_20M, a.band);
   TEST_ASSERT_EQUAL_UINT32(1794832496u, a.utc);
   TEST_ASSERT_EQUAL_STRING("US-MA", a.country);
   TEST_ASSERT_EQUAL_STRING("US-0001 US-MA", a.comment);
   TEST_ASSERT_EQUAL_STRING("W2XYZ", b.call); TEST_ASSERT_EQUAL_UINT32(7033, b.khz);
-  TEST_ASSERT_EQUAL(MODE_CW, b.mode); TEST_ASSERT_EQUAL(B40, b.band);
+  TEST_ASSERT_EQUAL(MODE_CW, b.mode); TEST_ASSERT_EQUAL(BAND_40M, b.band);
 }
 void test_pota_rejects_garbage() {
   JsonDocument doc; deserializeJson(doc, "{\"frequency\":\"14074\",\"reference\":\"X\"}");

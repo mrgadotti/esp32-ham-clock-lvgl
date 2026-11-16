@@ -11,7 +11,7 @@ void test_parse_basic() {
   TEST_ASSERT_TRUE(parseDxLine("DX de PY2XX:     14025.0  K1ABC        CW 599                         1234Z", DAY + 13 * 3600, s));
   TEST_ASSERT_EQUAL_STRING("K1ABC", s.call); TEST_ASSERT_EQUAL_STRING("PY2XX", s.spotter);
   TEST_ASSERT_EQUAL_UINT32(14025, s.khz); TEST_ASSERT_EQUAL_STRING("CW 599", s.comment);
-  TEST_ASSERT_EQUAL(B20, s.band); TEST_ASSERT_EQUAL(MODE_CW, s.mode);
+  TEST_ASSERT_EQUAL(BAND_20M, s.band); TEST_ASSERT_EQUAL(MODE_CW, s.mode);
   TEST_ASSERT_EQUAL_UINT32(DAY + 12 * 3600 + 34 * 60, s.utc);
   TEST_ASSERT_EQUAL(-1, s.distKm); TEST_ASSERT_FALSE(s.hasLatLon);
 }
