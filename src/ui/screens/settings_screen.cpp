@@ -32,6 +32,7 @@ lv_obj_t* row(lv_obj_t* list, const char* text, lv_obj_t** labelOut = nullptr) {
   lv_obj_set_size(r, lv_pct(100), LV_SIZE_CONTENT);
   lv_obj_set_flex_flow(r, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(r, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  if (!text) return r;
   lv_obj_t* l = lv_label_create(r);
   lv_obj_set_style_text_font(l, &font_14, 0);
   lv_label_set_text(l, text);
@@ -53,7 +54,11 @@ lv_obj_t* dropdown(lv_obj_t* list, const char* title, const char* opts, uint32_t
 lv_obj_t* slider(lv_obj_t* parent, int32_t lo, int32_t hi, int32_t v) {
   lv_obj_t* s = lv_slider_create(parent);
   lv_obj_set_width(s, 120);
-  lv_obj_set_style_margin_hor(s, 12, 0);  // knob overflows the bar by half its size
+  // The knob is drawn outside the bar (radius + knob pad) and a parent clips children to its own area
+  // (lv_obj_redraw), so reserve room around the bar inside the row and let the row draw the overhang.
+  lv_obj_set_style_margin_hor(s, 16, 0);
+  lv_obj_set_style_margin_ver(s, 8, 0);
+  lv_obj_add_flag(parent, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
   lv_slider_set_range(s, lo, hi);
   lv_slider_set_value(s, v, LV_ANIM_OFF);
   return s;
@@ -88,7 +93,7 @@ class SettingsScreen : public Screen {
     lv_obj_t* r = row(list, tr(Tr::NightDim));
     nd_ = lv_switch_create(r);
     if (c.tft_ndim > 0) lv_obj_add_state(nd_, LV_STATE_CHECKED);
-    ndSlider_ = slider(list, 0, 90, c.tft_ndim);
+    ndSlider_ = slider(row(list, nullptr), 0, 90, c.tft_ndim);
     lv_obj_add_event_cb(nd_, [](lv_event_t* e) {
       bool on = lv_obj_has_state((lv_obj_t*)lv_event_get_target(e), LV_STATE_CHECKED);
       pend = on ? lastNdim : 0;
