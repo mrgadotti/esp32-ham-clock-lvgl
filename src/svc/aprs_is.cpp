@@ -52,9 +52,9 @@ bool aprsIsReadyToSend() { return up && passOk && client.connected(); }
 
 bool aprsIsSendLine(const char* l) {
   if (!aprsIsReadyToSend()) return false;
-  client.print(l);
-  client.print("\r\n");
-  return true;
+  char buf[192];
+  int n = snprintf(buf, sizeof buf, "%s\r\n", l);
+  return n > 0 && n < (int)sizeof buf && client.write((const uint8_t*)buf, n) == (size_t)n;
 }
 
 void aprsIsTick(uint32_t now) {

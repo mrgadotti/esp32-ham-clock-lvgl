@@ -18,8 +18,8 @@ constexpr uint32_t kFirstDelayMs = 60000;
 constexpr const char* kProjectComment = "https://github.com/SP3KON/ESP32-HAM-CLOCK";
 const char* const kPath[] = {"WIDE1-1", "WIDE2-1"};
 
-uint32_t due;  // 0 = channel not ready
-uint32_t count;
+bool armed, everSent;  // armed: due is scheduled; cleared whenever the channel is not ready
+uint32_t due, lastTx, count;  // lastTx/count survive reconnects so the cadence is kept
 }  // namespace
 
 void aprsBeaconTick(uint32_t now) {
@@ -30,20 +30,23 @@ void aprsBeaconTick(uint32_t now) {
   bool ready = c.aprs_beacon && aprsTxCallValid(c.aprs_callsign) && serviceCoords(lat, lon) &&
                (kiss || aprsIsReadyToSend());
   if (!ready) {
-    due = 0;
-    count = 0;
+    armed = false;
     return;
   }
-  if (!due) {
+  if (!armed) {  // wait 60 s after ready, and the rest of the interval since the last TX
+    armed = true;
     due = now + kFirstDelayMs;
+    uint32_t next = lastTx + (uint32_t)c.aprs_int_min * 60000u;
+    if (everSent && (int32_t)(next - due) > 0) due = next;
     return;
   }
   if ((int32_t)(now - due) < 0) return;
   due = now + (uint32_t)c.aprs_int_min * 60000u;
 
   char call[12];
-  if (c.aprs_ssid > 0) snprintf(call, sizeof call, "%s-%d", c.aprs_callsign, (int)c.aprs_ssid);
-  else snprintf(call, sizeof call, "%s", c.aprs_callsign);
+  int cl = c.aprs_ssid > 0 ? snprintf(call, sizeof call, "%s-%d", c.aprs_callsign, (int)c.aprs_ssid)
+                           : snprintf(call, sizeof call, "%s", c.aprs_callsign);
+  if (cl < 0 || cl >= (int)sizeof call) return;
   for (char* p = call; *p; p++) *p = (char)toupper((unsigned char)*p);
 
   // Leading space separates position from comment; every 5th beacon carries the project URL.
@@ -53,6 +56,7 @@ void aprsBeaconTick(uint32_t now) {
   for (; *src && n < sizeof cm - 1; src++)
     if ((unsigned char)*src >= 32 && (unsigned char)*src < 127) cm[n++] = *src;
   cm[n] = 0;
+  if (n == 1) cm[0] = 0;  // empty comment: no trailing space
 
   char sym[3] = {'/', '-', 0};  // table, code
   if (c.aprs_symbol[0] && c.aprs_symbol[1]) { sym[0] = c.aprs_symbol[0]; sym[1] = c.aprs_symbol[1]; }
@@ -77,6 +81,8 @@ void aprsBeaconTick(uint32_t now) {
     return;
   }
   count++;
+  lastTx = now;
+  everSent = true;
   Serial.printf("[APRS] beacon sent (%s)\n", pathStr);
 
   UiEvent e{};
