@@ -7,6 +7,8 @@
 #include "app/config_store.h"
 #include "touch.h"
 
+static_assert(sizeof(TouchCal) == sizeof(Config::tcal), "tcal blob layout");
+
 static const int16_t TARGETS[3][2] = {{32, 24}, {288, 120}, {160, 216}};
 static const int16_t VERIFY[2] = {160, 120};
 

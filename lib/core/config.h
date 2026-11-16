@@ -2,8 +2,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-enum Lang : uint8_t { LANG_EN = 0, LANG_PT_BR = 1 };
-
 // Every persisted setting. Member names are the NVS keys (<= 15 chars); JSON names are in kFields.
 struct Config {
   // WiFi
@@ -34,10 +32,13 @@ struct Config {
   char uart2_mode[8], uart2_cmod[20], uart2_par[6], br_pair_addr[13], br_pair_name[41];
   int32_t uart2_baud, uart2_dbits, uart2_stop;
   // Display / screens
+  // tft_rot is 1 or 3 only. scr_en: bit index = ScreenId (bit 1 = HamClock ... bit 13 = Location);
+  // bit 0 and bit 11 (Game) are always cleared, default 0x37FE. screen_order slots hold a ScreenId or 0 (off);
+  // invalid or duplicate ids are reset to 0.
   int32_t tft_backlight, tft_ndim, tft_rot, touch_rot, tft_sw_sec, scr_en;
   int32_t screen1_time, s2_mode, s2_band, s7_mode, s7_band, s8_mode, s8_band, aprs_sort;
   bool tft_inv, tft_autosw;
-  uint8_t tft_lang;
+  uint8_t tft_lang;  // 0 = EN, 1 = PT_BR (i18n Lang values)
   uint8_t screen_order[12];
   float tcal[6];  // touch calibration (TouchCal layout); all zero = not calibrated
 };

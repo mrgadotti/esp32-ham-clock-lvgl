@@ -83,12 +83,12 @@ const ConfigField kFields[] = {
     F(FT_INT, "tft_night_dimming", tft_ndim, 0, 100, false, false),
     F(FT_BOOL, "tft_invert", tft_inv, 0, 0, false, false),
     F(FT_LANG, "tft_lang", tft_lang, 0, 0, false, false),
-    F(FT_INT, "tft_rotation", tft_rot, 0, 3, false, false),
+    F(FT_INT, "tft_rotation", tft_rot, 1, 3, false, false),
     F(FT_INT, "touch_rotation", touch_rot, 0, 3, false, false),
     F(FT_BOOL, "tft_auto_switch", tft_autosw, 0, 0, false, false),
     F(FT_INT, "tft_switch_time_sec", tft_sw_sec, 1, 3600, false, false),
     F(FT_BYTES, "screen_order", screen_order, 0, 13, false, false),
-    F(FT_INT, "scr_en", scr_en, 0, 0xFFF, false, false),
+    F(FT_INT, "scr_en", scr_en, 0, 0x3FFE, false, false),
     F(FT_INT, nullptr, screen1_time, 0, 1, false, false),
     F(FT_INT, nullptr, s2_mode, 0, 255, false, false),
     F(FT_INT, nullptr, s2_band, 0, 0xFFFF, false, false),
@@ -100,6 +100,9 @@ const ConfigField kFields[] = {
     F(FT_BLOB, nullptr, tcal, 0, 0, false, false),
 };
 const size_t kFieldCount = sizeof(kFields) / sizeof(kFields[0]);
+
+static const uint32_t kScrEnMask = 0x37FE;  // ScreenId bits 1..13 except 11 (Game)
+static const uint8_t kDefaultOrder[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 10, 13};
 
 static void setStr(char* dst, size_t size, const char* src) {
   snprintf(dst, size, "%s", src);
@@ -138,10 +141,11 @@ void configDefaults(Config& c) {
   c.tft_backlight = 100;
   c.tft_rot = 1;
   c.touch_rot = 1;
-  c.tft_lang = LANG_EN;
+  c.tft_lang = 0;  // EN
   c.tft_sw_sec = 30;
-  c.scr_en = 0xFFF;
-  for (uint8_t i = 0; i < 12; i++) c.screen_order[i] = i;
+  c.scr_en = kScrEnMask;
+  memcpy(c.screen_order, kDefaultOrder, sizeof c.screen_order);
+  setStr(c.ap_pass, sizeof c.ap_pass, "1234567890");
 }
 
 static float clampf(float v, float lo, float hi) {
@@ -159,10 +163,17 @@ void configClamp(Config& c) {
       case FT_INT: { int32_t* v = (int32_t*)p; *v = (int32_t)clampf((float)*v, f.min, f.max); break; }
       case FT_FLT: { float* v = (float*)p; *v = clampf(*v, f.min, f.max); break; }
       case FT_BOOL: *p = *p ? 1 : 0; break;
-      case FT_LANG: if (*p > LANG_PT_BR) *p = LANG_EN; break;
-      case FT_BYTES: for (uint16_t k = 0; k < f.size; k++) p[k] = (uint8_t)clampf(p[k], f.min, f.max); break;
+      case FT_LANG: if (*p > 1) *p = 0; break;
+      case FT_BYTES: for (uint16_t k = 0; k < f.size; k++) if (p[k] > f.max) p[k] = 0; break;
       case FT_BLOB: break;
     }
+  }
+  c.scr_en &= kScrEnMask;
+  if (c.tft_rot != 1 && c.tft_rot != 3) c.tft_rot = 1;
+  uint32_t seen = 0;
+  for (uint8_t& o : c.screen_order) {
+    if (o > 13 || !((kScrEnMask | 1) >> o & 1) || (o && (seen >> o & 1))) o = 0;
+    seen |= 1u << o;
   }
 }
 
@@ -186,7 +197,7 @@ bool configToJson(const Config& c, char* buf, size_t len) {
       case FT_INT: doc[f.jsonKey] = *(const int32_t*)p; break;
       case FT_FLT: doc[f.jsonKey] = *(const float*)p; break;
       case FT_BOOL: doc[f.jsonKey] = *(const bool*)p; break;
-      case FT_LANG: doc[f.jsonKey] = *p == LANG_PT_BR ? "pt-br" : "en"; break;
+      case FT_LANG: doc[f.jsonKey] = *p == 1 ? "pt-br" : "en"; break;
       case FT_BYTES: {
         JsonArray a = doc[f.jsonKey].to<JsonArray>();
         for (uint16_t k = 0; k < f.size; k++) a.add(p[k]);
@@ -215,7 +226,7 @@ ApplyResult configApplyJson(Config& cfg, const char* json) {
   uint8_t* base = (uint8_t*)&c;
   for (size_t i = 0; i < kFieldCount; i++) {
     const ConfigField& f = kFields[i];
-    if (!f.jsonKey) continue;
+    if (!f.jsonKey || f.offset == OFS(user_ll_ok)) continue;  // user_lat_lon_valid is read-only
     JsonVariantConst v = doc[f.jsonKey];
     if (v.isNull()) continue;
     uint8_t* p = base + f.offset;
@@ -230,6 +241,10 @@ ApplyResult configApplyJson(Config& cfg, const char* json) {
         if (n >= f.size) n = f.size - 1;
         memcpy(p, s, n);
         p[n] = 0;
+        if (!f.isSecret)  // printable ASCII only (newline kept for the cluster filter list)
+          for (size_t k = 0; k < n; k++)
+            if (((char*)p)[k] != '\n' || f.offset != OFS(cluster_filters))
+              if (p[k] < 0x20 || p[k] > 0x7E) p[k] = '?';
         break;
       }
       case FT_INT:
@@ -246,8 +261,8 @@ ApplyResult configApplyJson(Config& cfg, const char* json) {
         break;
       case FT_LANG: {
         const char* s = v.is<const char*>() ? v.as<const char*>() : nullptr;
-        if (s && !strcasecmp(s, "en")) *p = LANG_EN;
-        else if (s && !strcasecmp(s, "pt-br")) *p = LANG_PT_BR;
+        if (s && !strcasecmp(s, "en")) *p = 0;
+        else if (s && !strcasecmp(s, "pt-br")) *p = 1;
         else return fail("bad_value", f.jsonKey);
         break;
       }
@@ -256,7 +271,8 @@ ApplyResult configApplyJson(Config& cfg, const char* json) {
         uint16_t k = 0;
         for (JsonVariantConst e : v.as<JsonArrayConst>()) {
           if (!e.is<double>()) return fail("bad_type", f.jsonKey);
-          if (k < f.size) p[k++] = (uint8_t)clampf((float)e.as<double>(), f.min, f.max);
+          double d = e.as<double>();
+          if (k < f.size) p[k++] = (d >= f.min && d <= f.max) ? (uint8_t)d : 0;
         }
         break;
       }
@@ -264,6 +280,7 @@ ApplyResult configApplyJson(Config& cfg, const char* json) {
     }
   }
 
+  configClamp(c);
   ApplyResult r = {true, false, {}};
   for (size_t i = 0; i < kFieldCount; i++) {
     const ConfigField& f = kFields[i];

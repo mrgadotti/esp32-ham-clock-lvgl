@@ -11,7 +11,7 @@
 #include "secrets.h"
 #endif
 
-static Config g_cfg;
+static Config g_cfg, g_cfgUi;
 static SemaphoreHandle_t g_mutex;
 
 __attribute__((weak)) void onConfigChanged() {}
@@ -47,7 +47,7 @@ void configStoreLoad(Config& c) {
     p.end();
   }
   configClamp(c);
-  g_cfg = c;
+  g_cfg = g_cfgUi = c;
 }
 
 bool configStoreSave(const Config& c) {
@@ -82,7 +82,9 @@ void cfgGet(Config& out) {
   xSemaphoreGive(g_mutex);
 }
 
-const Config& cfg() { return g_cfg; }
+const Config& cfg() { return g_cfgUi; }
+
+void cfgRefreshUiSnapshot() { cfgGet(g_cfgUi); }
 
 bool cfgUpdate(void (*fn)(Config&)) {
   xSemaphoreTake(g_mutex, portMAX_DELAY);
@@ -93,5 +95,20 @@ bool cfgUpdate(void (*fn)(Config&)) {
   bool ok = configStoreSave(c);
   xSemaphoreGive(g_mutex);
   onConfigChanged();
+  return ok;
+}
+
+bool cfgApplyJson(const char* json, ApplyResult& out) {
+  xSemaphoreTake(g_mutex, portMAX_DELAY);
+  Config c = g_cfg;
+  out = configApplyJson(c, json);
+  bool ok = out.ok;
+  if (ok) {
+    g_cfg = c;
+    ok = configStoreSave(c);
+    if (!ok) snprintf(out.error, sizeof out.error, "nvs_save");
+  }
+  xSemaphoreGive(g_mutex);
+  if (out.ok) onConfigChanged();
   return ok;
 }

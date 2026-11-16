@@ -20,11 +20,14 @@ void test_defaults_match_original() {
   TEST_ASSERT_EQUAL_INT(14580, c.aprs_port);
   TEST_ASSERT_EQUAL_INT(50, c.aprs_radius);
   TEST_ASSERT_EQUAL_INT(29, c.aprs_int_min);
-  TEST_ASSERT_EQUAL_UINT8(LANG_EN, c.tft_lang);
+  TEST_ASSERT_EQUAL_UINT8(0, c.tft_lang);
   TEST_ASSERT_EQUAL_INT(100, c.tft_backlight);
   TEST_ASSERT_EQUAL_INT(30, c.tft_sw_sec);
   TEST_ASSERT_EQUAL_STRING("0", c.aprs_passcode);
-  TEST_ASSERT_EQUAL_INT(0xFFF, c.scr_en);
+  TEST_ASSERT_EQUAL_HEX32(0x37FE, c.scr_en);
+  TEST_ASSERT_EQUAL_STRING("1234567890", c.ap_pass);
+  const uint8_t order[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 10, 13};
+  TEST_ASSERT_EQUAL_MEMORY(order, c.screen_order, 12);
 }
 
 void test_get_masks_secrets() {
@@ -48,7 +51,7 @@ void test_roundtrip() {
   Config a = defaults();
   strcpy(a.user_callsign, "PY2XX");
   a.timezone = -3;
-  a.tft_lang = LANG_PT_BR;
+  a.tft_lang = 1;
   a.screen_order[3] = 9;
   char buf[4096];
   TEST_ASSERT_TRUE(configToJson(a, buf, sizeof buf));
@@ -57,7 +60,7 @@ void test_roundtrip() {
   TEST_ASSERT_TRUE_MESSAGE(r.ok, r.error);
   TEST_ASSERT_EQUAL_STRING("PY2XX", b.user_callsign);
   TEST_ASSERT_EQUAL_FLOAT(-3, b.timezone);
-  TEST_ASSERT_EQUAL_UINT8(LANG_PT_BR, b.tft_lang);
+  TEST_ASSERT_EQUAL_UINT8(1, b.tft_lang);
   TEST_ASSERT_EQUAL_UINT8(9, b.screen_order[3]);
 }
 
@@ -109,6 +112,35 @@ void test_needs_restart() {
   TEST_ASSERT_FALSE(configApplyJson(c, "{\"wifi_ssid\":\"x\"}").needsRestart);
 }
 
+void test_screen_bits_and_order() {
+  Config c = defaults();
+  TEST_ASSERT_TRUE(configApplyJson(c, "{\"scr_en\":65535,\"screen_order\":[1,1,11,14,2,12,0,0,13,3]}").ok);
+  TEST_ASSERT_EQUAL_HEX32(0x37FE, c.scr_en);
+  const uint8_t want[12] = {1, 0, 0, 0, 2, 12, 0, 0, 13, 3, 10, 13};  // tail keeps defaults, dup 13 reset
+  uint8_t tail[12];
+  memcpy(tail, c.screen_order, 12);
+  TEST_ASSERT_EQUAL_MEMORY(want, tail, 10);
+  TEST_ASSERT_EQUAL_UINT8(10, tail[10]);
+  TEST_ASSERT_EQUAL_UINT8(0, tail[11]);
+}
+
+void test_tft_rot_only_1_or_3() {
+  Config c = defaults();
+  TEST_ASSERT_TRUE(configApplyJson(c, "{\"tft_rotation\":3}").ok);
+  TEST_ASSERT_EQUAL_INT(3, c.tft_rot);
+  TEST_ASSERT_TRUE(configApplyJson(c, "{\"tft_rotation\":2}").ok);
+  TEST_ASSERT_EQUAL_INT(1, c.tft_rot);
+  TEST_ASSERT_TRUE(configApplyJson(c, "{\"tft_rotation\":0}").ok);
+  TEST_ASSERT_EQUAL_INT(1, c.tft_rot);
+}
+
+void test_readonly_and_ascii() {
+  Config c = defaults();
+  TEST_ASSERT_TRUE(configApplyJson(c, "{\"user_lat_lon_valid\":true,\"aprs_comment\":\"caf\\u00e9\"}").ok);
+  TEST_ASSERT_FALSE(c.user_ll_ok);
+  TEST_ASSERT_EQUAL_STRING("caf??", c.aprs_comment);
+}
+
 void test_nvs_keys_fit() {
   for (size_t i = 0; i < kFieldCount; i++)
     if (kFields[i].nvsKey) TEST_ASSERT_TRUE_MESSAGE(strlen(kFields[i].nvsKey) <= 15, kFields[i].nvsKey);
@@ -125,6 +157,9 @@ int main() {
   RUN_TEST(test_clamps);
   RUN_TEST(test_rejects_bad_json);
   RUN_TEST(test_needs_restart);
+  RUN_TEST(test_screen_bits_and_order);
+  RUN_TEST(test_tft_rot_only_1_or_3);
+  RUN_TEST(test_readonly_and_ascii);
   RUN_TEST(test_nvs_keys_fit);
   return UNITY_END();
 }

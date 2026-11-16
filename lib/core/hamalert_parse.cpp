@@ -1,3 +1,4 @@
+#include "band_mode.h"  // before ArduinoJson: Arduino.h defines B10 etc.
 #include "hamalert_parse.h"
 #include "pota_parse.h"
 #include "dx_parse.h"
