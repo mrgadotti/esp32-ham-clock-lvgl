@@ -9,7 +9,7 @@ void test_hamalert_json_line() {
   Spot s;
   TEST_ASSERT_TRUE(hamalertParseLine("{\"dx\":\"DL1ABC\",\"de\":\"K1XX\",\"frequency\":14025.0,\"comment\":\"CW 599\",\"country\":\"Germany\"}", NOW, s));
   TEST_ASSERT_EQUAL_STRING("DL1ABC", s.call); TEST_ASSERT_EQUAL_STRING("K1XX", s.spotter);
-  TEST_ASSERT_EQUAL_UINT32(14025, s.khz); TEST_ASSERT_EQUAL(B20, s.band); TEST_ASSERT_EQUAL(MODE_CW, s.mode);
+  TEST_ASSERT_EQUAL_UINT32(14025, s.khz); TEST_ASSERT_EQUAL(BAND_20M, s.band); TEST_ASSERT_EQUAL(MODE_CW, s.mode);
   TEST_ASSERT_EQUAL_STRING("Germany", s.country); TEST_ASSERT_EQUAL_UINT32(NOW, s.utc);
   TEST_ASSERT_TRUE(hamalertParseLine("{\"call\":\"DL1ABC\",\"freq\":\"7.030\",\"mode\":\"ssb\",\"time\":\"2026-11-16T12:00:00\"}", NOW, s));
   TEST_ASSERT_EQUAL_UINT32(7030, s.khz); TEST_ASSERT_EQUAL(MODE_SSB, s.mode); TEST_ASSERT_EQUAL_UINT32(1794830400u, s.utc);

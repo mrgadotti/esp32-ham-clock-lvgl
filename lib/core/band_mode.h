@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-enum Band : uint8_t { B160, B80, B60, B40, B30, B20, B17, B15, B12, B10, B6, VHF, UHF, SHF, BAND_UNKNOWN };
+enum Band : uint8_t { BAND_160M, BAND_80M, BAND_60M, BAND_40M, BAND_30M, BAND_20M, BAND_17M, BAND_15M, BAND_12M, BAND_10M, BAND_6M, BAND_VHF, BAND_UHF, BAND_SHF, BAND_UNKNOWN };
 enum Mode : uint8_t { MODE_CW, MODE_SSB, MODE_DIGI, MODE_UNKNOWN };
 Band bandFromKhz(uint32_t khz);
 const char* bandName(Band b);
