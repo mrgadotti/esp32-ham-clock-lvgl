@@ -127,6 +127,15 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(Calibrate, "CALIBRATE", "CALIBRAR") \
   X(Rot90Right, "Rotate 90 right", "Girar 90 à direita") \
   X(Rot90Left, "Rotate 90 left", "Girar 90 à esquerda") \
+  X(NightDim, "Night dimming", "Escurecer à noite") \
+  X(CalibrateTouch, "Calibrate touch", "Calibrar toque") \
+  X(InvertColors, "Invert colors", "Inverter cores") \
+  X(Rotation, "Rotation", "Rotação") \
+  X(AutoSwitch, "Auto-switch", "Troca automática") \
+  X(Off, "Off", "Desligado") \
+  X(EnabledScreens, "Enabled screens", "Telas ativas") \
+  X(FreeHeap, "Free heap", "Heap livre") \
+  X(Firmware, "Firmware", "Firmware") \
   /* overlays */ \
   X(AprsAlertTitle, "APRS ALERT", "ALERTA APRS") \
   X(AprsBeaconing, "APRS BEACONING...", "APRS BEACON...") \
