@@ -9,7 +9,7 @@
 
 // Ported from latLonToMaidenhead6 (orig L4205)
 bool latLonToLocator(double lat, double lon, char out[7]) {
-  if (lat < -90.0 || lat > 90.0 || lon < -180.0 || lon > 180.0) { strcpy(out, "--"); return false; }
+  if (!(lat >= -90.0 && lat <= 90.0 && lon >= -180.0 && lon <= 180.0)) { strcpy(out, "--"); return false; }  // also rejects NaN
   if (lat >= 90.0) lat = 89.999999;
   if (lon >= 180.0) lon = 179.999999;
   double lonAdj = lon + 180.0, latAdj = lat + 90.0;

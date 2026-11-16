@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 Gesture classifyGesture(int dx, int dy) {
-  if (abs(dx) < 50 || abs(dy) > abs(dx) / 2) return Gesture::None;
+  if (abs(dx) <= 40 || abs(dx) <= 2 * abs(dy)) return Gesture::None;
   return dx < 0 ? Gesture::SwipeLeft : Gesture::SwipeRight;
 }
 
