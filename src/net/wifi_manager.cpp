@@ -15,7 +15,9 @@ const uint32_t kApRetryMs = 5UL * 60 * 1000;
 enum class St { Init, Connecting, Connected, Backoff, Ap };
 St st = St::Init;
 uint8_t which = 0;  // 0 = ssid1, 1 = ssid2
-uint8_t failures = 0;
+uint8_t failures = 0;     // failed attempts in the current round (2 -> AP)
+uint8_t staFailures = 0;  // failed rounds since the last successful connect; drives backoffMs
+bool wasConnected = false;
 uint32_t stamp = 0;
 bool apUp = false;
 bool retryFromAp = false;
@@ -61,6 +63,7 @@ bool beginSta(uint32_t now) {
     const char* p = which ? c.wifi_pass2 : c.wifi_pass;
     if (!*s) continue;
     WiFi.mode(apUp ? WIFI_AP_STA : WIFI_STA);
+    WiFi.setAutoReconnect(false);
     WiFi.setHostname("esp32-ham-clock");
     WiFi.begin(s, p);
     Serial.printf("[WIFI] connecting to %s\n", s);
@@ -76,7 +79,7 @@ void wifiTick(uint32_t now) {
     case St::Init:
       cfgGet(c);
       WiFi.persistent(false);
-      WiFi.setAutoReconnect(false);
+      failures = 0;
       if (beginSta(now)) {
         st = St::Connecting;
       } else {
@@ -88,6 +91,8 @@ void wifiTick(uint32_t now) {
     case St::Connecting:
       if (WiFi.status() == WL_CONNECTED) {
         failures = 0;
+        staFailures = 0;
+        wasConnected = true;
         retryFromAp = false;
         stopAp();
         Serial.printf("[WIFI] connected, IP %s\n", WiFi.localIP().toString().c_str());
@@ -97,14 +102,19 @@ void wifiTick(uint32_t now) {
         failures++;
         which ^= 1;
         stamp = now;
-        // Both SSIDs tried once (or only one configured) without success: fall back to the AP.
+        // Round over (both SSIDs tried, or only one configured): backoff if we had a link before, else AP.
         if (retryFromAp || failures >= 2 || !(*c.wifi_ssid2 && *c.wifi_ssid)) {
-          if (!apUp) startAp();
-          st = St::Ap;
-          retryFromAp = false;
+          if (staFailures < 255) staFailures++;
           failures = 0;
-        } else if (beginSta(now)) {
-          // try the other SSID straight away
+          if (wasConnected && !retryFromAp && staFailures < 4) {
+            st = St::Backoff;
+          } else {
+            if (!apUp) startAp();
+            st = St::Ap;
+          }
+          retryFromAp = false;
+        } else {
+          beginSta(now);  // try the other SSID straight away
         }
       }
       break;
@@ -117,8 +127,9 @@ void wifiTick(uint32_t now) {
       }
       break;
     case St::Backoff:
-      if (now - stamp >= backoffMs(failures)) {
+      if (now - stamp >= backoffMs(staFailures)) {
         cfgGet(c);
+        failures = 0;
         if (beginSta(now)) {
           st = St::Connecting;
         } else {
@@ -129,8 +140,11 @@ void wifiTick(uint32_t now) {
       }
       break;
     case St::Ap:
+      // shortcut: AP_STA retry hops the radio channel, which can drop AP clients; skip while one is connected.
       if (now - stamp >= kApRetryMs) {
+        if (WiFi.softAPgetStationNum() > 0) { stamp = now; break; }
         cfgGet(c);
+        failures = 0;
         retryFromAp = true;
         if (beginSta(now)) st = St::Connecting;
         else stamp = now;

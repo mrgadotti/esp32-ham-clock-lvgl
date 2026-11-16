@@ -14,3 +14,4 @@ struct UiEvent {
 bool postUiEvent(const UiEvent&);  // any task; drops the event if the queue is full
 bool popUiEvent(UiEvent&);         // UI task
 void eventsInit();                 // create the queue (before starting tasks)
+bool configDirtyTake();               // UI task: true once per ConfigChanged burst, even if the event was dropped

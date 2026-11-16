@@ -47,16 +47,28 @@ static void refreshStatus() {
                         (unsigned)ESP.getMinFreeHeap(), (unsigned)memLogLvFree());
 }
 
+static void applyCfgToHal() {
+  static int32_t last = 0;
+  if (cfg().tft_rot == last) return;
+  last = cfg().tft_rot;
+  touchSetMirror(last == 3);
+  displaySetRotation(last);
+}
+
 static void uiTask(void*) {
   cfgRefreshUiSnapshot();
+  applyCfgToHal();
   buildStatusScreen();
   if (!touchCalLoadSaved() || touchHeldAtBoot(2000)) touchCalRun(nullptr);
   uint32_t lastStatus = 0;
   for (;;) {
     UiEvent e;
     while (popUiEvent(e)) {
-      if (e.kind == EventKind::ConfigChanged) cfgRefreshUiSnapshot();
-      else if (e.kind == EventKind::StartTouchCal) touchCalRun(nullptr);
+      if (e.kind == EventKind::StartTouchCal) touchCalRun(nullptr);
+    }
+    if (configDirtyTake()) {
+      cfgRefreshUiSnapshot();
+      applyCfgToHal();
     }
     lv_timer_handler();
     uint32_t now = millis();
@@ -95,8 +107,10 @@ void setup() {
   touchInit();
   touchCreateIndev();
   eventsInit();
-  xTaskCreatePinnedToCore(uiTask, "ui", 8192, nullptr, 3, nullptr, 1);
-  xTaskCreatePinnedToCore(netTask, "net", 10240, nullptr, 1, nullptr, 0);
+  TaskHandle_t hUi, hNet;
+  xTaskCreatePinnedToCore(uiTask, "ui", 8192, nullptr, 3, &hUi, 1);
+  xTaskCreatePinnedToCore(netTask, "net", 10240, nullptr, 1, &hNet, 0);
+  memLogSetTasks(hNet, hUi);
   xTaskCreatePinnedToCore(uartTask, "uart", 4096, nullptr, 2, nullptr, 1);
 }
 

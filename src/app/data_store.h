@@ -9,7 +9,7 @@
 template <typename T>
 class Guarded {
  public:
-  Guarded() : mu_(xSemaphoreCreateMutex()) {}
+  Guarded() : mu_(xSemaphoreCreateMutex()) { configASSERT(mu_ != nullptr); }
   template <class F> void write(F f) {
     xSemaphoreTake(mu_, portMAX_DELAY);
     f(v_);
