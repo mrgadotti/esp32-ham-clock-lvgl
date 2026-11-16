@@ -99,7 +99,7 @@ class AprsListScreen : public Screen {
       lv_obj_set_style_text_font(l, &font_14, 0);
       lv_obj_set_style_text_color(l, lv_color_hex(0xA0A0A0), 0);
       lv_label_set_text(l, tr(hd[i]));
-      lv_obj_set_pos(l, x + 3, HEADER_H);
+      lv_obj_set_pos(l, x + 2, HEADER_H);
       x += cols_.width[i];
     }
     table_ = spotTableCreate(p, cols_);

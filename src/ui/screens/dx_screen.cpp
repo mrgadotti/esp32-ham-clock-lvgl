@@ -34,7 +34,7 @@ class DxScreen : public Screen {
     mode_ = (uint8_t)cfg().s2_mode;
     band_ = (uint16_t)cfg().s2_band;
     cols_.n = 5;
-    const int16_t w[] = {40, 82, 56, 40, 102};
+    const int16_t w[] = {38, 76, 52, 42, 112};
     const lv_color_t c[] = {lv_color_hex(0xC0C0C0), COL_TEXT, COL_FREQ, COL_MODE, COL_ACCENT};
     for (int i = 0; i < 5; i++) { cols_.width[i] = w[i]; cols_.color[i] = c[i]; }
     hdr_ = headerCreate(p, Tr::DxCluster);
@@ -56,14 +56,14 @@ class DxScreen : public Screen {
     }
     lv_obj_add_event_cb(btn, onFilter, LV_EVENT_CLICKED, nullptr);
 
-    static const Tr kHdr[] = {Tr::Utc, Tr::ColCallsign, Tr::Mhz, Tr::Mode, Tr::ColMsg};
+    static const Tr kHdr[] = {Tr::Utc, Tr::ColCall, Tr::Mhz, Tr::ColMod, Tr::ColMsg};
     int x = 0;
     for (int i = 0; i < 5; i++) {
       lv_obj_t* l = lv_label_create(p);
       lv_obj_set_style_text_font(l, &font_14, 0);
       lv_obj_set_style_text_color(l, lv_color_hex(0xA0A0A0), 0);
       lv_label_set_text(l, tr(kHdr[i]));
-      lv_obj_set_pos(l, x + 3, HEADER_H);
+      lv_obj_set_pos(l, x + 2, HEADER_H);
       x += cols_.width[i];
     }
     table_ = spotTableCreate(p, cols_);

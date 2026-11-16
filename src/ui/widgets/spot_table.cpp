@@ -33,7 +33,8 @@ lv_obj_t* spotTableCreate(lv_obj_t* parent, const SpotTableCols& cols) {
   lv_obj_set_style_bg_opa(t, LV_OPA_TRANSP, LV_PART_ITEMS);
   lv_obj_set_style_border_width(t, 0, LV_PART_ITEMS);
   lv_obj_set_style_pad_all(t, 0, LV_PART_ITEMS);
-  lv_obj_set_style_pad_left(t, 3, LV_PART_ITEMS);
+  lv_obj_set_style_pad_left(t, 2, LV_PART_ITEMS);
+  lv_obj_set_style_pad_right(t, 2, LV_PART_ITEMS);
   lv_obj_set_scroll_dir(t, LV_DIR_VER);
   lv_obj_add_flag(t, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
   int w = 0;
