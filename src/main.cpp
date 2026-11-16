@@ -9,6 +9,7 @@
 #include "hal/touch.h"
 #include "hal/touch_cal_ui.h"
 #include "net/time_service.h"
+#include "net/web_config.h"
 #include "net/wifi_manager.h"
 #include "ui/fonts/fonts.h"
 #include "ui/theme.h"
@@ -54,9 +55,11 @@ static void uiTask(void*) {
 }
 
 static void netTask(void*) {
+  webInit();
   for (;;) {
     uint32_t now = millis();
     wifiTick(now);
+    webTick();
     timeTick(now);
     memLogTick(now);
     vTaskDelay(pdMS_TO_TICKS(20));

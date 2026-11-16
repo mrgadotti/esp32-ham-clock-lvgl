@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HAM Clock</title>
+<style>
+body{font:15px system-ui,sans-serif;margin:0;background:#101418;color:#e6e6e6}
+header{position:sticky;top:0;background:#1b222a;padding:8px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;z-index:1}
+header b{flex:1}
+main{padding:8px 12px;max-width:720px;margin:auto}
+details{background:#1b222a;border-radius:6px;margin:8px 0;padding:0 10px 6px}
+summary{padding:10px 0;font-weight:600;cursor:pointer}
+label{display:block;margin:8px 0}
+label.c{display:flex;gap:8px;align-items:center}
+label span,.sp{display:block;font-size:12px;color:#9aa7b4}
+input,select,textarea{width:100%;box-sizing:border-box;padding:7px;background:#0d1114;color:#e6e6e6;border:1px solid #38434e;border-radius:4px;font:inherit}
+input[type=checkbox]{width:auto}
+button{padding:8px 12px;background:#2c6fb5;color:#fff;border:0;border-radius:4px;font:inherit}
+button.g{background:#38434e}
+#msg{font-size:13px;color:#8fd18f}#msg.e{color:#ff8f8f}
+#st{font-size:12px;color:#9aa7b4;padding:4px 0}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.row>*{width:auto}
+ul{padding-left:18px}
+</style></head><body>
+<header><b>HAM Clock</b><select id="lang" style="width:auto"><option value="en">EN</option><option value="pt">PT-BR</option></select>
+<button id="save" data-t="Save"></button><span id="msg"></span></header>
+<main><div id="st"></div><div id="f"></div>
+<div class="row"><button class="g" id="exp" data-t="Export backup"></button>
+<button class="g" id="imp" data-t="Import backup"></button>
+<button class="g" id="rt" data-t="Recalibrate touch"></button></div>
+<input type="file" id="file" accept=".json" hidden></main>
+<script>
+const $=id=>document.getElementById(id);
+const PT={"Save":"Salvar","Saved":"Salvo","Saved, restarting...":"Salvo, reiniciando...","Export backup":"Exportar backup","Import backup":"Importar backup","Recalibrate touch":"Recalibrar toque","Off":"Desligado","Error":"Erro","(set)":"(definido)","Imported: press Save":"Importado: pressione Salvar",
+"WiFi":"WiFi","SSID 1":"SSID 1","Password 1":"Senha 1","SSID 2":"SSID 2","Password 2":"Senha 2","AP password (min 8 chars)":"Senha do AP (mín. 8 caracteres)",
+"Station":"Estação","Callsign":"Indicativo","Locator":"Locator","Latitude":"Latitude","Longitude":"Longitude","Valid lat/lon":"Lat/lon válidos","Timezone (hours)":"Fuso horário (horas)","Use GPS position when active":"Usar posição do GPS quando ativo",
+"Host":"Servidor","Port":"Porta","No announcements":"Sem anúncios","No WWV":"Sem WWV","No WCY":"Sem WCY","Use filters":"Usar filtros","Filters (one per line)":"Filtros (um por linha)",
+"POTA API URL":"URL da API POTA","Login":"Login","Password":"Senha",
+"Passcode":"Passcode","SSID (0-15)":"SSID (0-15)","Radius (km)":"Raio (km)","Send beacon":"Enviar baliza","Symbol":"Símbolo","Comment":"Comentário","Beacon interval (min)":"Intervalo da baliza (min)",
+"APRS alerts":"Alertas APRS","Watch list (CSV)":"Lista de vigilância (CSV)","Alerts enabled":"Alertas ativos","Nearby alerts":"Alertas de proximidade","Weather alerts from APRS":"Alertas de clima via APRS","Min seconds between alerts":"Segundos mín. entre alertas","Alert screen time (s)":"Tempo do alerta na tela (s)","Nearby distance (km)":"Distância de proximidade (km)",
+"Weather":"Clima","OpenWeather API key":"Chave da API OpenWeather","Storm alert":"Alerta de tempestade","Wind alert":"Alerta de vento","Wind threshold (m/s)":"Limite de vento (m/s)",
+"LED and QRZ":"LED e QRZ","LED alerts":"Alertas por LED","LED duration (ms)":"Duração do LED (ms)","LED blink (ms)":"Piscar do LED (ms)","QRZ user":"Usuário QRZ","QRZ password":"Senha QRZ",
+"Connected module":"Módulo conectado","None":"Nenhum","APRS TNC":"TNC APRS","APRS TNC KISS":"TNC APRS KISS","ESP32 bridge":"Bridge ESP32","Data bits":"Bits de dados","Parity":"Paridade","Stop bits":"Stop bits",
+"Scan":"Buscar","Pair":"Parear","Paired":"Pareado","Bridge password":"Senha do bridge","Pairing...":"Pareando...","Bridge is not enabled":"Bridge não habilitado",
+"Display":"Tela","Backlight (%)":"Brilho (%)","Night dimming (%)":"Escurecimento noturno (%)","Invert colors":"Inverter cores","Language":"Idioma","Rotation":"Rotação","Normal":"Normal","Flipped":"Invertida","Touch rotation":"Rotação do toque","Auto switch screens":"Troca automática de telas","Switch time (s)":"Tempo de troca (s)","Screen order":"Ordem das telas","Slot":"Posição",
+"Sunspots":"Manchas solares","Band info":"Info de bandas","APRS list":"Lista APRS","APRS radar":"Radar APRS","Forecast":"Previsão","Location":"Localização",
+"Free heap":"Heap livre","Uptime":"Tempo ligado","GPS fix":"Fix do GPS","no":"não"};
+let L="en";try{L=localStorage.getItem("lang")||"en"}catch(x){}
+const T=s=>L=="pt"&&PT[s]||s;
+// types: s text, p password, i int, f float, b bool, a textarea, o select
+const SCR=[[1,"HamClock"],[2,"DX Cluster"],[3,"Sunspots"],[4,"Band info"],[5,"Weather"],[6,"APRS list"],[7,"POTA"],[8,"HamAlert"],[9,"APRS radar"],[10,"Matrix"],[12,"Forecast"],[13,"Location"]];
+const S=[
+["WiFi",[["wifi_ssid","s","SSID 1"],["wifi_pass","p","Password 1"],["wifi_ssid2","s","SSID 2"],["wifi_pass2","p","Password 2"],["ap_pass","p","AP password (min 8 chars)"]]],
+["Station",[["user_callsign","s","Callsign"],["user_locator","s","Locator"],["user_lat","f","Latitude"],["user_lon","f","Longitude"],["user_lat_lon_valid","b","Valid lat/lon"],["timezone","f","Timezone (hours)"],["use_gps_if_active","b","Use GPS position when active"]]],
+["DX Cluster",[["cluster_host","s","Host"],["cluster_port","i","Port"],["cluster_noann","b","No announcements"],["cluster_nowwv","b","No WWV"],["cluster_nowcy","b","No WCY"],["cluster_usefilters","b","Use filters"],["cluster_filters","a","Filters (one per line)"],["pota_api_url","s","POTA API URL"]]],
+["HamAlert",[["hamalert_host","s","Host"],["hamalert_port","i","Port"],["hamalert_login","s","Login"],["hamalert_password","p","Password"]]],
+["APRS-IS",[["aprs_host","s","Host"],["aprs_port","i","Port"],["aprs_callsign","s","Callsign"],["aprs_passcode","p","Passcode"],["aprs_ssid","i","SSID (0-15)"],["aprs_radius","i","Radius (km)"],["aprs_beacon","b","Send beacon"],["aprs_symbol","s","Symbol"],["aprs_comment","s","Comment"],["aprs_interval_min","i","Beacon interval (min)"]]],
+["APRS alerts",[["aprs_alert","s","Watch list (CSV)"],["aprs_alert_enabled","b","Alerts enabled"],["aprs_alert_nearby_enabled","b","Nearby alerts"],["aprs_alert_wx_enabled","b","Weather alerts from APRS"],["aprs_alert_min_sec","i","Min seconds between alerts"],["aprs_alert_screen_sec","i","Alert screen time (s)"],["aprs_alert_distance_km","f","Nearby distance (km)"]]],
+["Weather",[["weather_key","p","OpenWeather API key"],["weather_alert_storm_enabled","b","Storm alert"],["weather_alert_wind_enabled","b","Wind alert"],["weather_alert_wind_threshold_ms","f","Wind threshold (m/s)"]]],
+["LED and QRZ",[["enable_led_alert","b","LED alerts"],["led_alert_duration_ms","i","LED duration (ms)"],["led_alert_blink_ms","i","LED blink (ms)"],["qrz_user","s","QRZ user"],["qrz_pass","p","QRZ password"]]],
+["UART2 / GPS / bridge",[["uart2_connected_module","o","Connected module",[["none","None"],["gps","GPS"],["aprs_tnc","APRS TNC"],["aprs_tnc_kiss","APRS TNC KISS"],["esp32_bridge","ESP32 bridge"]]],["uart2_baud","i","Baud"],["uart2_data_bits","o","Data bits",[[7,"7"],[8,"8"]]],["uart2_parity","o","Parity",[["none","none"],["even","even"],["odd","odd"]]],["uart2_stop_bits","o","Stop bits",[[1,"1"],[2,"2"]]]],"br"],
+["Display",[["tft_backlight","i","Backlight (%)"],["tft_night_dimming","i","Night dimming (%)"],["tft_invert","b","Invert colors"],["tft_lang","o","Language",[["en","English"],["pt-br","Português"]]],["tft_rotation","o","Rotation",[[1,"Normal"],[3,"Flipped"]]],["touch_rotation","o","Touch rotation",[[0,"0"],[1,"1"],[2,"2"],[3,"3"]]],["tft_auto_switch","b","Auto switch screens"],["tft_switch_time_sec","i","Switch time (s)"]],"scr"]
+];
+let cfg={};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>"&#"+c.charCodeAt(0)+";");
+function render(){
+  const f=$("f"),open=[...f.querySelectorAll("details")].map(d=>d.open);
+  f.innerHTML="";
+  S.forEach(([name,fl,extra],n)=>{
+    const d=document.createElement("details");d.open=!!open[n];
+    d.innerHTML="<summary>"+T(name)+"</summary>";
+    fl.forEach(([k,t,lb,op])=>{
+      const l=document.createElement("label"),id="k_"+k;
+      let h;
+      if(t=="b"){l.className="c";h='<input type="checkbox" id="'+id+'"><div>'+T(lb)+"</div>";}
+      else if(t=="o")h="<span>"+T(lb)+'</span><select id="'+id+'">'+op.map(o=>'<option value="'+o[0]+'">'+T(o[1])+"</option>").join("")+"</select>";
+      else if(t=="a")h="<span>"+T(lb)+'</span><textarea id="'+id+'" rows="3"></textarea>';
+      else h="<span>"+T(lb)+'</span><input id="'+id+'" '+(t=="p"?'type="password" autocomplete="new-password"':t=="s"?"":'type="number" step="'+(t=="f"?"any":"1")+'"')+">";
+      l.innerHTML=h;d.appendChild(l);
+    });
+    if(extra=="scr"){
+      const l=document.createElement("div");l.innerHTML='<span class="sp">'+T("Screen order")+"</span>";
+      for(let i=0;i<12;i++){
+        const s=document.createElement("select");s.id="so"+i;s.title=T("Slot")+" "+(i+1);s.style.margin="3px 0";
+        s.innerHTML='<option value="0">'+T("Off")+"</option>"+SCR.map(o=>'<option value="'+o[0]+'">'+T(o[1])+"</option>").join("");
+        l.appendChild(s);
+      }
+      d.appendChild(l);
+    }
+    if(extra=="br"){
+      const l=document.createElement("div");
+      l.innerHTML='<div class="row"><button class="g" id="scan">'+T("Scan")+'</button></div><div id="bt"></div>';
+      d.appendChild(l);
+    }
+    f.appendChild(d);
+  });
+  document.querySelectorAll("[data-t]").forEach(e=>e.textContent=T(e.dataset.t));
+  fill(cfg);
+  $("scan").onclick=async()=>{await fetch("/api/bridge_bt_scan",{method:"POST"});pollBt()};
+  pollBt();
+}
+function fill(c){
+  S.forEach(([,fl])=>fl.forEach(([k,t])=>{
+    const e=$("k_"+k);
+    if(t=="b")e.checked=!!c[k];
+    else if(t=="p"){e.value="";e.placeholder=c[k+"_set"]?"••• "+T("(set)"):"";}
+    else if(k in c)e.value=c[k];
+  }));
+  for(let i=0;i<12;i++)$("so"+i).value=(c.screen_order||[])[i]||0;
+}
+function collect(){
+  const o={};
+  S.forEach(([,fl])=>fl.forEach(([k,t])=>{
+    const e=$("k_"+k);let v;
+    if(t=="b")v=e.checked;
+    else if(t=="p"){if(!e.value)return;v=e.value;}
+    else if(t=="i")v=parseInt(e.value);
+    else if(t=="f")v=parseFloat(e.value);
+    else if(t=="o"&&typeof cfg[k]=="number")v=+e.value;
+    else v=e.value;
+    if(typeof v=="number"&&isNaN(v))return;
+    if(t=="p"||v!==cfg[k])o[k]=v;
+  }));
+  const so=[];for(let i=0;i<12;i++)so.push(+$("so"+i).value);
+  if(JSON.stringify(so)!=JSON.stringify(cfg.screen_order))o.screen_order=so;
+  // uart2_mode follows the connected module: gps->gps, TNC/bridge->bt, none->off
+  const m=o.uart2_connected_module;
+  if(m!==undefined)o.uart2_mode=m=="gps"?"gps":m=="none"?"off":"bt";
+  return o;
+}
+function msg(t,e){const m=$("msg");m.textContent=t;m.className=e?"e":"";}
+async function load(){cfg=await (await fetch("/api/config")).json();render();}
+async function status(){
+  try{const s=await (await fetch("/api/status")).json();
+  $("st").textContent="IP "+s.ip+" | RSSI "+s.rssi+" | "+T("Uptime")+" "+s.uptime_s+" s | "+T("Free heap")+" "+s.heap_free+" | v"+s.version+" | "+T("GPS fix")+" "+(s.gps.fix?s.gps.lat.toFixed(4)+","+s.gps.lon.toFixed(4):T("no"));}catch(e){}
+}
+$("save").onclick=async()=>{
+  const o=collect();
+  if(!Object.keys(o).length){msg(T("Saved"));return;}
+  try{
+    const r=await fetch("/api/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(o)});
+    const j=await r.json();
+    if(!r.ok){msg(T("Error")+": "+(j.error||r.status),1);return;}
+    msg(T(j.restart?"Saved, restarting...":"Saved"));
+    if(j.restart)setTimeout(()=>location.reload(),8000);else load();
+  }catch(e){msg(T("Error"),1);}
+};
+$("exp").onclick=()=>{
+  const o={};for(const k in cfg)if(!/_set$|^uart2_[rt]x_pin$|^qrz_status$/.test(k))o[k]=cfg[k];
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,1)],{type:"application/json"}));
+  a.download="hamclock-config.json";a.click();
+};
+$("imp").onclick=()=>$("file").click();
+$("file").onchange=async e=>{
+  try{
+    const o=JSON.parse(await e.target.files[0].text()),c2=Object.assign({},cfg);
+    for(const k in o)if(!/_set$/.test(k))c2[k]=o[k];
+    fill(c2);msg(T("Imported: press Save"));  // Save sends only what differs from the device
+  }catch(x){msg(T("Error"),1);}
+  e.target.value="";
+};
+$("rt").onclick=()=>fetch("/api/reset_touch",{method:"POST"});
+$("lang").value=L;
+$("lang").onchange=e=>{L=e.target.value;try{localStorage.setItem("lang",L)}catch(x){}render();status();};
+let btT;
+async function pollBt(){
+  clearTimeout(btT);
+  const b=$("bt");
+  try{
+    const s=await (await fetch("/api/bridge_bt_status")).json();
+    if(!s.enabled){b.textContent=T("Bridge is not enabled");return;}
+    b.innerHTML=(s.paired_name?"<p>"+T("Paired")+": "+esc(s.paired_name)+" "+esc(s.paired_addr)+"</p>":"")+
+      "<ul>"+(s.devices||[]).map((d,i)=>"<li>"+esc(d.name)+" "+esc(d.addr)+' <button class="g" data-i="'+i+'">'+T("Pair")+"</button></li>").join("")+"</ul>";
+    b.querySelectorAll("button").forEach(x=>x.onclick=async()=>{
+      const d=s.devices[x.dataset.i],pw=prompt(T("Bridge password"),"")||"";
+      await fetch("/api/bridge_bt_pair",{method:"POST",body:JSON.stringify({name:d.name,address:d.addr_raw||d.addr,password:pw})});
+      msg(T("Pairing..."));pollBt();
+    });
+    if(s.scan_in_progress||s.pair_pending||s.list_collecting)btT=setTimeout(pollBt,2000);
+  }catch(e){}
+}
+load();status();setInterval(status,10000);
+</script></body></html>
