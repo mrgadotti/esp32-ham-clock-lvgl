@@ -8,7 +8,7 @@
 
 static TFT_eSPI tft;
 static lv_display_t* disp;
-// Two 320x20 RGB565 partial buffers (25.6 KB total), heap-allocated: static DRAM that large starves the global ctors.
+// One 320x20 RGB565 partial buffer (12.8 KB), heap-allocated: static DRAM that large starves the global ctors.
 static constexpr uint32_t BUF_PX = 320 * 20;
 
 #ifdef PERF_TEST
@@ -67,6 +67,6 @@ void displayInit(uint8_t rotation, bool invert) {
   disp = lv_display_create(320, 240);
   lv_display_set_flush_cb(disp, flushCb);
   void* buf1 = heap_caps_malloc(BUF_PX * 2, MALLOC_CAP_8BIT);
-  void* buf2 = heap_caps_malloc(BUF_PX * 2, MALLOC_CAP_8BIT);
+  void* buf2 = nullptr;  // single buffer: frees 12.8 KB of contiguous heap for TLS
   lv_display_set_buffers(disp, buf1, buf2, BUF_PX * 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
 }

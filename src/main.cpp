@@ -134,10 +134,12 @@ static void uartTask(void*) {
 
 void setup() {
   Serial.begin(115200);
+  Serial.printf("[MEM] boot largest=%u free=%u\n", (unsigned)memLargest8(), (unsigned)ESP.getFreeHeap());
   Config boot;
   configStoreLoad(boot);
   displayInit(boot.tft_rot, boot.tft_inv);
   displaySetBacklight(boot.tft_backlight);
+  Serial.printf("[MEM] after display largest=%u free=%u\n", (unsigned)memLargest8(), (unsigned)ESP.getFreeHeap());
   themeApply(lv_display_get_default());
   touchInit();
   touchCreateIndev();
@@ -146,7 +148,7 @@ void setup() {
   aprsIngestInit();
   TaskHandle_t hUi, hNet;
   xTaskCreatePinnedToCore(uiTask, "ui", 8192, nullptr, 3, &hUi, 1);
-  xTaskCreatePinnedToCore(netTask, "net", 10240, nullptr, 1, &hNet, 0);
+  xTaskCreatePinnedToCore(netTask, "net", 8192, nullptr, 1, &hNet, 0);
   memLogSetTasks(hNet, hUi);
   xTaskCreatePinnedToCore(uartTask, "uart", 4096, nullptr, 2, nullptr, 1);
 }

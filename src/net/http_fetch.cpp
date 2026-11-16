@@ -6,6 +6,8 @@
 #include <WiFiClientSecure.h>
 #include <string.h>
 
+#include "app/mem_log.h"
+
 constexpr uint32_t HTTP_TIMEOUT_MS = 8000;
 
 // Runs `body(http)` on a 200 response. Logs the host only: query strings carry credentials.
@@ -21,11 +23,13 @@ static bool fetch(const char* url, uint32_t timeoutMs, F body) {
   http.useHTTP10(true);  // no chunked encoding, body is close-delimited
   http.setReuse(false);
   uint32_t t0 = millis();
+  uint32_t big0 = memLargest8();
   if (!http.begin(https ? static_cast<WiFiClient&>(sec) : plain, url)) return false;
   int code = http.GET();
   const char* h = strstr(url, "://");
   h = h ? h + 3 : url;
-  Serial.printf("[HTTP] GET %.*s -> %d (%u ms)\n", (int)strcspn(h, "/?:;"), h, code, (unsigned)(millis() - t0));
+  Serial.printf("[HTTP] GET %.*s -> %d (%u ms) largest=%u->%u free=%u\n", (int)strcspn(h, "/?:;"), h, code, (unsigned)(millis() - t0),
+                (unsigned)big0, (unsigned)memLargest8(), (unsigned)ESP.getFreeHeap());
   bool ok = code == 200 && body(http);
   http.end();
   return ok;
