@@ -6,3 +6,4 @@ dist/
 src/net/config_html.h
 *.bin
 *.elf
+.claude/
