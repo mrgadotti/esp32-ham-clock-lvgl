@@ -1,0 +1,8 @@
+.pio/
+.vscode/
+.superpowers/
+include/secrets.h
+dist/
+src/net/config_html.h
+*.bin
+*.elf
