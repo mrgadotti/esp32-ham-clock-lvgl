@@ -68,7 +68,7 @@ class AprsListScreen : public Screen {
     sort_ = (int)cfg().aprs_sort;
     if (sort_ < 0 || sort_ > SORT_DIST) sort_ = SORT_TIME;
     cols_.n = 5;
-    const int16_t w[] = {40, 88, 76, 50, 66};
+    const int16_t w[] = {36, 90, 87, 48, 59};  // UTC CALL SYM KM FREQ, sized by tools/check_text_fit.py
     const lv_color_t c[] = {lv_color_hex(0xC0C0C0), COL_TEXT, lv_color_hex(0x00FFFF), COL_ACCENT, COL_FREQ};
     for (int i = 0; i < 5; i++) { cols_.width[i] = w[i]; cols_.color[i] = c[i]; }
     const char* cm = cfg().uart2_cmod;
@@ -218,7 +218,7 @@ class AprsListScreen : public Screen {
 
     label(p, tr(Tr::SortBy), 6);
     const Tr sn[] = {Tr::SortTime, Tr::SortCall, Tr::SortDist};
-    for (int i = 0; i < 3; i++) menu->tile[i] = tile(p, tr(sn[i]), 8 + i * 96, 26, 90, 26, onTile, i);
+    for (int i = 0; i < 3; i++) menu->tile[i] = tile(p, tr(sn[i]), 8 + i * 96, 26, 92, 26, onTile, i);
     label(p, tr(Tr::AprsSetting), 66);
     const Tr bn[] = {Tr::Beaconing, Tr::AprsAlert, Tr::RangeAlert, Tr::LedBuzzer};
     for (int i = 0; i < 4; i++) {

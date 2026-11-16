@@ -32,7 +32,7 @@ class PropagationScreen : public Screen {
     lv_obj_set_style_text_font(u, &font_14, 0);
     lv_obj_set_style_text_color(u, lv_color_hex(0xC0C0C0), 0);
     lv_label_set_text(u, tr(Tr::UpdatedUtc));
-    lv_obj_set_pos(u, 10, 188);
+    lv_obj_set_pos(u, 10, 186);
     upd_ = lv_label_create(p);
     lv_obj_set_style_text_font(upd_, &font_14, 0);
     lv_obj_set_pos(upd_, 10, 204);
@@ -44,7 +44,7 @@ class PropagationScreen : public Screen {
     lv_obj_set_style_text_font(err_, &font_14, 0);
     lv_obj_set_style_text_color(err_, COL_ERROR, 0);
     lv_label_set_text(err_, tr(Tr::NoData));
-    lv_obj_set_pos(err_, 10, 170);
+    lv_obj_set_pos(err_, 10, 172);
     ver_ = ~0u;
     refresh(0);
   }

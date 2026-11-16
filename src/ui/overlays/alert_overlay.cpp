@@ -287,7 +287,7 @@ void overlayShow(const UiEvent& e) {
   lv_obj_set_style_text_font(t, &font_24, 0);
   lv_obj_set_style_text_color(t, COL_ACCENT, 0);
   lv_label_set_text(t, title);
-  lv_obj_align(t, LV_ALIGN_TOP_MID, 0, aprs ? 8 : 30);
+  lv_obj_align(t, LV_ALIGN_TOP_MID, 0, aprs ? 8 : 42);  // non-APRS titles can be wide: stay below the X button (y<=40)
 
   if (aprs) buildAprs(ov, e.station);
   lv_obj_t* b = aprs ? nullptr : lv_label_create(ov);
@@ -300,9 +300,9 @@ void overlayShow(const UiEvent& e) {
     lv_obj_t* im = lv_image_create(ov);
     lv_image_set_src(im, wxImg);
     lv_obj_set_pos(im, 18, 90);
-    lv_obj_set_width(b, 220);
+    lv_obj_set_width(b, 226);
     lv_obj_set_style_text_align(b, LV_TEXT_ALIGN_LEFT, 0);
-    lv_obj_align(b, LV_ALIGN_LEFT_MID, 82, 15);
+    lv_obj_align(b, LV_ALIGN_TOP_LEFT, 82, 76);  // top-anchored: up to 6 lines never reach the title
   } else {
     lv_obj_align(b, LV_ALIGN_CENTER, 0, 10);
   }

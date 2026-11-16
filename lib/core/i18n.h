@@ -38,7 +38,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(ColCallsign, "CALLSIGN", "INDICATIVO") \
   X(ColMsg, "MSG", "MSG") \
   X(ColCountry, "COUNTRY", "PAÍS") \
-  X(ColSymbol, "SYMBOL", "SÍMBOLO") \
+  X(ColSymbol, "SYM", "SYM") \
   X(ColKm, "KM", "KM") \
   X(ColFreq, "FREQ", "FREQ") \
   X(ColDay, "DAY", "DIA") \
@@ -173,11 +173,11 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(DayFri, "Fri", "Sex") \
   X(DaySat, "Sat", "Sáb") \
   X(WeekdaySunday, "Sunday", "Domingo") \
-  X(WeekdayMonday, "Monday", "Segunda-feira") \
-  X(WeekdayTuesday, "Tuesday", "Terça-feira") \
-  X(WeekdayWednesday, "Wednesday", "Quarta-feira") \
-  X(WeekdayThursday, "Thursday", "Quinta-feira") \
-  X(WeekdayFriday, "Friday", "Sexta-feira") \
+  X(WeekdayMonday, "Monday", "Segunda") \
+  X(WeekdayTuesday, "Tuesday", "Terça") \
+  X(WeekdayWednesday, "Wednesday", "Quarta") \
+  X(WeekdayThursday, "Thursday", "Quinta") \
+  X(WeekdayFriday, "Friday", "Sexta") \
   X(WeekdaySaturday, "Saturday", "Sábado") \
   X(MonthJanuary, "January", "janeiro") \
   X(MonthFebruary, "February", "fevereiro") \
@@ -205,7 +205,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(SymHouse, "HOUSE", "CASA") \
   X(SymCar, "CAR", "CARRO") \
   X(SymDigi, "DIGI", "DIGI") \
-  X(SymRepeater, "REPEATER", "REPETIDORA") \
+  X(SymRepeater, "REPEATER", "REPET.") \
   X(SymHuman, "HUMAN", "PESSOA") \
   X(SymLaptop, "LAPTOP", "LAPTOP") \
   X(SymLogin, "LOGIN", "LOGIN") \
@@ -215,7 +215,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(SymBike, "BIKE", "BIKE") \
   X(SymIcp, "ICP", "ICP") \
   X(SymFire, "FIRE", "BOMBEIRO") \
-  X(SymFiretruck, "FIRETRK", "AUTOBOMBA") \
+  X(SymFiretruck, "FIRETRK", "AUTOB.") \
   X(SymHospital, "HOSP", "HOSP") \
   X(SymYagi, "YAGI", "YAGI") \
   X(SymGlider, "GLIDER", "PLANADOR") \
@@ -236,7 +236,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(DescRepeater, "Repeater", "Repetidora") \
   X(DescHuman, "Pedestrian", "Pedestre") \
   X(DescLaptop, "Laptop", "Laptop") \
-  X(DescWx, "Weather station", "Estação meteorológica") \
+  X(DescWx, "Weather station", "Estação meteo.") \
   X(DescShip, "Ship", "Navio") \
   X(DescAmbulance, "Ambulance", "Ambulância") \
   X(DescBike, "Bicycle", "Bicicleta") \

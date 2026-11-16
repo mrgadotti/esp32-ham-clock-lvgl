@@ -30,7 +30,7 @@ class BandsScreen : public Screen {
       for (int c = 0; c < 3; c++) cell_[i][c] = cell(p, COL_X[c], y + 6, "", COL_TEXT);
     }
     cell(p, 10, 182, tr(Tr::UpdatedUtc), lv_color_hex(0xC0C0C0));
-    upd_ = cell(p, 10, 198, "--", COL_TEXT);
+    upd_ = cell(p, 10, 200, "--", COL_TEXT);
     age_ = cell(p, 10, 222, "", lv_color_hex(0x808080));
     err_ = cell(p, 150, 182, tr(Tr::NoData), COL_ERROR);
     ver_ = ~0u;

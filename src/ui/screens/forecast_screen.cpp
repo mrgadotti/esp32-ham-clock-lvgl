@@ -43,6 +43,8 @@ class ForecastScreen : public Screen {
     }
     msg_ = wxLabel(p, &font_18, COL_ERROR, 12, 90, 296);
     foot_ = wxLabel(p, &font_14, lv_color_hex(0x52AA52), 0, 222, 320, LV_TEXT_ALIGN_CENTER);
+    lv_label_set_long_mode(foot_, LV_LABEL_LONG_DOT);
+    lv_obj_set_height(foot_, 18);
     refresh(true);
   }
 

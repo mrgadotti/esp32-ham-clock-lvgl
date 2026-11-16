@@ -34,7 +34,7 @@ class LocationScreen : public Screen {
     lv_obj_center(l);
     toast_ = lv_label_create(p);
     lv_obj_set_style_text_font(toast_, &font_18, 0);
-    lv_obj_align(toast_, LV_ALIGN_BOTTOM_LEFT, 8, -18);
+    lv_obj_align(toast_, LV_ALIGN_BOTTOM_LEFT, 8, -8);  // below the 6 info lines (end at y~190)
     lv_label_set_text(toast_, "");
     refresh();
   }
