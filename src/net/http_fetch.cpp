@@ -52,7 +52,7 @@ bool httpGet(const char* url, char* buf, size_t len, uint32_t timeoutMs) {
     if (got < len - 1) return true;
     // Buffer full without Content-Length: any further byte before close means overflow.
     while (http.connected() && !s.available() && millis() - last < timeoutMs) delay(1);
-    return !s.available();
+    return !s.available() && !http.connected();  // still open after timeout: body may be oversized
   });
 }
 

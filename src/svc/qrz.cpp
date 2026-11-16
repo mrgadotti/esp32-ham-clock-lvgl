@@ -51,7 +51,7 @@ static bool login(uint32_t now) {
   urlEncode(cfg().qrz_user, u, sizeof u);
   urlEncode(cfg().qrz_pass, p, sizeof p);
   snprintf(url, sizeof url, "https://xmldata.qrz.com/xml/current/?username=%s;password=%s", u, p);
-  if (!httpGet(url, s_body, sizeof s_body, QRZ_HTTP_TIMEOUT_MS)) { setStatus("error: login http"); return false; }
+  if (!httpGet(url, s_body, sizeof s_body, QRZ_HTTP_TIMEOUT_MS)) { setStatus("error: login http"); s_loginFailed = true; s_loginFailAt = now; return false; }
   if (!qrzParseSessionKey(s_body, s_key, sizeof s_key)) {
     s_key[0] = 0;
     s_loginFailed = true;
@@ -129,7 +129,7 @@ void qrzTick(uint32_t now) {
   if (!due) return;
 
   QrzInfo info;
-  bool ok = false, notFound = false, timedOut = false;
+  bool ok = false, notFound = false;
   for (int attempt = 0; attempt < 2; ++attempt) {
     if (!s_key[0] || now - s_keyAt >= SESSION_TTL_MS) {
       if (!login(now)) break;
@@ -139,16 +139,14 @@ void qrzTick(uint32_t now) {
     if (!httpGet(url, s_body, sizeof s_body, QRZ_HTTP_TIMEOUT_MS)) { setStatus("error: lookup http"); break; }
     if (strstr(s_body, "Session Timeout") || strstr(s_body, "Invalid session")) {
       s_key[0] = 0;  // re-login once
-      timedOut = true;
+      if (attempt == 1) setStatus("error: session");
       continue;
     }
-    timedOut = false;
     ok = qrzParseXml(s_body, info);
-    notFound = !ok;
+    notFound = !ok && strstr(s_body, "<Error>Not found");  // other errors are retried, not cached
     setStatus(ok ? "ok" : "error: not found");
     break;
   }
-  if (timedOut) setStatus("error: session");
   xSemaphoreTake(mu(), portMAX_DELAY);
   if (ok) { s_cache.put(call, info, now); s_queue.done(call); }
   else if (notFound) { QrzInfo none = {}; s_neg.put(call, none, now); s_queue.done(call); }
