@@ -58,7 +58,7 @@ lv_obj_t* spotTableCreate(lv_obj_t* parent, const SpotTableCols& cols) {
   lv_obj_t* sep = lv_obj_create(parent);
   lv_obj_remove_style_all(sep);
   lv_obj_set_style_bg_opa(sep, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(sep, lv_color_hex(0x7B7D7B), 0);  // TFT_DARKGREY
+  lv_obj_set_style_bg_color(sep, lv_color_hex(0xD3D3D3), 0);  // TFT_LIGHTGREY (dark-theme muted)
   lv_obj_set_size(sep, 320, 1);
   lv_obj_set_pos(sep, 0, HEADER_H + 17);
   lv_obj_set_user_data(t, new State{cols});
