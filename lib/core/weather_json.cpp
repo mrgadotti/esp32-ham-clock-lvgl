@@ -40,7 +40,7 @@ bool weatherParseCurrent(JsonDocument& doc, WeatherData& out) {
 
 bool weatherParseAir(JsonDocument& doc, WeatherData& out) {
   JsonObject c = doc["list"][0]["components"];
-  if (c.isNull()) return false;
+  if (c.isNull() || (c["pm2_5"].isNull() && c["pm10"].isNull())) return false;
   out.pm25 = c["pm2_5"] | 0.0f;
   out.pm10 = c["pm10"] | 0.0f;
   return true;
@@ -51,7 +51,11 @@ bool weatherParseForecast(JsonDocument& doc, WeatherData& out, long nowUnix, lon
   if (!doc["cod"].isNull() && doc["cod"].as<int>() != 200) return false;
   JsonArray list = doc["list"].as<JsonArray>();
   if (list.isNull() || list.size() == 0) return false;
-  const int n = (int)list.size();
+  // Only object entries with a positive "dt" count; vi maps compact index -> list index.
+  int vi[64], n = 0;
+  for (size_t k = 0; k < list.size() && n < 64; k++)
+    if (list[k].is<JsonObject>() && (list[k]["dt"] | 0L) > 0) vi[n++] = (int)k;
+  if (n == 0) return false;
   const bool haveClock = nowUnix > 100000L;
 
   // Next-6h storm / wind scan (feeds the alert scheduler).
@@ -83,12 +87,12 @@ bool weatherParseForecast(JsonDocument& doc, WeatherData& out, long nowUnix, lon
       const long dayStart = baseDay + (long)(s - 1) * 86400L, noon = dayStart + 12L * 3600L;
       long best = 0x7FFFFFFF;
       for (int i = 0; i < n; i++) {
-        long dt = list[i]["dt"] | 0L;
+        long dt = list[vi[i]]["dt"] | 0L;
         if (dt <= 0) continue;
         long l = dt + tz;
         if ((l / 86400L) * 86400L != dayStart) continue;
         int h = (int)((l % 86400L) / 3600L);
-        const char* ic = list[i]["weather"][0]["icon"] | "";
+        const char* ic = list[vi[i]]["weather"][0]["icon"] | "";
         size_t il = strlen(ic);
         bool day = (h >= 9 && h <= 18) || (il && ic[il - 1] == 'd');
         long score = labs(l - noon) + (day ? 0 : 12L * 3600L);
@@ -98,14 +102,14 @@ bool weatherParseForecast(JsonDocument& doc, WeatherData& out, long nowUnix, lon
     if (idx < 0 && haveClock) {
       long target = nowUnix + targetOffsets[s], best = 0x7FFFFFFF;
       for (int i = 0; i < n; i++) {
-        long dt = list[i]["dt"] | 0L;
+        long dt = list[vi[i]]["dt"] | 0L;
         if (dt <= 0) continue;
         long d = labs(dt - target);
         if (d < best) { best = d; idx = i; }
       }
     }
     if (idx < 0) idx = fallbackIdx[s] < n ? fallbackIdx[s] : n - 1;
-    JsonObject e = list[idx];
+    JsonObject e = list[vi[idx]];
     t.detailTempC[s] = e["main"]["temp"] | 0.0f;
     t.detailHumidity[s] = e["main"]["humidity"] | 0;
     t.detailWindMs[s] = e["wind"]["speed"] | 0.0f;
@@ -121,19 +125,19 @@ bool weatherParseForecast(JsonDocument& doc, WeatherData& out, long nowUnix, lon
     const long dayStart = baseDay + (long)(d + 1) * 86400L;
     int bestNight = -1, bestAny = -1; long bestScore = 0x7FFFFFFF; float bestTemp = 1000.0f;
     for (int i = 0; i < n; i++) {
-      long dt = list[i]["dt"] | 0L;
+      long dt = list[vi[i]]["dt"] | 0L;
       if (dt <= 0) continue;
       long l = dt + tz;
       if ((l / 86400L) * 86400L != dayStart) continue;
-      float temp = list[i]["main"]["temp"] | 0.0f;
+      float temp = list[vi[i]]["main"]["temp"] | 0.0f;
       if (bestAny < 0 || temp < bestTemp) { bestTemp = temp; bestAny = i; }
       int h = (int)((l % 86400L) / 3600L);
       if (h > 6 && h < 21) continue;
-      long score = labs((long)(h >= 21 ? 24 + h : h) - 26L);
+      long score = labs((long)(h >= 21 ? h : 24 + h) - 26L);
       if (score < bestScore) { bestScore = score; bestNight = i; }
     }
     int pick = bestNight >= 0 ? bestNight : bestAny;
-    if (pick >= 0) { t.nightTempC[d] = list[pick]["main"]["temp"] | 0.0f; t.nightTempValid[d] = true; }
+    if (pick >= 0) { t.nightTempC[d] = list[vi[pick]]["main"]["temp"] | 0.0f; t.nightTempValid[d] = true; }
   }
 
   t.forecast3hTempC = t.detailTempC[0]; t.forecast3hWindMs = t.detailWindMs[0];

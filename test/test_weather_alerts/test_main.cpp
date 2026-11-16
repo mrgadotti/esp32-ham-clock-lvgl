@@ -52,8 +52,23 @@ void test_alert_millis_wrap() {
   TEST_ASSERT_TRUE(s.due(w, t + 60000u, CFG, o));  // wrapped past 0
 }
 
+void test_storm_age_boundary() {
+  WeatherData w = base(); WeatherAlertInfo o;
+  w.valid = true; w.weatherId = 200; w.fetchedAt = 1000;
+  WeatherAlertScheduler a, b;
+  TEST_ASSERT_TRUE(a.due(w, 1000 + 30UL * 60000UL, CFG, o));
+  TEST_ASSERT_FALSE(b.due(w, 1000 + 30UL * 60000UL + 1, CFG, o));
+}
+
+void test_forecast_stamp_in_future() {
+  WeatherData w = base(); WeatherAlertInfo o; WeatherAlertScheduler s;
+  w.forecastFetchedAt = 5000; w.stormEtaMin = 150;  // now < stamp: 0 elapsed, eta stays 150 -> 3
+  TEST_ASSERT_TRUE(s.due(w, 1000, CFG, o)); TEST_ASSERT_EQUAL_UINT8(3, o.stormEtaHours);
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_storm_age_boundary); RUN_TEST(test_forecast_stamp_in_future);
   RUN_TEST(test_alert_storm_now); RUN_TEST(test_alert_wind_gust);
   RUN_TEST(test_alert_repeat_minutes); RUN_TEST(test_alert_millis_wrap);
   return UNITY_END();

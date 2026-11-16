@@ -75,8 +75,51 @@ void test_weather_rejects_garbage() {
   TEST_ASSERT_EQUAL_FLOAT(3, w.pm25); TEST_ASSERT_FALSE(w.detailValid[0]);
 }
 
+void test_night_min_small_hours() {
+  // Nov 17 (tz 0): 00:00=5, 03:00=3.5, 06:00=4, 21:00=6 -> 03:00 wins
+  JsonDocument d;
+  deserializeJson(d,
+    "{\"cod\":200,\"list\":["
+    "{\"dt\":1794841200,\"main\":{\"temp\":10,\"humidity\":1},\"weather\":[{\"id\":800,\"icon\":\"01d\"}],\"wind\":{\"speed\":1}},"
+    "{\"dt\":1794873600,\"main\":{\"temp\":5.0},\"weather\":[{\"id\":800,\"icon\":\"01n\"}]},"
+    "{\"dt\":1794884400,\"main\":{\"temp\":3.5},\"weather\":[{\"id\":800,\"icon\":\"01n\"}]},"
+    "{\"dt\":1794895200,\"main\":{\"temp\":4.0},\"weather\":[{\"id\":800,\"icon\":\"01n\"}]},"
+    "{\"dt\":1794949200,\"main\":{\"temp\":6.0},\"weather\":[{\"id\":800,\"icon\":\"01n\"}]},"
+    "42,{\"main\":{\"temp\":99}}]}");
+  WeatherData w; memset(&w, 0, sizeof w);
+  TEST_ASSERT_TRUE(weatherParseForecast(d, w, NOW, 0));
+  TEST_ASSERT_TRUE(w.nightTempValid[0]); TEST_ASSERT_EQUAL_FLOAT(3.5f, w.nightTempC[0]);
+  deserializeJson(d, "{\"list\":[1,\"x\",{\"main\":{}}]}");
+  WeatherData k; memset(&k, 0, sizeof k);
+  TEST_ASSERT_FALSE(weatherParseForecast(d, k, NOW, 0)); TEST_ASSERT_FALSE(k.detailValid[0]);
+}
+
+void test_text_sanitizing() {
+  JsonDocument d;
+  WeatherData w; memset(&w, 0, sizeof w);
+  // C2 85 (C1 control) dropped, lone continuation 0x80 dropped
+  deserializeJson(d, "{\"weather\":[{\"id\":800,\"description\":\"a\xC2\x85" "b\x80" "c\",\"icon\":\"01d\"}],\"main\":{\"temp\":1}}");
+  TEST_ASSERT_TRUE(weatherParseCurrent(d, w));
+  TEST_ASSERT_EQUAL_STRING("abc", w.description);
+  // 40 x U+00E9 into char[32]: whole sequences only -> 15 chars = 30 bytes
+  char json[256] = "{\"name\":\"";
+  for (int i = 0; i < 40; i++) strcat(json, "\xC3\xA9");
+  strcat(json, "\",\"weather\":[{\"id\":800,\"icon\":\"01d\"}],\"main\":{\"temp\":1}}");
+  deserializeJson(d, json);
+  TEST_ASSERT_TRUE(weatherParseCurrent(d, w));
+  TEST_ASSERT_EQUAL_INT(30, (int)strlen(w.cityName));
+  TEST_ASSERT_EQUAL_UINT8(0xA9, (uint8_t)w.cityName[29]);
+}
+
+void test_air_requires_pm() {
+  JsonDocument d; WeatherData w; memset(&w, 0, sizeof w); w.pm25 = 7;
+  deserializeJson(d, "{\"list\":[{\"components\":{\"co\":1}}]}");
+  TEST_ASSERT_FALSE(weatherParseAir(d, w)); TEST_ASSERT_EQUAL_FLOAT(7, w.pm25);
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_night_min_small_hours); RUN_TEST(test_text_sanitizing); RUN_TEST(test_air_requires_pm);
   RUN_TEST(test_current_fixture); RUN_TEST(test_forecast_fixture);
   RUN_TEST(test_air_fixture); RUN_TEST(test_weather_rejects_garbage);
   return UNITY_END();

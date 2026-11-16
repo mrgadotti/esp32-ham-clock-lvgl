@@ -29,7 +29,7 @@ bool WeatherAlertScheduler::due(const WeatherData& w, uint32_t now, const WxAler
   windPrev_ = windActive;
 
   if (stormActive && reached(now, nextStorm_)) {
-    int eta = w.stormEtaMin - (fcFresh ? (int)((uint32_t)(now - w.forecastFetchedAt) / 60000UL) : 0);
+    int eta = w.stormEtaMin - (fcFresh && (int32_t)(now - w.forecastFetchedAt) > 0 ? (int)((uint32_t)(now - w.forecastFetchedAt) / 60000UL) : 0);
     if (eta < 1) eta = 1;
     uint8_t rep = stormNow ? 1 : repeatMinutesFromEta(eta);
     out.stormPossible = true; out.stormNow = stormNow; out.stormEtaHours = rep;  // field carries minutes
