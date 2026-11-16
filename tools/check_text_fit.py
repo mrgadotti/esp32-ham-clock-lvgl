@@ -162,9 +162,6 @@ add("Clock", "date 'Weekday, 30 Month 2026' font_18", "font_18", 296,
 GPS_END = 30 + width("font_14", "GPS") + 6
 add("Clock", "IP / NO CONNECTION (centred, clear of GPS tag)", "font_18", 320 - 2 * GPS_END, ["255.255.255.255"] + T("NoConnection"))
 
-# ---------------- Matrix (matrix_screen.cpp) ----------------
-add("Matrix", "clock font_clock_48 + 2*3 pad", "font_clock_48", 320, ["88:88:88"])
-
 # ---------------- Location (location_screen.cpp: info font_18 x=8, width to button x=202 for last lines) ----------------
 LOC = []
 for i in (0, 1):
@@ -183,7 +180,7 @@ add("Settings", "label beside switch (308-60)", "font_14", 308 - 60 - 4, T("Nigh
 add("Settings", "label beside dropdown (308-120)", "font_14", 308 - 120 - 4, T("Rotation", "Language", "AutoSwitch"))
 add("Settings", "dropdown option text (120 px - arrow)", "font_14", 120 - 40, ["Português", "300 s", "English"])
 add("Settings", "calibrate button / heading", "font_14", 300, T("CalibrateTouch", "EnabledScreens"))
-add("Settings", "screen checkbox names", "font_14", 300 - 30, T("Clock", "DxCluster", "Propagation", "HfBands", "Weather", "AprsIs", "Pota", "HamAlert", "AprsRadar", "Matrix", "Forecast", "Location"))
+add("Settings", "screen checkbox names", "font_14", 300 - 30, T("Clock", "DxCluster", "Propagation", "HfBands", "Weather", "AprsIs", "Pota", "HamAlert", "AprsRadar", "Forecast", "Location"))
 add("Settings", "info rows (300 px DOT)", "font_14", 300, ["SSID: " + "x" * 12, "IP: 255.255.255.255", "RSSI: -100 dBm", "%s: 999999 B" % TR["FreeHeap"][1], "%s: Nov 16 2026 12:00:00" % TR["Firmware"][1]])
 
 # ---------------- Boot (boot_screen.cpp) ----------------

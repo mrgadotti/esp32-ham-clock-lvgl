@@ -97,19 +97,6 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(NoForecast, "No forecast", "Sem previsão") \
   X(ForecastNoData, "Forecast: no data from API", "Previsão: sem dados da API") \
   X(WeatherForLocation, "Weather for location: ", "Clima para localização: ") \
-  /* matrix / game */ \
-  X(Matrix, "MATRIX CLOCK", "RELÓGIO MATRIX") \
-  X(GameTitle, "UNLIS HUNTER GAME", "JOGO UNLIS HUNTER") \
-  X(GameHint1, "Use a Yagi antenna to catch", "Use uma antena Yagi para captar") \
-  X(GameHint2, "and jam its signal by pressing", "e interferir no sinal pressionando") \
-  X(GameHint3, "PTT on it.", "PTT nela.") \
-  X(GameStart, "START", "INICIAR") \
-  X(GameStop, "STOP", "PARAR") \
-  X(GamePtt, "PTT", "PTT") \
-  X(GameExit, "EXIT", "SAIR") \
-  X(GameUnlis, "* Unlis = Unlicensed", "* Unlis = Sem licença") \
-  X(GameBand, "BAND:", "BANDA:") \
-  X(GameOver, "GAME OVER", "FIM DE JOGO") \
   /* location */ \
   X(Location, "LOCATION", "LOCALIZAÇÃO") \
   X(GpsLabel, "GPS:", "GPS:") \

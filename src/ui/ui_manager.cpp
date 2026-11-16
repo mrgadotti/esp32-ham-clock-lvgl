@@ -17,12 +17,8 @@ static constexpr uint32_t TOUCH_PAUSE_MS = 10000, BOOT_MIN_MS = 3000, BOOT_MAX_M
 
 static Screen* cur;
 static lv_obj_t* curObj;
-static Screen* modal;
-static lv_obj_t* modalObj;
 static std::atomic<int8_t> pendingDir{0};      // -1/+1 from gesture, uiNext/uiPrev
 static std::atomic<uint8_t> pendingTarget{0};  // ScreenId, 0 = none
-static std::atomic<bool> pendingModalClose{false};
-static Screen* pendingModal;
 static bool booting;
 static uint8_t lastLang;
 static bool pendingRebuild;
@@ -40,12 +36,6 @@ static void onGesture(Gesture g) {  // indev callback: flag only
 void uiRequest(ScreenId id) { pendingTarget = (uint8_t)id; }
 void uiNext() { pendingDir = 1; }
 void uiPrev() { pendingDir = -1; }
-void uiOpenModal(Screen* s) {
-  delete pendingModal;
-  pendingModal = s;
-}
-bool uiModalActive() { return modal || pendingModal; }
-void uiCloseModal() { pendingModalClose = true; }
 
 void uiInit() {
   lastLang = cfg().tft_lang;
@@ -73,13 +63,6 @@ static void showForce(ScreenId id) {
 static void show(ScreenId id) {
   if (cur && cur->id() == id) return;
   showForce(id);
-}
-
-static void closeModal() {
-  delete modal;
-  if (modalObj) lv_obj_delete(modalObj);
-  modal = nullptr;
-  modalObj = nullptr;
 }
 
 static ScreenId carouselNext(uint8_t from, int dir) {
@@ -129,21 +112,7 @@ void uiTick(uint32_t now) {
     return;
   }
 
-  if (pendingModalClose.exchange(false)) closeModal();
-  if (pendingModal) {
-    closeModal();
-    modal = pendingModal;
-    pendingModal = nullptr;
-    modalObj = lv_obj_create(lv_layer_top());
-    lv_obj_remove_style_all(modalObj);
-    lv_obj_set_size(modalObj, LV_PCT(100), LV_PCT(100));
-    lv_obj_set_style_bg_color(modalObj, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(modalObj, LV_OPA_COVER, 0);
-    lv_obj_add_flag(modalObj, LV_OBJ_FLAG_CLICKABLE);
-    modal->create(modalObj);
-  }
-
-  bool locked = modal || overlayActive() || (cur && cur->blocksSwipe());
+  bool locked = overlayActive() || (cur && cur->blocksSwipe());
   int8_t dir = pendingDir.exchange(0);
   uint8_t target = pendingTarget.exchange(0);
   if (pendingRebuild) {
@@ -154,12 +123,11 @@ void uiTick(uint32_t now) {
     show((ScreenId)target);
   } else if (dir && !locked) {
     show(carouselNext((uint8_t)cur->id(), dir));
-  } else if (cur && cfg().tft_autosw && !modal && !overlayActive() && cur->id() != ScreenId::Settings &&
+  } else if (cur && cfg().tft_autosw && !overlayActive() && cur->id() != ScreenId::Settings &&
              lv_display_get_inactive_time(nullptr) > TOUCH_PAUSE_MS &&
              now - lastSwitch >= (uint32_t)cfg().tft_sw_sec * 1000) {
     show(carouselNext((uint8_t)cur->id(), 1));
   }
 
-  if (modal) modal->tick(now);
-  else if (cur) cur->tick(now);
+  if (cur) cur->tick(now);
 }
