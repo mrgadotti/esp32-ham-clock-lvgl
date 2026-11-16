@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ESP32-HAM-CLOCK-LVGL Web Flasher</title>
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+  section { border: 1px solid #8884; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+  h2 { margin-top: 0; font-size: 1.1rem; }
+</style>
+</head>
+<body>
+<h1>ESP32-HAM-CLOCK-LVGL</h1>
+<p>Flash the firmware straight from your browser. Connect the board over USB, click the button for your board and pick the serial port.</p>
+<p><strong>Chrome or Edge is required</strong> (Web Serial). Firefox and Safari are not supported.</p>
+
+<section>
+  <h2>CYD ESP32-2432S028R</h2>
+  <esp-web-install-button manifest="manifest-cyd.json"></esp-web-install-button>
+</section>
+<section>
+  <h2>ESP32 38-pin + external ILI9341</h2>
+  <esp-web-install-button manifest="manifest-esp32-38pin.json"></esp-web-install-button>
+</section>
+
+<h2>First run</h2>
+<ol>
+  <li>Tick <em>Erase device</em> the first time this firmware goes onto a board. It clears NVS and leftovers from other projects. Skip it on later updates to keep calibration and WiFi settings.</li>
+  <li>After flashing, the clock boots and asks for a touch calibration.</li>
+  <li>With no WiFi configured it starts the access point <code>ESP32-HAM-CLOCK</code> (default password <code>1234567890</code>). Join it and open <code>http://192.168.4.1</code> to set WiFi, locator and callsign.</li>
+</ol>
+</body>
+</html>

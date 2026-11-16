@@ -1,0 +1,60 @@
+name: pages
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # release upload on tags
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install platformio
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            .pio
+          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+      - name: Build and merge images
+        run: |
+          for env in cyd esp32-38pin; do
+            pio run -e "$env"
+            python tools/merge_bin.py "$env"
+          done
+      - name: Assemble site
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          [ "$GITHUB_REF_TYPE" = tag ] || VERSION="${GITHUB_SHA::7}"
+          mkdir _site
+          cp flasher/index.html _site/
+          for env in cyd esp32-38pin; do
+            sed "s/<tag or sha>/$VERSION/" "flasher/manifest-$env.json" > "_site/manifest-$env.json"
+            cp "dist/$env/firmware-merged.bin" "_site/firmware-$env.bin"
+          done
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: _site/firmware-*.bin
