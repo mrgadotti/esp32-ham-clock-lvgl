@@ -10,6 +10,7 @@
 #include "propagation_screen.h"
 #include "bands_screen.h"
 #include "matrix_screen.h"
+#include "aprs_radar_screen.h"
 #include "../fonts/fonts.h"
 #include "../widgets/header.h"
 #include "i18n.h"
@@ -63,5 +64,6 @@ Screen* createScreen(ScreenId id) {
   if (id == ScreenId::Weather) return createWeatherScreen();
   if (id == ScreenId::Forecast) return createForecastScreen();
   if (id == ScreenId::Matrix) return createMatrixScreen();
+  if (id == ScreenId::AprsRadar) return createAprsRadarScreen();
   return new PlaceholderScreen(id);
 }
