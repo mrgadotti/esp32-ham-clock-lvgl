@@ -1,5 +1,6 @@
 #include "../screen.h"
 #include "clock_screen.h"
+#include "dx_screen.h"
 #include "settings_screen.h"
 #include "../fonts/fonts.h"
 #include "../widgets/header.h"
@@ -44,6 +45,7 @@ class PlaceholderScreen : public Screen {
 
 Screen* createScreen(ScreenId id) {
   if (id == ScreenId::HamClock) return createClockScreen();
+  if (id == ScreenId::DxCluster) return createDxScreen();
   if (id == ScreenId::Settings) return createSettingsScreen();
   return new PlaceholderScreen(id);
 }

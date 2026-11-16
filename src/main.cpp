@@ -11,6 +11,7 @@
 #include "net/time_service.h"
 #include "net/web_config.h"
 #include "net/wifi_manager.h"
+#include "svc/dx_cluster.h"
 #include "ui/fonts/fonts.h"
 #include "ui/theme.h"
 #include "ui/ui_manager.h"
@@ -61,6 +62,7 @@ static void netTask(void*) {
     wifiTick(now);
     webTick();
     timeTick(now);
+    dxTick(now);
     memLogTick(now);
     vTaskDelay(pdMS_TO_TICKS(20));
   }
