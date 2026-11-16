@@ -18,7 +18,7 @@ constexpr size_t kLineMax = 512, kReadBudget = 2048;
 WiFiClient client;
 char line[kLineMax];
 size_t len;
-bool discard, gotLine, up, filterSent;
+bool discard, gotLine, up, filterSent, passOk;
 uint8_t fails;
 uint32_t nextTry, lastRx, lastFilterMs;
 double fLat, fLon;
@@ -48,6 +48,15 @@ bool sendFilter(const Config& c, uint32_t now, bool inLogin) {
 }
 }  // namespace
 
+bool aprsIsReadyToSend() { return up && passOk && client.connected(); }
+
+bool aprsIsSendLine(const char* l) {
+  if (!aprsIsReadyToSend()) return false;
+  client.print(l);
+  client.print("\r\n");
+  return true;
+}
+
 void aprsIsTick(uint32_t now) {
   bool sta = false;
   g_store.net.read([&](const NetStatus& s) { sta = s.sta; });
@@ -76,6 +85,7 @@ void aprsIsTick(uint32_t now) {
     filterSent = false;
     sendFilter(c, now, true);
     client.print("\r\n");
+    passOk = c.aprs_passcode[0] && strcmp(c.aprs_passcode, "-1") != 0;
     up = true;
     len = 0;
     discard = false;

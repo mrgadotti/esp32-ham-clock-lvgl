@@ -245,7 +245,7 @@ void overlayShow(const UiEvent& e) {
       break;
     case EventKind::Beaconing:
       snprintf(title, sizeof title, "%s", tr(Tr::AprsBeaconing));
-      snprintf(body, sizeof body, "%s\n%s", e.beacon.call, e.beacon.position);
+      snprintf(body, sizeof body, "%s\n%s\n%s", e.beacon.call, e.beacon.position, e.beacon.path);
       secs = 2;
       break;
     case EventKind::WeatherAlert:
