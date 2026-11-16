@@ -1,0 +1,9 @@
+#pragma once
+#include <stdint.h>
+enum Band : uint8_t { B160, B80, B60, B40, B30, B20, B17, B15, B12, B10, B6, VHF, UHF, SHF, BAND_UNKNOWN };
+enum Mode : uint8_t { MODE_CW, MODE_SSB, MODE_DIGI, MODE_UNKNOWN };
+Band bandFromKhz(uint32_t khz);
+const char* bandName(Band b);
+Mode modeFrom(const char* comment, uint32_t khz);
+// bandMask: bit = Band value; modeMask: CW=1, SSB=2, DIGI=4; 0 = ALL
+bool passesFilter(Band b, Mode m, uint16_t bandMask, uint8_t modeMask);
