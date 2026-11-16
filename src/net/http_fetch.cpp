@@ -64,3 +64,23 @@ bool httpGetJson(const char* url, JsonDocument& doc, const JsonDocument* filter)
     return !e;
   });
 }
+
+bool httpGetJsonArray(const char* url, const JsonDocument& filter, void (*onItem)(JsonObjectConst, void*), void* ctx) {
+  return fetch(url, HTTP_TIMEOUT_MS, [&](HTTPClient& http) {
+    Stream& s = http.getStream();
+    if (!s.find('[')) return false;
+    size_t n = 0;
+    do {
+      JsonDocument elem;
+      DeserializationError e = deserializeJson(elem, s, DeserializationOption::Filter(filter));
+      if (e) {
+        Serial.printf("[HTTP] json item %u: %s\n", (unsigned)n, e.c_str());
+        return false;
+      }
+      onItem(elem.as<JsonObjectConst>(), ctx);
+      n++;
+    } while (s.findUntil(",", "]"));
+    Serial.printf("[HTTP] json array: %u items\n", (unsigned)n);
+    return true;
+  });
+}
