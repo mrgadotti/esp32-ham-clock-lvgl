@@ -13,6 +13,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(Save, "SAVE", "SALVAR") \
   X(Default, "DEFAULT", "PADRÃO") \
   X(Ok, "OK", "OK") \
+  X(Cancel, "CANCEL", "CANCELAR") \
   X(Yes, "YES", "SIM") \
   X(No, "NO", "NÃO") \
   X(All, "ALL", "TODOS") \
@@ -25,6 +26,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(SwitchScreen, "SWITCH SCREEN", "TROCAR TELA") \
   X(WaitingForData, "WAITING FOR DATA...", "AGUARDANDO DADOS...") \
   X(UpdatedUtc, "UPDATED UTC", "ATUALIZADO UTC") \
+  X(UpdatedMinAgo, "updated %d min ago", "atualizado há %d min") \
   X(NoConnection, "NO CONNECTION", "SEM CONEXÃO") \
   /* clock */ \
   X(Clock, "HAM CLOCK", "RELÓGIO HAM") \
@@ -104,6 +106,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(GameStop, "STOP", "PARAR") \
   X(GamePtt, "PTT", "PTT") \
   X(GameExit, "EXIT", "SAIR") \
+  X(GameUnlis, "* Unlis = Unlicensed", "* Unlis = Sem licença") \
   X(GameBand, "BAND:", "BANDA:") \
   X(GameOver, "GAME OVER", "FIM DE JOGO") \
   /* location */ \

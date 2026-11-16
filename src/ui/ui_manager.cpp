@@ -44,6 +44,7 @@ void uiOpenModal(Screen* s) {
   delete pendingModal;
   pendingModal = s;
 }
+bool uiModalActive() { return modal || pendingModal; }
 void uiCloseModal() { pendingModalClose = true; }
 
 void uiInit() {
