@@ -1,0 +1,1 @@
+{"name":"ESP32-HAM-CLOCK-LVGL","version":"<tag or sha>","new_install_prompt_erase":true,"builds":[{"chipFamily":"ESP32","parts":[{"path":"firmware-esp32-38pin.bin","offset":0}]}]}
