@@ -18,6 +18,8 @@ static bool fetch(const char* url, uint32_t timeoutMs, F body) {
   HTTPClient http;
   http.setTimeout(timeoutMs);
   http.setConnectTimeout(timeoutMs);
+  http.useHTTP10(true);  // no chunked encoding, body is close-delimited
+  http.setReuse(false);
   uint32_t t0 = millis();
   if (!http.begin(https ? static_cast<WiFiClient&>(sec) : plain, url)) return false;
   int code = http.GET();
@@ -47,7 +49,10 @@ bool httpGet(const char* url, char* buf, size_t len, uint32_t timeoutMs) {
     }
     buf[got] = 0;
     if (sz >= 0) return got == (size_t)sz;
-    return got < len - 1 || !s.available();  // chunked: a full buffer with more pending is an overflow
+    if (got < len - 1) return true;
+    // Buffer full without Content-Length: any further byte before close means overflow.
+    while (http.connected() && !s.available() && millis() - last < timeoutMs) delay(1);
+    return !s.available();
   });
 }
 

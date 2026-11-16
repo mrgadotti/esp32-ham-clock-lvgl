@@ -82,6 +82,7 @@ void setup() {
   touchInit();
   touchCreateIndev();
   eventsInit();
+  qrzInit();
   TaskHandle_t hUi, hNet;
   xTaskCreatePinnedToCore(uiTask, "ui", 8192, nullptr, 3, &hUi, 1);
   xTaskCreatePinnedToCore(netTask, "net", 10240, nullptr, 1, &hNet, 0);

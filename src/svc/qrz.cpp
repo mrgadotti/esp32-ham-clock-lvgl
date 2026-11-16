@@ -15,7 +15,10 @@ constexpr uint32_t SESSION_TTL_MS = 30UL * 60UL * 1000UL;
 constexpr uint32_t QRZ_HTTP_TIMEOUT_MS = 8000;
 
 static QrzCache s_cache;
+static QrzCache s_neg;  // not-found calls (empty info), same 15 min TTL
 static QrzQueue s_queue;
+static uint32_t s_loginFailAt;
+static bool s_loginFailed;
 static SemaphoreHandle_t s_mu;  // guards cache+queue: spots may be enqueued from other tasks
 static char s_key[40];
 static uint32_t s_keyAt;
@@ -26,9 +29,11 @@ static void setStatus(const char* s) { strlcpy(s_status, s, sizeof s_status); }
 
 static bool enabled() { return cfg().qrz_user[0] && cfg().qrz_pass[0]; }
 
-static SemaphoreHandle_t mu() {
-  if (!s_mu) s_mu = xSemaphoreCreateMutex();  // first call is from the net task (qrzTick) or a later producer
-  return s_mu;
+static SemaphoreHandle_t mu() { return s_mu; }
+
+void qrzInit() {
+  s_mu = xSemaphoreCreateMutex();
+  configASSERT(s_mu != nullptr);
 }
 
 static void urlEncode(const char* in, char* out, size_t cap) {
@@ -49,10 +54,13 @@ static bool login(uint32_t now) {
   if (!httpGet(url, s_body, sizeof s_body, QRZ_HTTP_TIMEOUT_MS)) { setStatus("error: login http"); return false; }
   if (!qrzParseSessionKey(s_body, s_key, sizeof s_key)) {
     s_key[0] = 0;
+    s_loginFailed = true;
+    s_loginFailAt = now;
     setStatus("error: login failed");
     return false;
   }
   s_keyAt = now;
+  s_loginFailed = false;
   Serial.println("[QRZ] session ok");
   return true;
 }
@@ -70,6 +78,11 @@ static void applyToSpot(Spot& s, const QrzInfo& q, bool haveUser, double ulat, d
 template <size_t N>
 static void applyTo(Guarded<RingBuffer<Spot, N>>& g, const char* call, const QrzInfo& q, bool haveUser, double ulat,
                     double ulon) {
+  bool match = false;
+  g.read([&](const RingBuffer<Spot, N>& rb) {
+    for (size_t i = 0; i < rb.size() && !match; ++i) match = strcasecmp(rb.at(i).call, call) == 0;
+  });
+  if (!match) return;  // avoid a needless version bump / UI refresh
   g.write([&](RingBuffer<Spot, N>& rb) {
     for (size_t i = 0; i < rb.size(); ++i)
       if (strcasecmp(rb.at(i).call, call) == 0) applyToSpot(rb.at(i), q, haveUser, ulat, ulon);
@@ -95,7 +108,8 @@ void qrzOnNewSpot(const Spot& s) {
   QrzInfo q;
   if (s.country[0] || !enabled() || !qrzNormalizeCall(s.call, n)) return;
   xSemaphoreTake(mu(), portMAX_DELAY);
-  bool cached = s_cache.get(n, millis(), q);
+  uint32_t now = millis();
+  bool cached = s_cache.get(n, now, q) || s_neg.get(n, now, q);
   xSemaphoreGive(mu());
   if (!cached) qrzEnqueue(n);
 }
@@ -106,6 +120,8 @@ void qrzTick(uint32_t now) {
   if (!enabled()) { setStatus("disabled"); return; }
   if (strcmp(s_status, "disabled") == 0) setStatus("ok");
   if (WiFi.status() != WL_CONNECTED) return;
+  bool needLogin = !s_key[0] || now - s_keyAt >= SESSION_TTL_MS;
+  if (needLogin && s_loginFailed && now - s_loginFailAt < 60000) return;  // login backoff
   char call[QRZ_CALL_LEN];
   xSemaphoreTake(mu(), portMAX_DELAY);
   bool due = s_queue.next(now, call);
@@ -113,7 +129,7 @@ void qrzTick(uint32_t now) {
   if (!due) return;
 
   QrzInfo info;
-  bool ok = false;
+  bool ok = false, notFound = false, timedOut = false;
   for (int attempt = 0; attempt < 2; ++attempt) {
     if (!s_key[0] || now - s_keyAt >= SESSION_TTL_MS) {
       if (!login(now)) break;
@@ -123,14 +139,19 @@ void qrzTick(uint32_t now) {
     if (!httpGet(url, s_body, sizeof s_body, QRZ_HTTP_TIMEOUT_MS)) { setStatus("error: lookup http"); break; }
     if (strstr(s_body, "Session Timeout") || strstr(s_body, "Invalid session")) {
       s_key[0] = 0;  // re-login once
+      timedOut = true;
       continue;
     }
+    timedOut = false;
     ok = qrzParseXml(s_body, info);
+    notFound = !ok;
     setStatus(ok ? "ok" : "error: not found");
     break;
   }
+  if (timedOut) setStatus("error: session");
   xSemaphoreTake(mu(), portMAX_DELAY);
   if (ok) { s_cache.put(call, info, now); s_queue.done(call); }
+  else if (notFound) { QrzInfo none = {}; s_neg.put(call, none, now); s_queue.done(call); }
   else s_queue.fail(call, now);
   xSemaphoreGive(mu());
   if (ok) applyToStores(call, info);
