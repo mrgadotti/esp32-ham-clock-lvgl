@@ -83,7 +83,9 @@ class PropagationScreen : public Screen {
 
   lv_color_t kColor() const {
     if (!d_.valid) return COL_TEXT;
-    int k = atoi(d_.kindex);
+    char* end;
+    int k = (int)strtol(d_.kindex, &end, 10);
+    if (end == d_.kindex) return COL_TEXT;  // non-numeric: neutral
     return lv_color_hex(k < 4 ? 0x00FF00 : k < 6 ? 0xFF8C00 : 0xFF0000);
   }
 };

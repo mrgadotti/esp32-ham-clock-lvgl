@@ -32,7 +32,7 @@ class BandsScreen : public Screen {
     cell(p, 10, 182, tr(Tr::UpdatedUtc), lv_color_hex(0xC0C0C0));
     upd_ = cell(p, 10, 198, "--", COL_TEXT);
     age_ = cell(p, 10, 222, "", lv_color_hex(0x808080));
-    err_ = cell(p, 10, 164, tr(Tr::NoData), COL_ERROR);
+    err_ = cell(p, 150, 182, tr(Tr::NoData), COL_ERROR);
     ver_ = ~0u;
     refresh(0);
   }
