@@ -6,11 +6,14 @@
 #include "app/events.h"
 #include "app/mem_log.h"
 #include "hal/display.h"
+#include "hal/rgb_led.h"
 #include "hal/touch.h"
 #include "hal/touch_cal_ui.h"
 #include "net/time_service.h"
 #include "net/web_config.h"
 #include "net/wifi_manager.h"
+#include "svc/aprs_ingest.h"
+#include "svc/aprs_is.h"
 #include "svc/dx_cluster.h"
 #include "svc/hamalert.h"
 #include "svc/pota.h"
@@ -113,6 +116,8 @@ static void netTask(void*) {
     webTick();
     timeTick(now);
     dxTick(now);
+    aprsIsTick(now);
+    rgbLedTick(now);
     potaTick(now);
     hamalertTick(now);
     qrzTick(now);
@@ -138,6 +143,7 @@ void setup() {
   touchCreateIndev();
   eventsInit();
   qrzInit();
+  aprsIngestInit();
   TaskHandle_t hUi, hNet;
   xTaskCreatePinnedToCore(uiTask, "ui", 8192, nullptr, 3, &hUi, 1);
   xTaskCreatePinnedToCore(netTask, "net", 10240, nullptr, 1, &hNet, 0);

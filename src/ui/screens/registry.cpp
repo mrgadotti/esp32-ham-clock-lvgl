@@ -1,4 +1,5 @@
 #include "../screen.h"
+#include "aprs_list_screen.h"
 #include "clock_screen.h"
 #include "dx_screen.h"
 #include "hamalert_screen.h"
@@ -53,6 +54,7 @@ class PlaceholderScreen : public Screen {
 Screen* createScreen(ScreenId id) {
   if (id == ScreenId::HamClock) return createClockScreen();
   if (id == ScreenId::DxCluster) return createDxScreen();
+  if (id == ScreenId::AprsList) return createAprsListScreen();
   if (id == ScreenId::Pota) return createPotaScreen();
   if (id == ScreenId::HamAlert) return createHamAlertScreen();
   if (id == ScreenId::SunSpots) return createPropagationScreen();
