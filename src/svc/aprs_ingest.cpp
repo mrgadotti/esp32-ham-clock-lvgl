@@ -1,6 +1,7 @@
 #include "aprs_ingest.h"
 
 #include <Arduino.h>
+#include <freertos/semphr.h>
 #include <math.h>
 #include <string.h>
 #include <time.h>
@@ -17,11 +18,17 @@
 
 namespace {
 AlertRules rules;
+SemaphoreHandle_t mu;  // guards rules + the cached config below
 AlertCfg lastCfg;
-bool cfgSeen;
+bool ledEn, cfgSeen;
+uint32_t ledDur, ledBlk, lastRead;
 
-// shortcut: no mutex around AlertRules; the only racing callers are APRS-IS and UART2, a lost cooldown slot is harmless.
-void refreshRules(const Config& c) {
+// Caller holds mu. Config has no change sequence, so re-read at most every 2 s instead of copying it per line.
+void refreshRules(uint32_t now) {
+  if (cfgSeen && now - lastRead < 2000) return;
+  lastRead = now;
+  Config c;
+  cfgGet(c);
   AlertCfg a{};
   strncpy(a.watchList, c.aprs_alert, sizeof a.watchList - 1);
   a.alertEnabled = c.aprs_alert_en;
@@ -30,12 +37,17 @@ void refreshRules(const Config& c) {
   a.ledEnabled = c.led_al_en;
   a.alertKm = c.alrt_dst_km;
   a.minSeconds = (uint16_t)c.aprs_alrt_sec;
+  ledEn = c.led_al_en;
+  ledDur = (uint32_t)c.led_al_dur;
+  ledBlk = (uint32_t)c.led_al_blk;
   if (cfgSeen && memcmp(&a, &lastCfg, sizeof a) == 0) return;
   lastCfg = a;
   cfgSeen = true;
   rules.configure(a);
 }
 }  // namespace
+
+void aprsIngestInit() { mu = xSemaphoreCreateMutex(); }
 
 void aprsIngestLine(const char* line, char source) {
   AprsStation st{};
@@ -51,13 +63,19 @@ void aprsIngestLine(const char* line, char source) {
     if (!r.moveToFrontIf([&](const AprsStation& a) { return strcmp(a.call, st.call) == 0; }, st)) r.pushFront(st);
   });
 
-  Config c;
-  cfgGet(c);
-  refreshRules(c);
-  if (!rules.shouldAlert(st, millis())) return;
+  uint32_t now = millis(), dur, blk;
+  bool hit, led;
+  xSemaphoreTake(mu, portMAX_DELAY);
+  refreshRules(now);
+  hit = rules.shouldAlert(st, now);
+  led = ledEn;
+  dur = ledDur;
+  blk = ledBlk;
+  xSemaphoreGive(mu);
+  if (!hit) return;
   UiEvent e{};
   e.kind = EventKind::AprsAlert;
   e.station = st;
   postUiEvent(e);
-  if (c.led_al_en && !st.isWx) rgbLedBlink(RGB_BLUE, (uint32_t)c.led_al_dur, (uint32_t)c.led_al_blk);
+  if (led && !st.isWx) rgbLedBlink(RGB_BLUE, dur, blk);
 }

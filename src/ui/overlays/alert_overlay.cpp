@@ -190,7 +190,7 @@ void buildAprs(lv_obj_t* ov, const AprsStation& st) {
   // compass 60x60 + bearing/distance under it
   int bearing = st.hasLatLon && st.bearing >= 0 ? st.bearing : -1;
   drawObj(ov, 236, 50, 60, 66, onCompassDraw, bearing);
-  if (bearing >= 0) snprintf(b, sizeof b, "%03d", bearing);
+  if (bearing >= 0) snprintf(b, sizeof b, "%03d\xC2\xB0", bearing);
   else snprintf(b, sizeof b, "---");
   lv_obj_t* bl = mkLabel(ov, &font_14, cyan, b, 0, 118);
   lv_obj_set_width(bl, 60);
@@ -209,7 +209,7 @@ void buildAprs(lv_obj_t* ov, const AprsStation& st) {
     if (wx.hasHumidity) { snprintf(b, sizeof b, "%s %d %%", tr(Tr::HumidityLabel), wx.humidityPct); mkLabel(ov, &font_14, white, b, 18, y); y += 18; }
     if (wx.hasPressure) { snprintf(b, sizeof b, "%s %.1f hPa", tr(Tr::PressureLabel), (double)wx.pressureHpa); mkLabel(ov, &font_14, white, b, 18, y); }
     if (wx.hasWindSpeed) {
-      if (wx.hasWindDir) snprintf(b, sizeof b, "%s %d deg %.1f km/h", tr(Tr::WxWind), wx.windDirDeg, (double)wx.windSpeedKmh);
+      if (wx.hasWindDir) snprintf(b, sizeof b, "%s %d\xC2\xB0 %.1f km/h", tr(Tr::WxWind), wx.windDirDeg, (double)wx.windSpeedKmh);
       else snprintf(b, sizeof b, "%s %.1f km/h", tr(Tr::WxWind), (double)wx.windSpeedKmh);
       mkLabel(ov, &font_14, lv_color_hex(0x00FF00), b, 18, 160);
     }
@@ -289,17 +289,14 @@ void overlayShow(const UiEvent& e) {
   lv_label_set_text(t, title);
   lv_obj_align(t, LV_ALIGN_TOP_MID, 0, aprs ? 8 : 30);
 
-  if (aprs) {
-    buildAprs(ov, e.station);
-  }
-  lv_obj_t* b = lv_label_create(ov);
+  if (aprs) buildAprs(ov, e.station);
+  lv_obj_t* b = aprs ? nullptr : lv_label_create(ov);
+  if (b) {
   lv_obj_set_style_text_font(b, &font_18, 0);
   lv_obj_set_style_text_align(b, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_set_width(b, 290);
   lv_label_set_text(b, body);
-  if (aprs) {
-    lv_obj_add_flag(b, LV_OBJ_FLAG_HIDDEN);
-  } else if (wxImg) {  // weather alert: icon on the left, text left-aligned beside it
+  if (wxImg) {  // weather alert: icon on the left, text left-aligned beside it
     lv_obj_t* im = lv_image_create(ov);
     lv_image_set_src(im, wxImg);
     lv_obj_set_pos(im, 18, 90);
@@ -308,6 +305,7 @@ void overlayShow(const UiEvent& e) {
     lv_obj_align(b, LV_ALIGN_LEFT_MID, 82, 15);
   } else {
     lv_obj_align(b, LV_ALIGN_CENTER, 0, 10);
+  }
   }
 
   lv_obj_t* x = lv_button_create(ov);

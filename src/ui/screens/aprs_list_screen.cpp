@@ -92,7 +92,7 @@ class AprsListScreen : public Screen {
     }
     lv_obj_add_event_cb(btn, onMenu, LV_EVENT_CLICKED, nullptr);
 
-    const Tr hd[] = {Tr::Utc, Tr::ColCall, Tr::ColSymbol, Tr::ColKm, Tr::Mhz};
+    const Tr hd[] = {Tr::Utc, Tr::ColCall, Tr::ColSymbol, Tr::ColKm, Tr::ColFreq};
     int x = 0;
     for (int i = 0; i < 5; i++) {
       lv_obj_t* l = lv_label_create(p);

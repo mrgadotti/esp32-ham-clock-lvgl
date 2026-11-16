@@ -12,6 +12,7 @@
 #include "net/time_service.h"
 #include "net/web_config.h"
 #include "net/wifi_manager.h"
+#include "svc/aprs_ingest.h"
 #include "svc/aprs_is.h"
 #include "svc/dx_cluster.h"
 #include "svc/hamalert.h"
@@ -142,6 +143,7 @@ void setup() {
   touchCreateIndev();
   eventsInit();
   qrzInit();
+  aprsIngestInit();
   TaskHandle_t hUi, hNet;
   xTaskCreatePinnedToCore(uiTask, "ui", 8192, nullptr, 3, &hUi, 1);
   xTaskCreatePinnedToCore(netTask, "net", 10240, nullptr, 1, &hNet, 0);
