@@ -24,6 +24,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(SwitchScreen, "SWITCH SCREEN", "TROCAR TELA") \
   X(WaitingForData, "WAITING FOR DATA...", "AGUARDANDO DADOS...") \
   X(UpdatedUtc, "UPDATED UTC", "ATUALIZADO UTC") \
+  X(UpdatedMinAgo, "updated %d min ago", "atualizado há %d min") \
   X(NoConnection, "NO CONNECTION", "SEM CONEXÃO") \
   /* clock */ \
   X(Clock, "HAM CLOCK", "RELÓGIO HAM") \

@@ -1,6 +1,22 @@
 #include "header.h"
 #include "../theme.h"
 #include "../fonts/fonts.h"
+#include "../../net/time_service.h"
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+
+void headerTickUtc(lv_obj_t* header) {
+  char s[12] = "--:--";
+  if (timeValid()) {
+    time_t t = time(nullptr);
+    struct tm tm;
+    gmtime_r(&t, &tm);
+    snprintf(s, sizeof s, "%02d:%02d Z", tm.tm_hour, tm.tm_min);
+  }
+  lv_obj_t* c = static_cast<lv_obj_t*>(lv_obj_get_user_data(header));
+  if (c && strcmp(lv_label_get_text(c), s) != 0) headerSetClock(header, s);
+}
 
 lv_obj_t* headerCreate(lv_obj_t* parent, Tr title) {
   lv_obj_t* bar = lv_obj_create(parent);

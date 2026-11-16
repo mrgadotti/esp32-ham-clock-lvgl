@@ -11,6 +11,7 @@
 #include "net/time_service.h"
 #include "net/web_config.h"
 #include "net/wifi_manager.h"
+#include "svc/propagation.h"
 #include "svc/qrz.h"
 #include "ui/fonts/fonts.h"
 #include "ui/theme.h"
@@ -63,6 +64,7 @@ static void netTask(void*) {
     webTick();
     timeTick(now);
     qrzTick(now);
+    propTick(now);
     memLogTick(now);
     vTaskDelay(pdMS_TO_TICKS(20));
   }
