@@ -188,12 +188,15 @@ bool aprsParseFrame(const char* line, AprsStation& st) {
   if (!colon) return false;
 
   // source call (trimmed, truncated)
-  const char* s = line; const char* e = gt;
-  while (s < e && *s == ' ') s++;
-  while (e > s && e[-1] == ' ') e--;
-  if (e == s) return false;
-  size_t cl = (size_t)(e - s); if (cl > sizeof(st.call) - 1) cl = sizeof(st.call) - 1;
-  memcpy(st.call, s, cl); st.call[cl] = 0;
+  // network text: uppercase, keep only [A-Z0-9-]; reject if nothing is left
+  size_t cl = 0;
+  for (const char* p = line; p < gt && cl < sizeof(st.call) - 1; p++) {
+    char c = *p;
+    if (c >= 'a' && c <= 'z') c -= 32;
+    if ((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-') st.call[cl++] = c;
+  }
+  st.call[cl] = 0;
+  if (cl == 0) return false;
 
   // destination call
   char dst[16];
@@ -247,11 +250,9 @@ bool aprsParseFrame(const char* line, AprsStation& st) {
   st.sym[1] = code ? code : ' ';
   st.isWx = code == '_';
   if (name[0]) {  // object/item name replaces the source call, trimmed
-    int n = (int)strlen(name);
-    while (n > 0 && name[n - 1] == ' ') name[--n] = 0;
-    const char* nm = name;
-    while (*nm == ' ') nm++;
-    if (*nm) { strncpy(st.call, nm, sizeof(st.call) - 1); st.call[sizeof(st.call) - 1] = 0; }
+    char clean[sizeof(name)];
+    sanitizeComment(name, clean, sizeof(clean));  // printable ASCII only, trimmed
+    if (clean[0]) strcpy(st.call, clean);  // <= 9 chars, fits call[12]
   }
   if (commentOff > 0 && (size_t)commentOff < plen) {
     sanitizeComment(payload + commentOff, st.comment, sizeof(st.comment));

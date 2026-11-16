@@ -1,5 +1,6 @@
 #include <unity.h>
 #include <string.h>
+#include <stdio.h>
 #include "alert_rules.h"
 void setUp() {} void tearDown() {}
 
@@ -53,5 +54,22 @@ void test_alert_wx_and_disabled() {
   c.alertEnabled = false; r.configure(c);
   TEST_ASSERT_FALSE(r.shouldAlert(w, 0));
 }
+void test_alert_tokenizer_separators() {
+  AlertRules r; r.configure(cfg("PY2XX PY1AB;PU2*"));
+  TEST_ASSERT_TRUE(r.shouldAlert(st("PY2XX"), 0));
+  TEST_ASSERT_TRUE(r.shouldAlert(st("PY1AB"), 0));
+  TEST_ASSERT_TRUE(r.shouldAlert(st("PU2ZZ"), 0));
+  TEST_ASSERT_FALSE(r.shouldAlert(st("PY3ZZ"), 0));
+}
+void test_alert_eviction_prefers_expired() {
+  AlertRules r; r.configure(cfg("C*"));
+  char name[8];
+  TEST_ASSERT_TRUE(r.shouldAlert(st("C00"), 0));  // will be the expired one
+  for (int i = 1; i < 16; i++) { sprintf(name, "C%02d", i); TEST_ASSERT_TRUE(r.shouldAlert(st(name), 50000 + i)); }
+  TEST_ASSERT_TRUE(r.shouldAlert(st("C99"), 61000));   // table full: evicts C00 (expired)
+  TEST_ASSERT_FALSE(r.shouldAlert(st("C01"), 61000));  // still cooling, must not have been evicted
+  TEST_ASSERT_FALSE(r.shouldAlert(st("C15"), 61000));
+}
 int main() { UNITY_BEGIN(); RUN_TEST(test_alert_wildcard); RUN_TEST(test_alert_base_matches_ssid);
-  RUN_TEST(test_alert_cooldown); RUN_TEST(test_alert_mobile_ssid_distance); RUN_TEST(test_alert_wx_and_disabled); return UNITY_END(); }
+  RUN_TEST(test_alert_cooldown); RUN_TEST(test_alert_mobile_ssid_distance); RUN_TEST(test_alert_wx_and_disabled);
+  RUN_TEST(test_alert_tokenizer_separators); RUN_TEST(test_alert_eviction_prefers_expired); return UNITY_END(); }

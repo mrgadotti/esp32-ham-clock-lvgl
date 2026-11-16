@@ -30,9 +30,9 @@ void AlertRules::configure(const AlertCfg& cfg) {
   const char* p = cfg.watchList;
   while (*p && nTokens_ < MAX_TOKENS) {
     char raw[32]; size_t n = 0;
-    while (*p && *p != ',') { if (n < sizeof raw - 1) raw[n++] = *p; p++; }
+    while (*p == ',' || *p == ' ' || *p == ';') p++;
+    while (*p && *p != ',' && *p != ' ' && *p != ';') { if (n < sizeof raw - 1) raw[n++] = *p; p++; }
     raw[n] = 0;
-    if (*p == ',') p++;
     clean(raw, tokens_[nTokens_], TOK_LEN, true);
     if (tokens_[nTokens_][0]) nTokens_++;
   }
@@ -52,7 +52,7 @@ bool AlertRules::shouldAlert(const AprsStation& st, uint32_t now) {
     hit = d && d != call && (strcmp(d + 1, "7") == 0 || strcmp(d + 1, "9") == 0);
   }
   if (!hit && cfg_.wxEnabled && st.isWx) {
-    AprsWx wx;
+    AprsWx wx;  // note: st.comment is truncated to 47 chars, so late WX fields may be lost
     hit = aprsDecodeWx(st.comment, wx) && wx.hasTempC && wx.hasHumidity;
   }
   if (!hit) return false;
@@ -67,7 +67,13 @@ bool AlertRules::shouldAlert(const AprsStation& st, uint32_t now) {
   }
   Slot* t = nullptr;
   for (Slot& s : slots_) if (!s.used) { t = &s; break; }
-  if (!t) { t = &slots_[replaceIdx_]; replaceIdx_ = (replaceIdx_ + 1) % COOLDOWN_SLOTS; }
+  if (!t) {  // full: prefer an expired slot, else evict the oldest
+    for (Slot& s : slots_) if ((uint32_t)(now - s.last) >= gap) { t = &s; break; }
+    if (!t) {
+      t = &slots_[0];
+      for (Slot& s : slots_) if ((uint32_t)(now - s.last) > (uint32_t)(now - t->last)) t = &s;
+    }
+  }
   strcpy(t->call, call); t->last = now; t->used = true;
   return true;
 }

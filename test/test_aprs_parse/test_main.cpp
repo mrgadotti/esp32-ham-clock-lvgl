@@ -66,6 +66,37 @@ void test_freq() {
   TEST_ASSERT_TRUE(aprsExtractFreq("QRV on 433.5 now", f)); TEST_ASSERT_FLOAT_WITHIN(1e-3, 433.5, f);
   TEST_ASSERT_FALSE(aprsExtractFreq("no freq 12 here", f));
 }
+void test_call_sanitized() {
+  AprsStation s;
+  // call chars are filtered to [A-Z0-9-] (uppercased); a frame whose call is empty is rejected
+  TEST_ASSERT_TRUE(aprsParseFrame("\x01" "a\xC3\xA9" "B>APRS:!4903.50N/07201.75W-x", s));
+  TEST_ASSERT_EQUAL_STRING("AB", s.call);
+  TEST_ASSERT_FALSE(aprsParseFrame("\x01\xC3>APRS:!4903.50N/07201.75W-x", s));
+  TEST_ASSERT_TRUE(aprsParseFrame("A>B:;OB\x01" "J\x7f" "  *092345z4903.50N/07201.75W>x", s));
+  TEST_ASSERT_EQUAL_STRING("OBJ", s.call);
+}
+void test_mic_e_lengths() {
+  AprsStation s;
+  TEST_ASSERT_FALSE(aprsParseFrame("PY2XX>S32UVT:`(_fn\"Oj", s));  // 7 info bytes
+  TEST_ASSERT_TRUE(aprsParseFrame("PY2XX>S32UVT:`(_fn\"Oj/", s));  // 8 bytes
+  TEST_ASSERT_EQUAL_STRING("", s.comment);
+}
+void test_compressed_bad_char() {
+  AprsStation s;
+  TEST_ASSERT_FALSE(aprsParseFrame("PY2XX>APRS:=/5L!!<*e\x7f>7P[", s));
+}
+void test_long_comment_and_path() {
+  AprsStation s;
+  char line[200] = "PY2XX>APRS,A1,B2,C3,D4,E5,F6,G7,H8*:!4903.50N/07201.75W-";
+  size_t n = strlen(line);
+  for (int i = 0; i < 80; i++) line[n + i] = 'a' + i % 26;
+  line[n + 80] = 0;
+  TEST_ASSERT_TRUE(aprsParseFrame(line, s));
+  TEST_ASSERT_EQUAL(47, strlen(s.comment));
+  TEST_ASSERT_EQUAL_CHAR(0, s.comment[47]);
+  TEST_ASSERT_EQUAL_STRING("PY2XX", s.call);
+}
 int main() { UNITY_BEGIN(); RUN_TEST(test_uncompressed); RUN_TEST(test_compressed); RUN_TEST(test_mic_e);
   RUN_TEST(test_object); RUN_TEST(test_item_and_wx_symbol); RUN_TEST(test_comment_sanitized);
-  RUN_TEST(test_aprs_rejects_garbage); RUN_TEST(test_freq); return UNITY_END(); }
+  RUN_TEST(test_aprs_rejects_garbage); RUN_TEST(test_freq);
+  RUN_TEST(test_call_sanitized); RUN_TEST(test_mic_e_lengths); RUN_TEST(test_compressed_bad_char); RUN_TEST(test_long_comment_and_path); return UNITY_END(); }
