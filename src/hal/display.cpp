@@ -7,16 +7,28 @@
 
 static TFT_eSPI tft;
 static lv_display_t* disp;
-// Two 320x10 RGB565 partial buffers (12.8 KB total).
-static uint16_t buf1[320 * 10] __attribute__((aligned(4)));
-static uint16_t buf2[320 * 10] __attribute__((aligned(4)));
+// Two 320x20 RGB565 partial buffers (25.6 KB total), heap-allocated: static DRAM that large starves the global ctors.
+static constexpr uint32_t BUF_PX = 320 * 20;
+
+#ifdef PERF_TEST
+uint32_t g_perfFlushes, g_perfFlushUs, g_perfPixels, g_perfFrames;
+#endif
 
 static void flushCb(lv_display_t* d, const lv_area_t* a, uint8_t* px) {
+#ifdef PERF_TEST
+  uint32_t t0 = micros();
+#endif
   uint32_t w = a->x2 - a->x1 + 1, h = a->y2 - a->y1 + 1;
   tft.startWrite();
   tft.setAddrWindow(a->x1, a->y1, w, h);
   tft.pushColors((uint16_t*)px, w * h, true);  // true = swap bytes for LVGL's native order
   tft.endWrite();
+#ifdef PERF_TEST
+  g_perfFlushUs += micros() - t0;
+  g_perfFlushes++;
+  g_perfPixels += w * h;
+  if (lv_display_flush_is_last(d)) g_perfFrames++;
+#endif
   lv_display_flush_ready(d);
 }
 
@@ -25,7 +37,9 @@ void displaySetBacklight(uint8_t percent) {
   ledcWrite(0, (uint32_t)percent * 255 / 100);
 }
 
-void displaySetInvert(bool invert) { tft.invertDisplay(invert); }
+void displaySetInvert(bool invert) {
+  tft.invertDisplay(invert);
+}
 
 void displaySetRotation(uint8_t rot) {
   tft.setRotation(rot == 3 ? 3 : 1);
@@ -46,5 +60,7 @@ void displayInit(uint8_t rotation, bool invert) {
   lv_tick_set_cb([]() -> uint32_t { return millis(); });
   disp = lv_display_create(320, 240);
   lv_display_set_flush_cb(disp, flushCb);
-  lv_display_set_buffers(disp, buf1, buf2, sizeof(buf1), LV_DISPLAY_RENDER_MODE_PARTIAL);
+  void* buf1 = heap_caps_malloc(BUF_PX * 2, MALLOC_CAP_8BIT);
+  void* buf2 = heap_caps_malloc(BUF_PX * 2, MALLOC_CAP_8BIT);
+  lv_display_set_buffers(disp, buf1, buf2, BUF_PX * 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
 }
