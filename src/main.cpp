@@ -12,40 +12,7 @@
 #include "net/wifi_manager.h"
 #include "ui/fonts/fonts.h"
 #include "ui/theme.h"
-
-static lv_obj_t *lblWifi, *lblSsid, *lblIp, *lblRssi, *lblTime, *lblMem;
-
-static void buildStatusScreen() {
-  lv_obj_t* scr = lv_screen_active();
-  lv_obj_t** labels[] = {&lblWifi, &lblSsid, &lblIp, &lblRssi, &lblTime, &lblMem};
-  int y = 8;
-  for (auto l : labels) {
-    *l = lv_label_create(scr);
-    lv_obj_set_style_text_font(*l, &font_14, 0);
-    lv_obj_set_pos(*l, 8, y);
-    y += 22;
-  }
-}
-
-static void refreshStatus() {
-  NetStatus n{};
-  g_store.net.read([&](const NetStatus& s) { n = s; });
-  lv_label_set_text_fmt(lblWifi, "WiFi: %s", n.sta ? "STA" : (n.ap ? "AP" : "connecting"));
-  lv_label_set_text_fmt(lblSsid, "SSID: %s", n.ssid);
-  lv_label_set_text_fmt(lblIp, "IP: %s", n.ip);
-  lv_label_set_text_fmt(lblRssi, "RSSI: %d", n.rssi);
-  if (timeValid()) {
-    struct tm tm;
-    time_t t = time(nullptr);
-    gmtime_r(&t, &tm);
-    lv_label_set_text_fmt(lblTime, "UTC: %04d-%02d-%02d %02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1,
-                          tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-  } else {
-    lv_label_set_text(lblTime, "UTC: waiting for NTP");
-  }
-  lv_label_set_text_fmt(lblMem, "[MEM] free=%u min=%u lv=%u", (unsigned)ESP.getFreeHeap(),
-                        (unsigned)ESP.getMinFreeHeap(), (unsigned)memLogLvFree());
-}
+#include "ui/ui_manager.h"
 
 static void applyCfgToHal() {
   static int32_t last = 0;
@@ -58,26 +25,29 @@ static void applyCfgToHal() {
 static void uiTask(void*) {
   cfgRefreshUiSnapshot();
   applyCfgToHal();
-  buildStatusScreen();
   if (!touchCalLoadSaved() || touchHeldAtBoot(2000)) touchCalRun(nullptr);
-  uint32_t lastStatus = 0;
+  uiInit();
+  uint32_t lastMem = 0;
   for (;;) {
     UiEvent e;
     while (popUiEvent(e)) {
-      if (e.kind == EventKind::StartTouchCal) touchCalRun(nullptr);
+      uiHandleEvent(e);
+      if (e.kind == EventKind::ConfigChanged) applyCfgToHal();
     }
     if (configDirtyTake()) {
-      cfgRefreshUiSnapshot();
+      UiEvent c;
+      c.kind = EventKind::ConfigChanged;
+      uiHandleEvent(c);
       applyCfgToHal();
     }
     lv_timer_handler();
     uint32_t now = millis();
-    if (now - lastStatus >= 1000) {
-      lastStatus = now;
+    uiTick(now);
+    if (now - lastMem >= 1000) {
+      lastMem = now;
       lv_mem_monitor_t m;
       lv_mem_monitor(&m);
       memLogSetLvFree(m.free_size);
-      refreshStatus();
     }
     vTaskDelay(pdMS_TO_TICKS(5));
   }
