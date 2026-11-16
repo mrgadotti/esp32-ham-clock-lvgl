@@ -6,6 +6,7 @@
 #include "settings_screen.h"
 #include "propagation_screen.h"
 #include "bands_screen.h"
+#include "matrix_screen.h"
 #include "../fonts/fonts.h"
 #include "../widgets/header.h"
 #include "i18n.h"
@@ -55,5 +56,6 @@ Screen* createScreen(ScreenId id) {
   if (id == ScreenId::SunSpots) return createPropagationScreen();
   if (id == ScreenId::BandInfo) return createBandsScreen();
   if (id == ScreenId::Settings) return createSettingsScreen();
+  if (id == ScreenId::Matrix) return createMatrixScreen();
   return new PlaceholderScreen(id);
 }
