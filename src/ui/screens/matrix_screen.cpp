@@ -28,15 +28,24 @@ class MatrixScreen : public Screen {
   ScreenId id() const override { return ScreenId::Matrix; }
 
   void create(lv_obj_t* p) override {
-    static const lv_color_t col[3] = {lv_color_hex(0x004000), lv_color_hex(0x00C000), lv_color_hex(0xFFFFFF)};
+    static const uint32_t col[3] = {0x004000, 0x00C000, 0xFFFFFF};
+    static lv_style_t st[3];
+    static bool inited;
+    if (!inited) {
+      inited = true;
+      for (int k = 0; k < 3; k++) {
+        lv_style_init(&st[k]);
+        lv_style_set_text_font(&st[k], &font_14);
+        lv_style_set_text_color(&st[k], lv_color_hex(col[k]));
+        lv_style_set_text_line_space(&st[k], STEP - lv_font_get_line_height(&font_14));
+      }
+    }
     for (int i = 0; i < COLS; i++) {
       resetDrop(i);
       drops_[i].y = -(int)random(0, 240);
       for (int k = 0; k < 3; k++) {
         lv_obj_t* l = lv_label_create(p);
-        lv_obj_set_style_text_font(l, &font_14, 0);
-        lv_obj_set_style_text_color(l, col[k], 0);
-        lv_obj_set_style_text_line_space(l, STEP - lv_font_get_line_height(&font_14), 0);
+        lv_obj_add_style(l, &st[k], 0);
         lv_obj_set_x(l, i * SPACING);
         drops_[i].lbl[k] = l;
       }
@@ -89,7 +98,7 @@ class MatrixScreen : public Screen {
   lv_obj_t* clock_ = nullptr;
   lv_timer_t* timer_ = nullptr;
   uint32_t pressAt_ = 0, created_ = 0;
-  bool memLogged_ = false;
+  bool memLogged_ = false, paused_ = false;
 
   static void onPress(lv_event_t* e) { static_cast<MatrixScreen*>(lv_event_get_user_data(e))->pressAt_ = millis(); }
   static void onRelease(lv_event_t* e) { static_cast<MatrixScreen*>(lv_event_get_user_data(e))->pressAt_ = 0; }
@@ -101,6 +110,15 @@ class MatrixScreen : public Screen {
   }
 
   void step() {
+    if (uiModalActive()) {  // pause and hide the rain while the game is open
+      if (!paused_) {
+        paused_ = true;
+        for (Drop& d : drops_)
+          for (lv_obj_t* l : d.lbl) lv_obj_add_flag(l, LV_OBJ_FLAG_HIDDEN);
+      }
+      return;
+    }
+    paused_ = false;
     for (int i = 0; i < COLS; i++) {
       Drop& d = drops_[i];
       d.y += d.speed;
@@ -115,10 +133,11 @@ class MatrixScreen : public Screen {
           if (j < n[k] - 1) t[w++] = '\n';
         }
         t[w] = 0;
-        lv_obj_set_flag(d.lbl[k], LV_OBJ_FLAG_HIDDEN, n[k] == 0);
+        lv_obj_t* l = d.lbl[k];
+        if (lv_obj_has_flag(l, LV_OBJ_FLAG_HIDDEN) != (n[k] == 0)) lv_obj_set_flag(l, LV_OBJ_FLAG_HIDDEN, n[k] == 0);
         if (n[k]) {
-          lv_label_set_text_static(d.lbl[k], t);
-          lv_obj_set_y(d.lbl[k], d.y + off * STEP);
+          lv_label_set_text_static(l, t);
+          if (lv_obj_get_y(l) != d.y + off * STEP) lv_obj_set_y(l, d.y + off * STEP);
         }
         off += n[k];
       }

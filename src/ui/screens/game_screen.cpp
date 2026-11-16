@@ -58,7 +58,7 @@ class GameScreen : public Screen {
     lv_obj_set_style_border_color(intro_, lv_color_hex(0x808080), 0);
     lv_label_set_text(text(intro_, &font_18, 8, 4, lv_color_hex(0xFFFF00)), tr(Tr::GameTitle));
     lv_obj_t* h = text(intro_, &font_14, 8, 32, lv_color_white());
-    lv_label_set_text_fmt(h, "%s\n%s\n%s\n* Unlis = Unlicensed", tr(Tr::GameHint1), tr(Tr::GameHint2), tr(Tr::GameHint3));
+    lv_label_set_text_fmt(h, "%s\n%s\n%s\n%s", tr(Tr::GameHint1), tr(Tr::GameHint2), tr(Tr::GameHint3), tr(Tr::GameUnlis));
 
     over_ = lv_obj_create(p);
     lv_obj_remove_style_all(over_);
@@ -78,7 +78,8 @@ class GameScreen : public Screen {
   }
 
  private:
-  lv_obj_t *cv_, *startLbl_, *score_, *timeLbl_, *intro_, *over_;
+  lv_obj_t *cv_ = nullptr, *startLbl_ = nullptr, *score_ = nullptr, *timeLbl_ = nullptr, *intro_ = nullptr, *over_ = nullptr;
+  bool dirty_ = true;
   lv_timer_t* timer_ = nullptr;
   bool running_ = false, over_flag_ = false;
   int caught_ = 0, missed_ = 0, shownCaught_ = -1, shownSec_ = -1;
@@ -236,10 +237,16 @@ class GameScreen : public Screen {
       if (over_flag_) refreshHud(true);
     }
     refreshHud(false);
-    lv_obj_invalidate(cv_);
+    if (running_ || dirty_) {  // only the radar disc and the miss markers change
+      dirty_ = false;
+      lv_area_t a = {CX - R_OUT - 8, 0, CX + R_OUT + 8, 239}, m = {2, 90, 24, 150};
+      lv_obj_invalidate_area(cv_, &a);
+      lv_obj_invalidate_area(cv_, &m);
+    }
   }
 
   void refreshHud(bool force) {
+    if (force) dirty_ = true;
     int sec = running_ ? (millis() - start_) / 1000 : over_flag_ ? frozenSec_ : 0;
     if (force) {
       lv_label_set_text(startLbl_, tr(running_ ? Tr::GameStop : Tr::GameStart));

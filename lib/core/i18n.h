@@ -103,6 +103,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(GameStop, "STOP", "PARAR") \
   X(GamePtt, "PTT", "PTT") \
   X(GameExit, "EXIT", "SAIR") \
+  X(GameUnlis, "* Unlis = Unlicensed", "* Unlis = Sem licença") \
   X(GameBand, "BAND:", "BANDA:") \
   X(GameOver, "GAME OVER", "FIM DE JOGO") \
   /* location */ \
