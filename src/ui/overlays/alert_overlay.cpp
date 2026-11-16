@@ -2,10 +2,12 @@
 
 #include <Arduino.h>
 #include <stdio.h>
+#include <string.h>
 #include "i18n.h"
 
 #include "../../app/config_store.h"
 #include "../fonts/fonts.h"
+#include "../icons/weather_icons.h"
 #include "../theme.h"
 
 static lv_obj_t* ov;
@@ -24,7 +26,8 @@ bool overlayActive() { return ov != nullptr; }
 
 void overlayShow(const UiEvent& e) {
   closeNow();
-  char title[40], body[96];
+  char title[40], body[160];
+  const lv_image_dsc_t* wxImg = nullptr;
   uint32_t secs = (uint32_t)cfg().alrt_scr_s;
   switch (e.kind) {
     case EventKind::AprsAlert:
@@ -38,7 +41,22 @@ void overlayShow(const UiEvent& e) {
       break;
     case EventKind::WeatherAlert:
       snprintf(title, sizeof title, "%s", tr(Tr::WeatherAlert));
-      snprintf(body, sizeof body, "%s", tr(e.wx.stormNow ? Tr::StormNow : e.wx.stormPossible ? Tr::PossibleStorm : Tr::StrongWind));
+      body[0] = 0;
+      if (e.wx.stormPossible) {
+        wxImg = &wxicon_200;
+        snprintf(body, sizeof body, "%s\n", tr(e.wx.stormNow ? Tr::StormNow : Tr::PossibleStorm));
+      }
+      if (e.wx.windPossible) {
+        if (!wxImg) wxImg = &wxicon_wind;
+        size_t n = strlen(body);
+        n += snprintf(body + n, sizeof body - n, "%s\n%s %.1f %s\n", tr(Tr::StrongWind), tr(Tr::WindLabel), (double)e.wx.maxWindMs, tr(Tr::Ms));
+        if (e.wx.maxWindGustMs > 0)
+          snprintf(body + n, sizeof body - n, "%s %.1f %s\n", tr(Tr::Gust), (double)e.wx.maxWindGustMs, tr(Tr::Ms));
+      }
+      if (e.wx.stormPossible) {  // stormEtaHours carries the repeat interval in minutes
+        size_t n = strlen(body);
+        snprintf(body + n, sizeof body - n, "%s %u %s", tr(Tr::Repeat), (unsigned)e.wx.stormEtaHours, tr(Tr::Min));
+      }
       break;
     default:
       return;
@@ -67,7 +85,16 @@ void overlayShow(const UiEvent& e) {
   lv_obj_set_style_text_align(b, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_set_width(b, 290);
   lv_label_set_text(b, body);
-  lv_obj_align(b, LV_ALIGN_CENTER, 0, 10);
+  if (wxImg) {  // weather alert: icon on the left, text left-aligned beside it
+    lv_obj_t* im = lv_image_create(ov);
+    lv_image_set_src(im, wxImg);
+    lv_obj_set_pos(im, 18, 90);
+    lv_obj_set_width(b, 220);
+    lv_obj_set_style_text_align(b, LV_TEXT_ALIGN_LEFT, 0);
+    lv_obj_align(b, LV_ALIGN_LEFT_MID, 82, 15);
+  } else {
+    lv_obj_align(b, LV_ALIGN_CENTER, 0, 10);
+  }
 
   lv_obj_t* x = lv_button_create(ov);
   lv_obj_set_size(x, 44, 36);

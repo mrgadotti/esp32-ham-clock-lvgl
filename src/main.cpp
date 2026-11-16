@@ -12,6 +12,7 @@
 #include "net/web_config.h"
 #include "net/wifi_manager.h"
 #include "svc/qrz.h"
+#include "svc/weather.h"
 #include "ui/fonts/fonts.h"
 #include "ui/theme.h"
 #include "ui/ui_manager.h"
@@ -63,6 +64,7 @@ static void netTask(void*) {
     webTick();
     timeTick(now);
     qrzTick(now);
+    weatherTick(now);
     memLogTick(now);
     vTaskDelay(pdMS_TO_TICKS(20));
   }

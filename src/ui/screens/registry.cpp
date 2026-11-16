@@ -1,6 +1,8 @@
 #include "../screen.h"
 #include "clock_screen.h"
 #include "settings_screen.h"
+#include "weather_screen.h"
+#include "forecast_screen.h"
 #include "../fonts/fonts.h"
 #include "../widgets/header.h"
 #include "i18n.h"
@@ -45,5 +47,7 @@ class PlaceholderScreen : public Screen {
 Screen* createScreen(ScreenId id) {
   if (id == ScreenId::HamClock) return createClockScreen();
   if (id == ScreenId::Settings) return createSettingsScreen();
+  if (id == ScreenId::Weather) return createWeatherScreen();
+  if (id == ScreenId::Forecast) return createForecastScreen();
   return new PlaceholderScreen(id);
 }
