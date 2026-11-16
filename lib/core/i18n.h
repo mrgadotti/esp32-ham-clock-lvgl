@@ -34,8 +34,8 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(TimeMode, "TIME MODE", "MODO DE HORA") \
   X(Gps, "GPS", "GPS") \
   /* table columns */ \
-  X(ColCall, "CALL", "INDIC.") \
-  X(ColCallsign, "CALLSIGN", "INDICATIVO") \
+  X(ColCall, "CALL", "CALL") \
+  X(ColMod, "MOD", "MOD") \
   X(ColMsg, "MSG", "MSG") \
   X(ColCountry, "COUNTRY", "PAÍS") \
   X(ColSymbol, "SYM", "SYM") \
