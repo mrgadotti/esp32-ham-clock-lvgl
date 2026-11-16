@@ -15,7 +15,7 @@ void headerTickUtc(lv_obj_t* header) {
     snprintf(s, sizeof s, "%02d:%02d Z", tm.tm_hour, tm.tm_min);
   }
   lv_obj_t* c = static_cast<lv_obj_t*>(lv_obj_get_user_data(header));
-  if (c && strcmp(lv_label_get_text(c), s) != 0) headerSetClock(header, s);
+  if (c && lv_label_get_text(c) && strcmp(lv_label_get_text(c), s) != 0) headerSetClock(header, s);
 }
 
 lv_obj_t* headerCreate(lv_obj_t* parent, Tr title) {

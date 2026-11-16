@@ -57,6 +57,9 @@ void uiInit() {
   bootStart = millis();
 }
 
+static uint32_t memShowAt;
+static int memShowId;
+
 static void showForce(ScreenId id) {
   lv_obj_t* obj = lv_obj_create(nullptr);
   Screen* s = createScreen(id);
@@ -68,6 +71,8 @@ static void showForce(ScreenId id) {
   cur = s;
   curObj = obj;
   lastSwitch = millis();
+  memShowAt = lastSwitch + 3000;  // let the screen populate before measuring
+  memShowId = (int)id;
 }
 
 static void show(ScreenId id) {
@@ -108,6 +113,12 @@ void uiTick(uint32_t now) {
   lastTick = now;
 
   overlayTick(now);
+  if (memShowAt && now >= memShowAt) {
+    memShowAt = 0;
+    lv_mem_monitor_t m;
+    lv_mem_monitor(&m);
+    Serial.printf("[MEM] screen %d lvfree=%u\n", memShowId, (unsigned)m.free_size);
+  }
   if (uint32_t v = g_store.weather.version(); v != lastWxVer) {
     lastWxVer = v;
     char ic[8];

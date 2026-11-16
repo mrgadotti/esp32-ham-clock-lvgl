@@ -175,7 +175,6 @@ class SettingsScreen : public Screen {
     for (char* b : cache_) b[0] = 0;
     lastInfo_ = 0;
     refreshInfo(0);
-    Serial.printf("[MEM] settings shown lvfree=%u\n", (unsigned)memLogLvFree());
   }
 
   void tick(uint32_t now) override { refreshInfo(now); }
