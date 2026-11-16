@@ -61,7 +61,7 @@ void hamalertTick(uint32_t now) {
   uint32_t nowUtc = (uint32_t)time(nullptr);
   uint32_t start = millis(), lastRx = start;
   while (client.connected() && millis() - start < kTotalMs && n < kMax) {
-    while (client.available() && n < kMax) {
+    while (client.available() && n < kMax && millis() - start < kTotalMs) {
       int ch = client.read();
       if (ch < 0) break;
       lastRx = millis();

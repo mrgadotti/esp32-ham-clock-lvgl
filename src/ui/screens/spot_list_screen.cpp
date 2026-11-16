@@ -79,6 +79,11 @@ class SpotListScreen : public Screen {
   }
 
   void tick(uint32_t) override {
+    bool noLogin = d_.id == ScreenId::HamAlert && (!cfg().hama_user[0] || !cfg().hama_pass[0]);
+    if (noLogin != noLogin_) {
+      noLogin_ = noLogin;
+      lv_label_set_text(wait_, tr(noLogin ? Tr::HamAlertNoLogin : Tr::WaitingForSpots));
+    }
     if (ver_ != d_.store->version()) refresh();
     if (timeValid()) {
       struct tm tm;
@@ -102,6 +107,7 @@ class SpotListScreen : public Screen {
   uint16_t band_;
   uint32_t ver_;
   int lastMin_ = -1;
+  bool noLogin_ = false;
   uint8_t idx_[30];  // filtered position -> store index
   size_t n_ = 0;
   size_t cachedRow_ = (size_t)-1;
