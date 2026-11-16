@@ -7,6 +7,7 @@
 
 #include "app/config_store.h"
 #include "app/data_store.h"
+#include "svc/qrz.h"
 #include "app/events.h"
 #include "board.h"
 #include "config_html.h"
@@ -79,7 +80,7 @@ void handleStatus() {
   d["gps"]["fix"] = g.fix;
   d["gps"]["lat"] = g.lat;
   d["gps"]["lon"] = g.lon;
-  d["qrz_status"] = "disabled";  // Task 11 replaces
+  d["qrz_status"] = qrzStatusStr();
   d["uart2_rx_pin"] = PIN_UART2_RX;
   d["uart2_tx_pin"] = PIN_UART2_TX;
   String s;

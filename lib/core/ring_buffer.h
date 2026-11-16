@@ -11,6 +11,7 @@ class RingBuffer {
     a_[0] = v;
     if (n_ < N) ++n_;
   }
+  T& at(size_t i) { return a_[i]; }
   size_t size() const { return n_; }
   const T& at(size_t i) const { return a_[i]; }
   void clear() { n_ = 0; }
