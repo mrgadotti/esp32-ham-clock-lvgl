@@ -6,8 +6,6 @@
 
 #include "app/config_store.h"
 #include "app/data_store.h"
-#include "app/service_coords.h"
-#include "geo.h"
 #include "net/http_fetch.h"
 #include "pota_parse.h"
 #include "svc/qrz.h"
@@ -32,36 +30,33 @@ void potaTick(uint32_t now) {
   JsonObject f = filter.add<JsonObject>();
   for (const char* k : {"activator", "frequency", "mode", "reference", "spotTime", "locationDesc", "comments", "spotter"})
     f[k] = true;
-  JsonDocument doc;
-  if (!httpGetJson(c.pota_api_url[0] ? c.pota_api_url : "https://api.pota.app/v1/spots", doc, &filter) ||
-      !doc.is<JsonArray>()) {
-    Serial.println("[POTA] fetch failed, keeping old list");
-    return;
-  }
-
+  const char* url = c.pota_api_url[0] ? c.pota_api_url : "https://api.pota.app/v1/spots";
   Spot* spots = (Spot*)malloc(sizeof(Spot) * kMax);  // heap: static would not fit in DRAM, the stack is too small
   if (!spots) return;
   size_t n = 0;
-  for (JsonObjectConst o : doc.as<JsonArrayConst>()) {
-    Spot s;
-    if (!potaFromJson(o, s)) continue;
-    if (n < kMax) { spots[n++] = s; continue; }
-    size_t oldest = 0;  // full: replace the oldest if this one is newer
-    for (size_t i = 1; i < kMax; i++) if (spots[i].utc < spots[oldest].utc) oldest = i;
-    if (s.utc > spots[oldest].utc) spots[oldest] = s;
+  {  // the JSON document is freed at the end of this block, before the QRZ/store work
+    JsonDocument doc;
+    if (!httpGetJson(url, doc, &filter) || !doc.is<JsonArray>()) {
+      Serial.println("[POTA] fetch failed, keeping old list");
+      free(spots);
+      return;
+    }
+    for (JsonObjectConst o : doc.as<JsonArrayConst>()) {
+      Spot s;
+      if (!potaFromJson(o, s)) continue;
+      if (n < kMax) { spots[n++] = s; continue; }
+      size_t oldest = 0;  // full: replace the oldest if this one is newer
+      for (size_t i = 1; i < kMax; i++) if (spots[i].utc < spots[oldest].utc) oldest = i;
+      if (s.utc > spots[oldest].utc) spots[oldest] = s;
+    }
+  }
+  if (n == 0) {
+    Serial.println("[POTA] no spots parsed, keeping old list");
+    free(spots);
+    return;
   }
   potaSortByTimeDesc(spots, n);
-
-  double ml, mo;
-  bool haveMe = serviceCoords(ml, mo);
-  for (size_t i = 0; i < n; i++) {
-    double la, lo;
-    if (spots[i].loc[0] && locatorToLatLon(spots[i].loc, la, lo)) {
-      spots[i].lat = (float)la; spots[i].lon = (float)lo; spots[i].hasLatLon = true;
-      if (haveMe) spots[i].distKm = (int16_t)distanceKm(ml, mo, la, lo);
-    }
-    qrzOnNewSpot(spots[i]);
-  }
+  for (size_t i = 0; i < n; i++) qrzOnNewSpot(spots[i]);  // POTA entries carry no grid, so no distance
   g_store.pota.write([&](RingBuffer<Spot, 30>& r) {
     r.clear();
     for (size_t i = n; i-- > 0;) r.pushFront(spots[i]);
