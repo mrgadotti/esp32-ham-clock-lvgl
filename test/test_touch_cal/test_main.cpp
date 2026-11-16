@@ -24,11 +24,16 @@ void test_cal_identity_roundtrip() {
     TEST_ASSERT_FLOAT_WITHIN(0.5f, scr[i][0], t.a * raw[i][0] + t.b * raw[i][1] + t.c);
     TEST_ASSERT_FLOAT_WITHIN(0.5f, scr[i][1], t.d * raw[i][0] + t.e * raw[i][1] + t.f);
   }
-  // 4th point: inputs were rounded to integers, so allow ~1.5 px against the true transform.
+  // 4th point: compare the solved map with the points' own rounded-fit residual; the fit is exact
+  // for the 3 rounded inputs, so check the 4th against the map re-derived from those inputs.
+  const float x4 = t.a * 1800 + t.b * 2000 + t.c, y4 = t.d * 1800 + t.e * 2000 + t.f;
   int16_t x, y;
   touchCalApply(t, 1800, 2000, x, y);
-  TEST_ASSERT_FLOAT_WITHIN(1.5f, fx(1800, 2000), x);
-  TEST_ASSERT_FLOAT_WITHIN(1.5f, fy(1800, 2000), y);
+  TEST_ASSERT_FLOAT_WITHIN(0.5f, x4, x);
+  TEST_ASSERT_FLOAT_WITHIN(0.5f, y4, y);
+  // Against the true transform the error is bounded by input rounding (0.5 px) amplified by geometry.
+  TEST_ASSERT_FLOAT_WITHIN(0.5f, fx(1800, 2000), x4);
+  TEST_ASSERT_FLOAT_WITHIN(0.5f, fy(1800, 2000), y4);
 }
 
 void test_cal_rejects_collinear() {
