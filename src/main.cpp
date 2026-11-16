@@ -14,6 +14,7 @@
 #include "svc/dx_cluster.h"
 #include "svc/hamalert.h"
 #include "svc/pota.h"
+#include "svc/propagation.h"
 #include "svc/qrz.h"
 #include "ui/fonts/fonts.h"
 #include "ui/theme.h"
@@ -114,6 +115,7 @@ static void netTask(void*) {
     potaTick(now);
     hamalertTick(now);
     qrzTick(now);
+    propTick(now);
     memLogTick(now);
     vTaskDelay(pdMS_TO_TICKS(20));
   }
