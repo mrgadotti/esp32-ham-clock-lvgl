@@ -11,10 +11,12 @@ static bool extractBetween(const char* xml, const char* open, const char* close,
   if (!e) return false;
   while (s < e && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t')) s++;
   while (e > s && (e[-1] == ' ' || e[-1] == '\n' || e[-1] == '\r' || e[-1] == '\t')) e--;
-  size_t n = (size_t)(e - s);
+  size_t n = 0;
+  char tmp[32];  // all fields are <= 24 bytes, so cap-1 < sizeof tmp
+  for (; s < e && n < cap - 1; s++)
+    if ((unsigned char)*s >= 0x20 && (unsigned char)*s <= 0x7E) tmp[n++] = *s;  // printable ASCII only
   if (n == 0) return false;
-  if (n >= cap) n = cap - 1;
-  memcpy(dst, s, n);
+  memcpy(dst, tmp, n);
   dst[n] = 0;
   return true;
 }

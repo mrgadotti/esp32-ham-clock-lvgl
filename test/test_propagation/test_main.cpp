@@ -28,4 +28,25 @@ void test_prop_rejects_garbage() {
   TEST_ASSERT_TRUE(p.valid); TEST_ASSERT_EQUAL_STRING("99", p.sfi);
 }
 
-int main() { UNITY_BEGIN(); RUN_TEST(test_prop_fixture); RUN_TEST(test_prop_rejects_garbage); return UNITY_END(); }
+void test_prop_truncates() {
+  PropagationData p; memset(&p, 0, sizeof p);
+  TEST_ASSERT_TRUE(parsePropagationXml("<solarflux>1234567890</solarflux><kindex>2</kindex>", p));
+  TEST_ASSERT_EQUAL_STRING("12345", p.sfi);
+  TEST_ASSERT_EQUAL_STRING("2", p.kindex);
+}
+
+void test_prop_sanitizes() {
+  PropagationData p; memset(&p, 0, sizeof p);
+  TEST_ASSERT_TRUE(parsePropagationXml("<solarflux>1\n5\xC3" "0</solarflux><kindex>3</kindex>", p));
+  TEST_ASSERT_EQUAL_STRING("150", p.sfi);
+}
+
+void test_prop_missing_kindex() {
+  PropagationData p; memset(&p, 0, sizeof p);
+  strcpy(p.sfi, "99");
+  TEST_ASSERT_FALSE(parsePropagationXml("<solarflux>150</solarflux>", p));
+  TEST_ASSERT_EQUAL_STRING("99", p.sfi); TEST_ASSERT_FALSE(p.valid);
+}
+
+int main() { UNITY_BEGIN(); RUN_TEST(test_prop_fixture); RUN_TEST(test_prop_rejects_garbage);
+  RUN_TEST(test_prop_truncates); RUN_TEST(test_prop_sanitizes); RUN_TEST(test_prop_missing_kindex); return UNITY_END(); }
