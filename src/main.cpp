@@ -2,70 +2,102 @@
 #include <lvgl.h>
 
 #include "app/config_store.h"
-#include "board.h"
+#include "app/data_store.h"
+#include "app/events.h"
+#include "app/mem_log.h"
 #include "hal/display.h"
 #include "hal/touch.h"
 #include "hal/touch_cal_ui.h"
+#include "net/time_service.h"
+#include "net/wifi_manager.h"
+#include "ui/fonts/fonts.h"
+#include "ui/theme.h"
 
-static lv_obj_t* dot;
+static lv_obj_t *lblWifi, *lblSsid, *lblIp, *lblRssi, *lblTime, *lblMem;
 
-static void bar(int x, uint32_t color, const char* text, bool darkText) {
-  lv_obj_t* o = lv_obj_create(lv_screen_active());
-  lv_obj_remove_style_all(o);
-  lv_obj_set_size(o, 70, 200);
-  lv_obj_set_pos(o, 10 + x * 78, 20);
-  lv_obj_set_style_bg_opa(o, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(o, lv_color_hex(color), 0);
-  lv_obj_t* l = lv_label_create(o);
-  lv_label_set_text(l, text);
-  lv_obj_set_style_text_color(l, darkText ? lv_color_black() : lv_color_white(), 0);
-  lv_obj_center(l);
+static void buildStatusScreen() {
+  lv_obj_t* scr = lv_screen_active();
+  lv_obj_t** labels[] = {&lblWifi, &lblSsid, &lblIp, &lblRssi, &lblTime, &lblMem};
+  int y = 8;
+  for (auto l : labels) {
+    *l = lv_label_create(scr);
+    lv_obj_set_style_text_font(*l, &font_14, 0);
+    lv_obj_set_pos(*l, 8, y);
+    y += 22;
+  }
+}
+
+static void refreshStatus() {
+  NetStatus n{};
+  g_store.net.read([&](const NetStatus& s) { n = s; });
+  lv_label_set_text_fmt(lblWifi, "WiFi: %s", n.sta ? "STA" : (n.ap ? "AP" : "connecting"));
+  lv_label_set_text_fmt(lblSsid, "SSID: %s", n.ssid);
+  lv_label_set_text_fmt(lblIp, "IP: %s", n.ip);
+  lv_label_set_text_fmt(lblRssi, "RSSI: %d", n.rssi);
+  if (timeValid()) {
+    struct tm tm;
+    time_t t = time(nullptr);
+    gmtime_r(&t, &tm);
+    lv_label_set_text_fmt(lblTime, "UTC: %04d-%02d-%02d %02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1,
+                          tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+  } else {
+    lv_label_set_text(lblTime, "UTC: waiting for NTP");
+  }
+  lv_label_set_text_fmt(lblMem, "[MEM] free=%u min=%u lv=%u", (unsigned)ESP.getFreeHeap(),
+                        (unsigned)ESP.getMinFreeHeap(), (unsigned)memLogLvFree());
+}
+
+static void uiTask(void*) {
+  cfgRefreshUiSnapshot();
+  buildStatusScreen();
+  if (!touchCalLoadSaved() || touchHeldAtBoot(2000)) touchCalRun(nullptr);
+  uint32_t lastStatus = 0;
+  for (;;) {
+    UiEvent e;
+    while (popUiEvent(e)) {
+      if (e.kind == EventKind::ConfigChanged) cfgRefreshUiSnapshot();
+      else if (e.kind == EventKind::StartTouchCal) touchCalRun(nullptr);
+    }
+    lv_timer_handler();
+    uint32_t now = millis();
+    if (now - lastStatus >= 1000) {
+      lastStatus = now;
+      lv_mem_monitor_t m;
+      lv_mem_monitor(&m);
+      memLogSetLvFree(m.free_size);
+      refreshStatus();
+    }
+    vTaskDelay(pdMS_TO_TICKS(5));
+  }
+}
+
+static void netTask(void*) {
+  for (;;) {
+    uint32_t now = millis();
+    wifiTick(now);
+    timeTick(now);
+    memLogTick(now);
+    vTaskDelay(pdMS_TO_TICKS(20));
+  }
+}
+
+static void uartTask(void*) {
+  for (;;) vTaskDelay(pdMS_TO_TICKS(100));  // filled in by Task 17
 }
 
 void setup() {
   Serial.begin(115200);
   Config boot;
   configStoreLoad(boot);
-  Serial.printf("[CFG] callsign=%s ssid=%s\n", boot.user_callsign, boot.wifi_ssid);
-  displayInit(1, DISPLAY_INVERT_DEFAULT);
-  lv_obj_set_style_bg_color(lv_screen_active(), lv_color_black(), 0);
-  bar(0, 0xFF0000, "RED", false);
-  bar(1, 0x00FF00, "GREEN", true);
-  bar(2, 0x0000FF, "BLUE", false);
-  bar(3, 0xFFFFFF, "WHITE", true);
-
-  // Touch test: corner markers and a dot that follows the last touched point.
-  static const int16_t corners[4][2] = {{10, 10}, {309, 10}, {10, 229}, {309, 229}};
-  for (auto& c : corners) {
-    lv_obj_t* m = lv_obj_create(lv_screen_active());
-    lv_obj_remove_style_all(m);
-    lv_obj_set_size(m, 5, 5);
-    lv_obj_set_pos(m, c[0] - 2, c[1] - 2);
-    lv_obj_set_style_bg_opa(m, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(m, lv_palette_main(LV_PALETTE_YELLOW), 0);
-  }
-  dot = lv_obj_create(lv_screen_active());
-  lv_obj_remove_style_all(dot);
-  lv_obj_set_size(dot, 10, 10);
-  lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, 0);
-  lv_obj_set_style_bg_opa(dot, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(dot, lv_palette_main(LV_PALETTE_PURPLE), 0);
-  lv_obj_add_flag(dot, LV_OBJ_FLAG_HIDDEN);
-
-  // Last: the test screen above is the 'previous' screen the calibration returns to.
+  displayInit(boot.tft_rot, boot.tft_inv);
+  displaySetBacklight(boot.tft_backlight);
+  themeApply(lv_display_get_default());
   touchInit();
   touchCreateIndev();
-  if (!touchCalLoadSaved() || touchHeldAtBoot(2000)) touchCalRun(nullptr);
+  eventsInit();
+  xTaskCreatePinnedToCore(uiTask, "ui", 8192, nullptr, 3, nullptr, 1);
+  xTaskCreatePinnedToCore(netTask, "net", 10240, nullptr, 1, nullptr, 0);
+  xTaskCreatePinnedToCore(uartTask, "uart", 4096, nullptr, 2, nullptr, 1);
 }
 
-void loop() {
-  lv_point_t p;
-  lv_indev_t* in = lv_indev_get_next(nullptr);
-  if (in && lv_indev_get_state(in) == LV_INDEV_STATE_PRESSED) {
-    lv_indev_get_point(in, &p);
-    lv_obj_set_pos(dot, p.x - 5, p.y - 5);
-    lv_obj_remove_flag(dot, LV_OBJ_FLAG_HIDDEN);
-  }
-  lv_timer_handler();
-  delay(5);
-}
+void loop() { vTaskDelete(NULL); }
