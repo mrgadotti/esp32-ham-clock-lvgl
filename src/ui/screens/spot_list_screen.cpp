@@ -34,7 +34,7 @@ class SpotListScreen : public Screen {
     mode_ = (uint8_t)(cfg().*d_.modeKey);
     band_ = (uint16_t)(cfg().*d_.bandKey);
     cols_.n = 5;
-    const int16_t w[] = {38, 76, 52, 42, 112};
+    const int16_t w[] = {38, 76, 60, 42, 104};
     const lv_color_t c[] = {lv_color_hex(0xC0C0C0), COL_TEXT, COL_FREQ, COL_MODE, COL_ACCENT};
     for (int i = 0; i < 5; i++) { cols_.width[i] = w[i]; cols_.color[i] = c[i]; }
     hdr_ = headerCreate(p, d_.title);
@@ -140,7 +140,7 @@ class SpotListScreen : public Screen {
         else snprintf(out, cap, "%02u%02u", (unsigned)(sp.utc % 86400 / 3600), (unsigned)(sp.utc % 3600 / 60));
         break;
       case 1: snprintf(out, cap, "%s", sp.call); break;
-      case 2: snprintf(out, cap, "%u.%u", (unsigned)(sp.khz / 1000), (unsigned)(sp.khz % 1000 / 100)); break;
+      case 2: snprintf(out, cap, "%u.%03u", (unsigned)(sp.khz / 1000), (unsigned)(sp.khz % 1000)); break;
       case 3: snprintf(out, cap, "%s", sp.mode == MODE_CW ? "CW" : sp.mode == MODE_SSB ? "SSB" : sp.mode == MODE_DIGI ? "DIGI" : "-"); break;
       default: snprintf(out, cap, "%s", sp.country[0] ? sp.country : "-"); break;
     }
