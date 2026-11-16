@@ -46,7 +46,18 @@ void test_pota_sort() {
   potaSortByTimeDesc(a, 3);
   TEST_ASSERT_EQUAL_UINT32(9, a[0].utc); TEST_ASSERT_EQUAL_UINT32(7, a[1].utc); TEST_ASSERT_EQUAL_UINT32(5, a[2].utc);
 }
+void test_pota_edge_cases() {
+  JsonDocument doc; Spot s;
+  deserializeJson(doc, "{\"activator\":\"K1ABC\",\"frequency\":\"\"}");
+  TEST_ASSERT_FALSE(potaFromJson(doc.as<JsonObjectConst>(), s));
+  deserializeJson(doc, "{\"activator\":\"K1ABC\",\"frequency\":\"7144.5\"}");
+  TEST_ASSERT_TRUE(potaFromJson(doc.as<JsonObjectConst>(), s));
+  TEST_ASSERT_EQUAL_UINT32(7145, s.khz);
+  uint32_t t = 0;
+  TEST_ASSERT_TRUE(isoUtcToUnix("2026-11-16T12:34:56.789Z", t));
+  TEST_ASSERT_EQUAL_UINT32(1794832496u, t);
+}
 int main() {
   UNITY_BEGIN(); RUN_TEST(test_iso_to_unix); RUN_TEST(test_pota_fixture);
-  RUN_TEST(test_pota_rejects_garbage); RUN_TEST(test_pota_sort); return UNITY_END();
+  RUN_TEST(test_pota_rejects_garbage); RUN_TEST(test_pota_sort); RUN_TEST(test_pota_edge_cases); return UNITY_END();
 }

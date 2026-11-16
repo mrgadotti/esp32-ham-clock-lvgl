@@ -11,6 +11,10 @@
 #include "net/time_service.h"
 #include "net/web_config.h"
 #include "net/wifi_manager.h"
+#include "svc/dx_cluster.h"
+#include "svc/hamalert.h"
+#include "svc/pota.h"
+#include "svc/qrz.h"
 #include "ui/fonts/fonts.h"
 #include "ui/theme.h"
 #include "ui/ui_manager.h"
@@ -106,6 +110,10 @@ static void netTask(void*) {
     wifiTick(now);
     webTick();
     timeTick(now);
+    dxTick(now);
+    potaTick(now);
+    hamalertTick(now);
+    qrzTick(now);
     memLogTick(now);
     vTaskDelay(pdMS_TO_TICKS(20));
   }
@@ -125,6 +133,7 @@ void setup() {
   touchInit();
   touchCreateIndev();
   eventsInit();
+  qrzInit();
   TaskHandle_t hUi, hNet;
   xTaskCreatePinnedToCore(uiTask, "ui", 8192, nullptr, 3, &hUi, 1);
   xTaskCreatePinnedToCore(netTask, "net", 10240, nullptr, 1, &hNet, 0);
