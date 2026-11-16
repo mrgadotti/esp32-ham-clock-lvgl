@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <math.h>
+#include <strings.h>
 
 static void copyTok(char* dst, size_t cap, const char* s, size_t n) {
   if (n >= cap) n = cap - 1;
@@ -19,11 +21,17 @@ static bool isLoc(const char* p, size_t len) {
   return true;
 }
 
-bool parseDxLine(const char* line, uint32_t nowUtc, Spot& out) {
-  if (!line || strncmp(line, "DX de", 5) != 0) return false;
+bool parseDxLine(const char* line, uint32_t nowUtc, Spot& dst) {
+  if (!line) return false;
+  char buf[512];  // trimmed copy: trailing CR/LF/blanks removed
+  size_t ln = strnlen(line, sizeof(buf) - 1);
+  while (ln && (unsigned char)line[ln - 1] <= ' ') ln--;
+  memcpy(buf, line, ln); buf[ln] = 0;
+  line = buf;
+  if (strncmp(line, "DX de", 5) != 0) return false;
   const char* colon = strchr(line + 5, ':');
   if (!colon) return false;
-  memset(&out, 0, sizeof(out));
+  Spot out{};  // filled locally; committed to dst only on success
   const char* p = line + 5;
   while (p < colon && *p == ' ') p++;
   const char* e = colon;
@@ -34,7 +42,7 @@ bool parseDxLine(const char* line, uint32_t nowUtc, Spot& out) {
   while (*p == ' ') p++;
   char* end;
   double f = strtod(p, &end);
-  if (end == p || f <= 0 || (*end != ' ' && *end != 0)) return false;
+  if (strspn(p, "0123456789.") != (size_t)(end - p) || !isdigit((unsigned char)*p) || !isfinite(f) || f <= 0 || f >= 1e7 || (*end != ' ' && *end != 0)) return false;
   out.khz = (uint32_t)(f + 0.5);
   p = end;
   while (*p == ' ') p++;
@@ -59,22 +67,24 @@ bool parseDxLine(const char* line, uint32_t nowUtc, Spot& out) {
   }
   while (n && p[n - 1] == ' ') n--;
 
+  // Locator scan on the raw (untruncated) comment.
+  for (size_t i = 0; i + 4 <= n; i++) {
+    size_t len = (i + 6 <= n && isLoc(p + i, 6)) ? 6 : (isLoc(p + i, 4) ? 4 : 0);
+    if (!len) continue;
+    if (len == 4 && strncasecmp(p + i, "RR73", 4) == 0) continue;  // FT8 sign-off, not a square
+    bool lb = i == 0 || !isalnum((unsigned char)p[i - 1]);
+    bool rb = i + len == n || !isalnum((unsigned char)p[i + len]);
+    if (lb && rb) {
+      for (size_t k = 0; k < len; k++) out.loc[k] = up(p[i + k]);
+      break;
+    }
+  }
+
   // Sanitize: printable ASCII only, truncated to fit.
   size_t o = 0;
   for (size_t i = 0; i < n && o < sizeof(out.comment) - 1; i++)
     out.comment[o++] = (p[i] >= 0x20 && p[i] < 0x7F) ? p[i] : '?';
   out.comment[o] = 0;
-
-  for (size_t i = 0; i + 4 <= o; i++) {
-    size_t len = (i + 6 <= o && isLoc(out.comment + i, 6)) ? 6 : (isLoc(out.comment + i, 4) ? 4 : 0);
-    if (!len) continue;
-    bool lb = i == 0 || !isalnum((unsigned char)out.comment[i - 1]);
-    bool rb = i + len == o || !isalnum((unsigned char)out.comment[i + len]);
-    if (lb && rb) {
-      for (size_t k = 0; k < len; k++) out.loc[k] = up(out.comment[i + k]);
-      break;
-    }
-  }
 
   uint32_t day = nowUtc - nowUtc % 86400;
   uint32_t t = hasTime ? (hhmm / 100) * 3600 + (hhmm % 100) * 60 : nowUtc % 86400;
@@ -85,5 +95,6 @@ bool parseDxLine(const char* line, uint32_t nowUtc, Spot& out) {
   out.mode = modeFrom(out.comment, out.khz);
   out.distKm = -1;
   out.hasLatLon = false;
+  dst = out;
   return true;
 }
