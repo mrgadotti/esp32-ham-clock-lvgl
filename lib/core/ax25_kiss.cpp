@@ -67,7 +67,7 @@ size_t kissEncodeUiFrame(const char* src, const char* dst, const char* const* pa
 bool kissDeframe(uint8_t b, KissRx& st) {
   if (st.done) { st.done = false; st.len = 0; st.haveCmd = false; st.esc = false; }
   if (b == FEND) {
-    bool complete = st.inFrame && st.len > 0;
+    bool complete = st.inFrame && st.len > 0 && !st.esc && (st.cmd & 0x0F) == 0;
     st.inFrame = true;
     st.esc = false;
     if (complete) { st.done = true; return true; }
@@ -108,8 +108,10 @@ static bool addrToText(const uint8_t* a, bool digi, char* out, size_t cap, size_
   return true;
 }
 
-bool ax25ToTnc2(const uint8_t* f, size_t len, char* out, size_t cap) {
-  if (!f || !out || cap == 0 || len < 16) return false;
+bool ax25ToTnc2(const uint8_t* f, size_t len, char* dst, size_t dstCap) {
+  if (!f || !dst || dstCap == 0 || len < 16) return false;
+  char out[640];  // built locally so dst is untouched on failure
+  size_t cap = dstCap < sizeof out ? dstCap : sizeof out;
   size_t o = 0, off = 14;
   bool last = f[13] & 1;
   if (!addrToText(f + 7, false, out, cap, o)) return false;       // source
@@ -136,18 +138,23 @@ bool ax25ToTnc2(const uint8_t* f, size_t len, char* out, size_t cap) {
   }
   if (o == infoStart) return false;
   out[o] = 0;
+  memcpy(dst, out, o + 1);
   return true;
 }
 
 bool formatAprsPosition(double lat, double lon, char symTable, char symCode, const char* comment,
                         char* out, size_t cap) {
+  if (!out || cap == 0 || !(lat >= -90.0 && lat <= 90.0) || !(lon >= -180.0 && lon <= 180.0)) return false;
   // hundredths of a minute, rounded once so 59.999' carries into the degree
   long la = lround(fabs(lat) * 6000.0), lo = lround(fabs(lon) * 6000.0);
-  int n = snprintf(out, cap, "!%02ld%02ld.%02ld%c%c%03ld%02ld.%02ld%c%c%s",
+  char tmp[256];  // comments that do not fit fail; out stays untouched
+  int n = snprintf(tmp, sizeof tmp,"!%02ld%02ld.%02ld%c%c%03ld%02ld.%02ld%c%c%s",
                    la / 6000, (la % 6000) / 100, la % 100, lat >= 0 ? 'N' : 'S', symTable,
                    lo / 6000, (lo % 6000) / 100, lo % 100, lon >= 0 ? 'E' : 'W', symCode,
                    comment ? comment : "");
-  return n > 0 && (size_t)n < cap;
+  if (n <= 0 || (size_t)n >= sizeof tmp || (size_t)n >= cap) return false;
+  memcpy(out, tmp, (size_t)n + 1);
+  return true;
 }
 
 bool aprsTxCallValid(const char* call) {

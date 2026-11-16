@@ -15,7 +15,9 @@ struct KissRx {
 // KISS frame: C0 00 <escaped AX.25 UI frame> C0. Returns bytes written, 0 on error.
 size_t kissEncodeUiFrame(const char* src, const char* dst, const char* const* path, uint8_t nPath,
                          const char* info, uint8_t* out, size_t cap);
-// Feed one byte; true when a complete frame is now in st.buf[0..st.len).
+// Feed one byte; true when a complete DATA frame (cmd & 0x0F == 0) is now in st.buf[0..st.len).
+// Non-data commands, overlong frames and frames cut by a dangling escape are dropped.
+// ax25ToTnc2 and formatAprsPosition return false and leave out untouched on failure.
 bool kissDeframe(uint8_t byte, KissRx& st);
 // AX.25 UI frame -> "SRC>DST,DIGI*:info" (printable ASCII only).
 bool ax25ToTnc2(const uint8_t* frame, size_t len, char* out, size_t cap);
