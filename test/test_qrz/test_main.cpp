@@ -79,6 +79,47 @@ void test_parse_session_key() {
   char tiny[3];
   TEST_ASSERT_FALSE(qrzParseSessionKey(OK_XML, tiny, sizeof tiny));
 }
+void test_parse_entities_and_sanitize() {
+  QrzInfo o = {};
+  TEST_ASSERT_TRUE(qrzParseXml("<grid>FN31</grid><country>Trinidad &amp; Tobago &quot;x&quot;</country>", o));
+  TEST_ASSERT_EQUAL_STRING("Trinidad & Tobago \"x\"", o.country);
+  TEST_ASSERT_TRUE(qrzParseXml("<grid>FN31</grid><country>C\xC3\xB4te</country>", o));
+  TEST_ASSERT_EQUAL_STRING("C??te", o.country);
+  QrzInfo p = {}; strcpy(p.grid, "KEEP");
+  TEST_ASSERT_FALSE(qrzParseXml("<grid>FN<b>31</b></grid>", p));
+  TEST_ASSERT_FALSE(qrzParseXml("<grid>&lt;b&gt;</grid>", p));
+  TEST_ASSERT_EQUAL_STRING("KEEP", p.grid);
+}
+void test_parse_dxcc_fallback() {
+  QrzInfo o = {};
+  TEST_ASSERT_TRUE(qrzParseXml("<dxcc>Germany</dxcc>", o));
+  TEST_ASSERT_EQUAL_STRING("Germany", o.country);
+  TEST_ASSERT_FALSE(o.hasLatLon);
+}
+void test_parse_bad_coords() {
+  QrzInfo o;
+  const char* bad[] = {"<lat>abc</lat><lon>1</lon>", "<lat>41.7x</lat><lon>1</lon>", "<lat>91</lat><lon>1</lon>",
+                       "<lat>1</lat><lon>-180.5</lon>", "<lat>nan</lat><lon>1</lon>"};
+  for (const char* b : bad) {
+    char xml[96]; snprintf(xml, sizeof xml, "<grid>FN31</grid>%s", b);
+    o = {};
+    TEST_ASSERT_TRUE(qrzParseXml(xml, o));
+    TEST_ASSERT_FALSE(o.hasLatLon);
+  }
+  o = {};
+  TEST_ASSERT_TRUE(qrzParseXml("<grid>FN31</grid><lat>-90</lat><lon>180</lon>", o));
+  TEST_ASSERT_TRUE(o.hasLatLon);
+}
+void test_queue_wrap() {
+  QrzQueue q; char c[QRZ_CALL_LEN];
+  uint32_t t = 0xFFFFFF00u;
+  q.enqueue("AA1", t);
+  TEST_ASSERT_TRUE(q.next(t, c));
+  q.fail("AA1", t);                           // due at t+5000 (wrapped)
+  TEST_ASSERT_FALSE(q.next(t + 4999, c));
+  TEST_ASSERT_TRUE(q.next(t + 5000, c));
+  TEST_ASSERT_EQUAL_STRING("AA1", c);
+}
 void test_normalize() {
   char c[QRZ_CALL_LEN];
   TEST_ASSERT_TRUE(qrzNormalizeCall(" w1aw/p;x ", c)); TEST_ASSERT_EQUAL_STRING("W1AW/PX", c);
@@ -89,5 +130,7 @@ int main() {
   RUN_TEST(test_cache_ttl); RUN_TEST(test_cache_evicts_oldest); RUN_TEST(test_queue_dedupe);
   RUN_TEST(test_queue_interval_retry); RUN_TEST(test_queue_drop_after_two); RUN_TEST(test_parse_xml);
   RUN_TEST(test_parse_session_error); RUN_TEST(test_parse_session_key); RUN_TEST(test_normalize);
+  RUN_TEST(test_parse_entities_and_sanitize); RUN_TEST(test_parse_dxcc_fallback);
+  RUN_TEST(test_parse_bad_coords); RUN_TEST(test_queue_wrap);
   return UNITY_END();
 }

@@ -29,6 +29,7 @@ class QrzQueue {
   bool enqueue(const char* call, uint32_t now);  // false: invalid, duplicate or full
   bool contains(const char* call) const;
   // Next due call, honouring the 3 s spacing; marks the attempt time.
+  // Does NOT remove the call: the caller must follow up with done() or fail().
   bool next(uint32_t now, char out[QRZ_CALL_LEN]);
   void done(const char* call);                   // success: remove
   void fail(const char* call, uint32_t now);     // retry in 5 s, dropped after 2 attempts

@@ -109,10 +109,32 @@ static bool tagValue(const char* xml, const char* tag, char* out, size_t cap) {
   if (!e) return false;
   while (s < e && isWs(*s)) s++;
   while (e > s && isWs(e[-1])) e--;
-  size_t n = e - s;
-  if (n == 0 || n >= cap) return false;
-  memcpy(out, s, n);
+  static const struct { const char* ent; char ch; } ENT[] = {
+    {"&amp;", '&'}, {"&lt;", '<'}, {"&gt;", '>'}, {"&quot;", '"'}, {"&apos;", '\''}};
+  size_t n = 0;
+  while (s < e) {
+    char c = *s;
+    size_t adv = 1;
+    if (c == '&')
+      for (const auto& en : ENT) {
+        size_t l = strlen(en.ent);
+        if ((size_t)(e - s) >= l && !strncmp(s, en.ent, l)) { c = en.ch; adv = l; break; }
+      }
+    s += adv;
+    if (c == '<') return false;  // nested markup (raw or decoded)
+    if (n + 1 >= cap) return false;
+    out[n++] = ((unsigned char)c < 0x20 || (unsigned char)c > 0x7E) ? '?' : c;
+  }
   out[n] = 0;
+  return n > 0;
+}
+
+// Whole-string number in [-lim, lim].
+static bool parseCoord(const char* s, double lim, float& out) {
+  char* end;
+  double d = strtod(s, &end);
+  if (end == s || *end || !(d >= -lim && d <= lim)) return false;  // also rejects NaN
+  out = (float)d;
   return true;
 }
 
@@ -133,11 +155,9 @@ bool qrzParseXml(const char* xml, QrzInfo& out) {
   bool c = (tagValue(xml, "country", v, sizeof v) || tagValue(xml, "dxcc", v, sizeof v)) && strlen(v) < sizeof r.country;
   if (c) strcpy(r.country, v);
   if (!g && !c) return false;
-  if (tagValue(xml, "lat", v, sizeof v) && tagValue(xml, "lon", lo, sizeof lo)) {
-    r.lat = (float)atof(v);
-    r.lon = (float)atof(lo);
-    r.hasLatLon = true;
-  }
+  r.hasLatLon = tagValue(xml, "lat", v, sizeof v) && tagValue(xml, "lon", lo, sizeof lo) &&
+                parseCoord(v, 90, r.lat) && parseCoord(lo, 180, r.lon);
+  if (!r.hasLatLon) r.lat = r.lon = 0;
   out = r;
   return true;
 }
