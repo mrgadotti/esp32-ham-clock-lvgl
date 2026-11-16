@@ -30,10 +30,6 @@ void setup() {
   bar(2, 0x0000FF, "BLUE", false);
   bar(3, 0xFFFFFF, "WHITE", true);
 
-  touchInit();
-  touchCreateIndev();
-  if (!touchCalLoadSaved() || touchHeldAtBoot(2000)) touchCalRun(nullptr);
-
   // Touch test: corner markers and a dot that follows the last touched point.
   static const int16_t corners[4][2] = {{10, 10}, {309, 10}, {10, 229}, {309, 229}};
   for (auto& c : corners) {
@@ -51,6 +47,11 @@ void setup() {
   lv_obj_set_style_bg_opa(dot, LV_OPA_COVER, 0);
   lv_obj_set_style_bg_color(dot, lv_palette_main(LV_PALETTE_PURPLE), 0);
   lv_obj_add_flag(dot, LV_OBJ_FLAG_HIDDEN);
+
+  // Last: the test screen above is the 'previous' screen the calibration returns to.
+  touchInit();
+  touchCreateIndev();
+  if (!touchCalLoadSaved() || touchHeldAtBoot(2000)) touchCalRun(nullptr);
 }
 
 void loop() {

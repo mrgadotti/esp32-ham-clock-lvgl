@@ -11,7 +11,7 @@ static const int16_t VERIFY[2] = {160, 120};
 
 bool touchCalLoadSaved() {
   Preferences p;
-  TouchCal c;
+  TouchCal c = {};
   bool ok = false;
   if (p.begin("hamclk", true)) {
     ok = p.getBytesLength("tcal") == sizeof(c) && p.getBytes("tcal", &c, sizeof(c)) == sizeof(c);
@@ -66,8 +66,9 @@ static lv_obj_t* bar(int w, int h) {
 
 static void finish(bool saved) {
   lv_timer_delete(S.timer);
-  lv_screen_load(S.prev);
+  if (lv_obj_is_valid(S.prev)) lv_screen_load(S.prev);
   lv_obj_delete(S.scrn);
+  S.timer = nullptr;
   touchSetMirror(S.mirror);
   touchEnable(true);
   if (S.onDone) S.onDone(saved);
@@ -108,7 +109,7 @@ static void tick(lv_timer_t*) {
     case WAIT_RELEASE:
       if (pressed) {
         S.misses = 0;
-        if (++S.ticks == 3) { S.sample[0] = rx; S.sample[1] = ry; S.haveSample = true; }  // ignore the first noisy reads
+        if (++S.ticks <= 3) { S.sample[0] = rx; S.sample[1] = ry; S.haveSample = true; }  // settle on the 3rd read; short taps keep the last
       } else if (++S.misses >= 2) {  // debounce pressure dips
         S.phase = WAIT_PRESS;
         if (S.haveSample) onTap();
@@ -118,6 +119,7 @@ static void tick(lv_timer_t*) {
 }
 
 void touchCalRun(void (*onDone)(bool saved)) {
+  if (S.timer) return;  // already running
   S = {};
   S.onDone = onDone;
   S.prev = lv_screen_active();
