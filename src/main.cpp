@@ -14,6 +14,7 @@
 #include "net/wifi_manager.h"
 #include "svc/aprs_ingest.h"
 #include "svc/aprs_is.h"
+#include "svc/aprs_beacon.h"
 #include "svc/dx_cluster.h"
 #include "svc/hamalert.h"
 #include "svc/pota.h"
@@ -118,6 +119,7 @@ static void netTask(void*) {
     timeTick(now);
     dxTick(now);
     aprsIsTick(now);
+    aprsBeaconTick(now);
     rgbLedTick(now);
     potaTick(now);
     hamalertTick(now);
