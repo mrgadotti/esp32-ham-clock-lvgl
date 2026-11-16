@@ -2,10 +2,12 @@
 
 #include <Arduino.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "i18n.h"
 #include "../../app/config_store.h"
 #include "../../app/data_store.h"
+#include "../../app/mem_log.h"
 #include "../../hal/display.h"
 #include "../../hal/touch_cal_ui.h"
 #include "../fonts/fonts.h"
@@ -51,6 +53,7 @@ lv_obj_t* dropdown(lv_obj_t* list, const char* title, const char* opts, uint32_t
 lv_obj_t* slider(lv_obj_t* parent, int32_t lo, int32_t hi, int32_t v) {
   lv_obj_t* s = lv_slider_create(parent);
   lv_obj_set_width(s, 120);
+  lv_obj_set_style_margin_hor(s, 12, 0);  // knob overflows the bar by half its size
   lv_slider_set_range(s, lo, hi);
   lv_slider_set_value(s, v, LV_ANIM_OFF);
   return s;
@@ -95,8 +98,9 @@ class SettingsScreen : public Screen {
     lv_obj_add_event_cb(ndSlider_, [](lv_event_t* e) {
       pend = lv_slider_get_value((lv_obj_t*)lv_event_get_target(e));
       if (pend > 0) lastNdim = pend;
+      lv_obj_set_state((lv_obj_t*)lv_event_get_user_data(e), LV_STATE_CHECKED, pend > 0);
       cfgUpdate([](Config& c) { c.tft_ndim = pend; });
-    }, LV_EVENT_RELEASED, nullptr);
+    }, LV_EVENT_RELEASED, nd_);
 
     lv_obj_t* b = lv_button_create(list);
     lv_obj_t* bl = lv_label_create(b);
@@ -122,8 +126,13 @@ class SettingsScreen : public Screen {
       cfgUpdate([](Config& c) { c.tft_lang = (uint8_t)pend; });
     });
     uint32_t sel = 0;
-    if (c.tft_autosw)
-      for (uint32_t i = 0; i < 6; i++) if (kSwSec[i] == c.tft_sw_sec) sel = i + 1;
+    if (c.tft_autosw) {
+      int32_t best = 1 << 30;
+      for (uint32_t i = 0; i < 6; i++) {
+        int32_t d = abs(kSwSec[i] - c.tft_sw_sec);
+        if (d < best) { best = d; sel = i + 1; }
+      }
+    }
     dd_[2] = dropdown(list, tr(Tr::AutoSwitch), "Off\n10 s\n15 s\n30 s\n60 s\n120 s\n300 s", sel, [](lv_event_t* e) {
       pend = lv_dropdown_get_selected((lv_obj_t*)lv_event_get_target(e));
       cfgUpdate([](Config& c) {
@@ -154,10 +163,14 @@ class SettingsScreen : public Screen {
     for (lv_obj_t*& l : info_) {
       l = lv_label_create(list);
       lv_obj_set_style_text_font(l, &font_14, 0);
+      lv_obj_set_width(l, 300);
+      lv_label_set_long_mode(l, LV_LABEL_LONG_DOT);
     }
     lv_label_set_text_fmt(info_[4], "%s: %s %s", tr(Tr::Firmware), __DATE__, __TIME__);
+    for (char* b : cache_) b[0] = 0;
     lastInfo_ = 0;
     refreshInfo(0);
+    Serial.printf("[MEM] settings shown lvfree=%u\n", (unsigned)memLogLvFree());
   }
 
   void tick(uint32_t now) override { refreshInfo(now); }
@@ -173,13 +186,20 @@ class SettingsScreen : public Screen {
     lastInfo_ = now ? now : 1;
     NetStatus n{};
     g_store.net.read([&](const NetStatus& v) { n = v; });
-    lv_label_set_text_fmt(info_[0], "SSID: %s", n.ssid);
-    lv_label_set_text_fmt(info_[1], "IP: %s", n.ip);
-    lv_label_set_text_fmt(info_[2], "RSSI: %d dBm", (int)n.rssi);
-    lv_label_set_text_fmt(info_[3], "%s: %u B", tr(Tr::FreeHeap), (unsigned)ESP.getFreeHeap());
+    char t[48];
+    snprintf(t, sizeof t, "SSID: %s", n.ssid); setIf(0, t);
+    snprintf(t, sizeof t, "IP: %s", n.ip); setIf(1, t);
+    snprintf(t, sizeof t, "RSSI: %d dBm", (int)n.rssi); setIf(2, t);
+    snprintf(t, sizeof t, "%s: %u B", tr(Tr::FreeHeap), (unsigned)ESP.getFreeHeap()); setIf(3, t);
+  }
+  void setIf(int i, const char* t) {
+    if (strcmp(cache_[i], t) == 0) return;
+    snprintf(cache_[i], sizeof cache_[i], "%s", t);
+    lv_label_set_text(info_[i], t);
   }
 
   lv_obj_t *nd_ = nullptr, *ndSlider_ = nullptr, *dd_[3] = {}, *info_[5] = {};
+  char cache_[4][48] = {};
   uint32_t lastInfo_ = 0;
 };
 }  // namespace

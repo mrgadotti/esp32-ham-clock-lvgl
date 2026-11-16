@@ -27,7 +27,10 @@ void displaySetBacklight(uint8_t percent) {
 
 void displaySetInvert(bool invert) { tft.invertDisplay(invert); }
 
-void displaySetRotation(uint8_t rot) { tft.setRotation(rot == 3 ? 3 : 1); }
+void displaySetRotation(uint8_t rot) {
+  tft.setRotation(rot == 3 ? 3 : 1);
+  if (disp) lv_obj_invalidate(lv_screen_active());  // repaint whole screen with the new scan direction
+}
 
 void displayInit(uint8_t rotation, bool invert) {
   ledcSetup(0, 5000, 8);
