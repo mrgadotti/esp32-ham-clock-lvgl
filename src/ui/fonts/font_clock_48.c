@@ -620,16 +620,16 @@ static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] = {
 static const lv_font_fmt_txt_glyph_dsc_t glyph_dsc[] = {
     {.bitmap_index = 0, .adv_w = 0, .box_w = 0, .box_h = 0, .ofs_x = 0, .ofs_y = 0} /* id = 0 reserved */,
     {.bitmap_index = 0, .adv_w = 294, .box_w = 14, .box_h = 5, .ofs_x = 2, .ofs_y = 11},
-    {.bitmap_index = 35, .adv_w = 512, .box_w = 28, .box_h = 34, .ofs_x = 2, .ofs_y = 0},
-    {.bitmap_index = 511, .adv_w = 284, .box_w = 13, .box_h = 34, .ofs_x = 0, .ofs_y = 0},
-    {.bitmap_index = 732, .adv_w = 441, .box_w = 26, .box_h = 34, .ofs_x = 0, .ofs_y = 0},
-    {.bitmap_index = 1174, .adv_w = 439, .box_w = 26, .box_h = 34, .ofs_x = 0, .ofs_y = 0},
+    {.bitmap_index = 35, .adv_w = 514, .box_w = 28, .box_h = 34, .ofs_x = 2, .ofs_y = 0},
+    {.bitmap_index = 511, .adv_w = 514, .box_w = 13, .box_h = 34, .ofs_x = 10, .ofs_y = 0},
+    {.bitmap_index = 732, .adv_w = 514, .box_w = 26, .box_h = 34, .ofs_x = 3, .ofs_y = 0},
+    {.bitmap_index = 1174, .adv_w = 514, .box_w = 26, .box_h = 34, .ofs_x = 3, .ofs_y = 0},
     {.bitmap_index = 1616, .adv_w = 514, .box_w = 31, .box_h = 34, .ofs_x = 1, .ofs_y = 0},
-    {.bitmap_index = 2143, .adv_w = 441, .box_w = 26, .box_h = 34, .ofs_x = 0, .ofs_y = 0},
-    {.bitmap_index = 2585, .adv_w = 474, .box_w = 27, .box_h = 34, .ofs_x = 2, .ofs_y = 0},
-    {.bitmap_index = 3044, .adv_w = 459, .box_w = 26, .box_h = 34, .ofs_x = 1, .ofs_y = 0},
-    {.bitmap_index = 3486, .adv_w = 495, .box_w = 27, .box_h = 34, .ofs_x = 2, .ofs_y = 0},
-    {.bitmap_index = 3945, .adv_w = 474, .box_w = 27, .box_h = 34, .ofs_x = 1, .ofs_y = 0},
+    {.bitmap_index = 2143, .adv_w = 514, .box_w = 26, .box_h = 34, .ofs_x = 3, .ofs_y = 0},
+    {.bitmap_index = 2585, .adv_w = 514, .box_w = 27, .box_h = 34, .ofs_x = 3, .ofs_y = 0},
+    {.bitmap_index = 3044, .adv_w = 514, .box_w = 26, .box_h = 34, .ofs_x = 3, .ofs_y = 0},
+    {.bitmap_index = 3486, .adv_w = 514, .box_w = 27, .box_h = 34, .ofs_x = 3, .ofs_y = 0},
+    {.bitmap_index = 3945, .adv_w = 514, .box_w = 27, .box_h = 34, .ofs_x = 3, .ofs_y = 0},
     {.bitmap_index = 4404, .adv_w = 174, .box_w = 7, .box_h = 26, .ofs_x = 2, .ofs_y = 0}
 };
 
