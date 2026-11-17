@@ -7,5 +7,3 @@ void uiTick(uint32_t nowMs);  // UI task: call every loop pass; screens tick at 
 void uiHandleEvent(const UiEvent&);  // UI task: ConfigChanged, StartTouchCal, alert overlays
 // Request a change; applied by uiTick, never inside an event callback.
 void uiRequest(ScreenId);
-void uiNext();
-void uiPrev();

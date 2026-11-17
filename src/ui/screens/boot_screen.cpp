@@ -21,6 +21,7 @@ lv_obj_t* bootScreenCreate() {
   lv_obj_align(c, LV_ALIGN_TOP_MID, 0, 80);
   log = lv_label_create(s);
   lv_obj_set_style_text_font(log, &font_14, 0);
+  lv_obj_add_event_cb(log, [](lv_event_t*) { log = nullptr; }, LV_EVENT_DELETE, nullptr);
   lv_obj_align(log, LV_ALIGN_BOTTOM_LEFT, 10, -10);
   bootScreenUpdate(false);
   return s;
