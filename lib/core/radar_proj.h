@@ -7,3 +7,6 @@ bool radarProject(const RadarView& v, float distKm, float bearingDeg, float rang
                   int16_t originX, int16_t originY, int16_t& px, int16_t& py);
 // Next preset zoom (1,2,4,8,10,15,20) up (dir > 0) or down (dir < 0); the view centre is kept
 RadarView radarZoomStep(const RadarView& v, int dir);
+// x2 zoom (max 20), re-centred on the tapped point; unchanged at max zoom
+RadarView radarZoomAt(const RadarView& v, int16_t tapX, int16_t tapY, float rangeKm, int16_t radiusPx,
+                      int16_t originX, int16_t originY);

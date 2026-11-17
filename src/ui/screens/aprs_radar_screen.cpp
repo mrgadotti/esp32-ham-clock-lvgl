@@ -119,6 +119,13 @@ class AprsRadarScreen : public Screen {
     lv_label_set_text(l, txt);
     lv_obj_center(l);
   }
+  static void onTap(lv_event_t* e) {
+    AprsRadarScreen* s = static_cast<AprsRadarScreen*>(lv_event_get_user_data(e));
+    lv_point_t pt;
+    lv_indev_get_point(lv_indev_active(), &pt);
+    s->view_ = radarZoomAt(s->view_, pt.x, pt.y, (float)cfg().aprs_radius, R_PX, OX, OY);
+    s->viewChanged();
+  }
   static void step(lv_event_t* e, int dir) {
     AprsRadarScreen* s = static_cast<AprsRadarScreen*>(lv_event_get_user_data(e));
     s->view_ = radarZoomStep(s->view_, dir);
