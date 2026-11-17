@@ -150,7 +150,7 @@ class SettingsScreen : public Screen {
     lv_obj_set_style_text_font(h, &font_14, 0);
     lv_obj_set_style_text_color(h, COL_ACCENT, 0);
     lv_label_set_text(h, tr(Tr::EnabledScreens));
-    for (int i = 0; i < 12; i++) {
+    for (size_t i = 0; i < sizeof kScreens / sizeof *kScreens; i++) {
       lv_obj_t* cb = lv_checkbox_create(list);
       lv_obj_set_style_text_font(cb, &font_14, 0);
       lv_checkbox_set_text(cb, tr(kScreenNames[i]));
