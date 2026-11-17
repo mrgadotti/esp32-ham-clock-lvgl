@@ -174,7 +174,9 @@ Connect to the access point, open the configuration page, and enter your WiFi
 network and station settings.
 
 Touch calibration is stored on the device. To force calibration, hold the
-screen while the board boots, then follow the on-screen prompts.
+screen while the board boots, then follow the on-screen prompts. You can also
+hold a finger on the Clock screen for 15 s without moving it (a progress line
+appears at the bottom after 5 s) to open the calibration.
 
 ## Configuration
 
