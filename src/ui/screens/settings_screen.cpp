@@ -65,10 +65,11 @@ lv_obj_t* slider(lv_obj_t* parent, int32_t lo, int32_t hi, int32_t v) {
   return s;
 }
 
-// Small dark tile fitted to its label (8 px pad each side, max 150 px), left-aligned in the column list.
+// Small accent-orange tile (uiTilePaint on) fitted to its label (8 px pad each side, max 150 px), left-aligned in the column list.
 void button(lv_obj_t* list, Tr t, lv_event_cb_t cb) {
   lv_obj_t* b = uiTile(list, tr(t), 0, 0, 0, 28, cb, 0);
-  uiTilePaint(b, false);
+  uiTilePaint(b, true);
+  lv_obj_set_style_opa(b, LV_OPA_60, LV_STATE_PRESSED);  // visible press feedback
   lv_obj_set_width(b, LV_SIZE_CONTENT);
   lv_obj_set_style_max_width(b, 150, 0);
   lv_obj_set_style_pad_hor(b, 8, 0);
