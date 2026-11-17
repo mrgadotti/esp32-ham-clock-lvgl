@@ -32,3 +32,9 @@ uint8_t nextAutoSwitchScreen(const uint8_t order[12], uint16_t enabledMask, uint
   for (int i = 0; i < n; ++i) if (list[i] == cur) idx = i;
   return list[(idx + 1) % n];
 }
+
+uint8_t resolveStartScreen(uint8_t stored, uint16_t enabledMask) {
+  bool ok = stored && stored < 16 && stored != scr::Settings && stored != scr::Matrix && stored != scr::Game &&
+            (enabledMask & (1u << stored));
+  return ok ? stored : scr::HamClock;
+}

@@ -152,3 +152,15 @@ bool cfgApplyJson(const char* json, ApplyResult& out) {
   onConfigChanged();
   return out.ok;
 }
+
+uint8_t lastScreenLoad() {
+  Preferences p;
+  uint8_t v = 0;
+  if (p.begin("hamclk", true)) { if (p.isKey("last_scr")) v = p.getUChar("last_scr"); p.end(); }
+  return v;
+}
+
+void lastScreenSave(uint8_t id) {
+  Preferences p;
+  if (p.begin("hamclk", false)) { p.putUChar("last_scr", id); p.end(); }
+}

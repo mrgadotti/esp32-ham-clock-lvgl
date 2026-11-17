@@ -13,6 +13,10 @@ void cfgGet(Config& out);             // any task: copy taken under the mutex (1
 const Config& cfg();
 void cfgRefreshUiSnapshot();          // UI task: call at boot and when handling ConfigChanged
 
+// Last manually selected ScreenId: its own NVS key (not in Config, so web JSON/backup are unaffected). 0 = never saved.
+uint8_t lastScreenLoad();
+void lastScreenSave(uint8_t id);
+
 // Bumps on every published change (cfgUpdate, cfgApplyJson). Services poll it and refresh their cached fields only
 // when it moves, instead of copying the whole Config every tick.
 uint32_t cfgVersion();
