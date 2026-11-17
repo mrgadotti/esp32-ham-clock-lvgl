@@ -6,6 +6,9 @@
 #include <string.h>
 #include <strings.h>
 
+#include "gesture.h"
+#include "touch_cal.h"
+
 #define OFS(m) (uint16_t) offsetof(Config, m)
 #define SZ(m) (uint16_t) sizeof(((Config*)nullptr)->m)
 // F(type, json, nvs, member, min, max, secret, restart); member name == nvs key.
@@ -76,8 +79,8 @@ const ConfigField kFields[] = {
     F(FT_INT, "uart2_data_bits", uart2_dbits, 7, 8, false, true),
     F(FT_STR, "uart2_parity", uart2_par, 0, 0, false, true),
     F(FT_INT, "uart2_stop_bits", uart2_stop, 1, 2, false, true),
-    F(FT_STR, nullptr, br_pair_addr, 0, 0, false, false),
-    F(FT_STR, nullptr, br_pair_name, 0, 0, false, false),
+    F(FT_STR, "br_pair_addr", br_pair_addr, 0, 0, false, false),
+    F(FT_STR, "br_pair_name", br_pair_name, 0, 0, false, false),
     // Display / screens
     F(FT_INT, "tft_backlight", tft_backlight, 5, 100, false, false),
     F(FT_INT, "tft_night_dimming", tft_ndim, 0, 100, false, false),
@@ -88,15 +91,15 @@ const ConfigField kFields[] = {
     F(FT_INT, "tft_switch_time_sec", tft_sw_sec, 1, 3600, false, false),
     F(FT_BYTES, "screen_order", screen_order, 0, 13, false, false),
     F(FT_INT, "scr_en", scr_en, 0, 0x3FFE, false, false),
-    F(FT_INT, nullptr, screen1_time, 0, 1, false, false),
-    F(FT_INT, nullptr, s2_mode, 0, 255, false, false),
-    F(FT_INT, nullptr, s2_band, 0, 0xFFFF, false, false),
-    F(FT_INT, nullptr, s7_mode, 0, 255, false, false),
-    F(FT_INT, nullptr, s7_band, 0, 0xFFFF, false, false),
-    F(FT_INT, nullptr, s8_mode, 0, 255, false, false),
-    F(FT_INT, nullptr, s8_band, 0, 0xFFFF, false, false),
-    F(FT_INT, nullptr, aprs_sort, 0, 255, false, false),
-    F(FT_BLOB, nullptr, tcal, 0, 0, false, false),
+    F(FT_INT, "screen1_time", screen1_time, 0, 1, false, false),
+    F(FT_INT, "s2_mode", s2_mode, 0, 255, false, false),
+    F(FT_INT, "s2_band", s2_band, 0, 0xFFFF, false, false),
+    F(FT_INT, "s7_mode", s7_mode, 0, 255, false, false),
+    F(FT_INT, "s7_band", s7_band, 0, 0xFFFF, false, false),
+    F(FT_INT, "s8_mode", s8_mode, 0, 255, false, false),
+    F(FT_INT, "s8_band", s8_band, 0, 0xFFFF, false, false),
+    F(FT_INT, "aprs_sort", aprs_sort, 0, 255, false, false),
+    F(FT_BLOB, "tcal", tcal, 0, 0, false, false),
 };
 const size_t kFieldCount = sizeof(kFields) / sizeof(kFields[0]);
 
@@ -175,7 +178,7 @@ void configClamp(Config& c) {
   }
 }
 
-static bool toJson(const Config& c, char* buf, size_t len, bool withSecrets) {
+static bool toJson(const Config& c, char* buf, size_t len, bool withSecrets, int lastScr = -1) {
   JsonDocument doc;
   const uint8_t* base = (const uint8_t*)&c;
   for (size_t i = 0; i < kFieldCount; i++) {
@@ -201,16 +204,24 @@ static bool toJson(const Config& c, char* buf, size_t len, bool withSecrets) {
         for (uint16_t k = 0; k < f.size; k++) a.add(p[k]);
         break;
       }
-      case FT_BLOB: break;
+      case FT_BLOB:  // tcal: omitted while uncalibrated (all zero), so an import never wipes the target's calibration
+        if (touchCalValid((const float*)p)) {
+          JsonArray a = doc[f.jsonKey].to<JsonArray>();
+          for (int k = 0; k < 6; k++) a.add(((const float*)p)[k]);
+        }
+        break;
     }
   }
+  if (lastScr >= 0) doc["last_scr"] = resolveStartScreen((uint8_t)lastScr, 0xFFFF);
   if (doc.overflowed() || measureJson(doc) >= len) return false;
   serializeJson(doc, buf, len);
   return true;
 }
 
 bool configToJson(const Config& c, char* buf, size_t len) { return toJson(c, buf, len, false); }
-bool configToBackupJson(const Config& c, char* buf, size_t len) { return toJson(c, buf, len, true); }
+bool configToBackupJson(const Config& c, char* buf, size_t len, uint8_t lastScr) {
+  return toJson(c, buf, len, true, lastScr);
+}
 
 static ApplyResult fail(const char* what, const char* key) {
   ApplyResult r = {false, false, {}};
@@ -272,7 +283,18 @@ static const char* parseField(const ConfigField& f, JsonVariantConst v, uint8_t*
       }
       break;
     }
-    case FT_BLOB: break;
+    case FT_BLOB: {  // tcal: exactly 6 numbers that form a sane touch map, else rejected as a whole
+      if (!v.is<JsonArrayConst>() || v.as<JsonArrayConst>().size() != 6) return "bad_value";
+      float t[6];
+      int k = 0;
+      for (JsonVariantConst e : v.as<JsonArrayConst>()) {
+        if (!e.is<double>()) return "bad_type";
+        t[k++] = (float)e.as<double>();
+      }
+      if (!touchCalValid(t)) return "bad_value";
+      memcpy(p, t, sizeof t);
+      break;
+    }
   }
   return nullptr;
 }
@@ -301,6 +323,14 @@ ApplyResult ConfigPatch::apply(Config& cfg) const {
   uint8_t tmp[kMaxFieldSize];
   uint8_t* base = (uint8_t*)&cfg;
   ApplyResult r = {true, false, {}};
+  JsonVariantConst ls = doc["last_scr"];  // lives in its own NVS key, not in Config: reported through ApplyResult
+  if (!ls.isNull()) {
+    double d = ls.is<double>() ? ls.as<double>() : -1;
+    if (d < 0 || d > 255 || d != (uint8_t)d || resolveStartScreen((uint8_t)d, 0xFFFF) != (uint8_t)d)
+      return fail("bad_value", "last_scr");
+    r.hasLastScr = true;
+    r.lastScr = (uint8_t)d;
+  }
   for (int pass = 0; pass < 2; pass++) {
     for (size_t i = 0; i < kFieldCount; i++) {
       const ConfigField& f = kFields[i];
@@ -312,6 +342,7 @@ ApplyResult ConfigPatch::apply(Config& cfg) const {
       memcpy(tmp, p, f.size);
       if (const char* err = parseField(f, v, tmp)) return fail(err, f.jsonKey);  // pass 0 only
       if (pass == 0) continue;
+      if (f.type == FT_BLOB) r.tcalSet = true;
       if (f.needsRestart && memcmp(tmp, p, f.size)) r.needsRestart = true;
       memcpy(p, tmp, f.size);
     }

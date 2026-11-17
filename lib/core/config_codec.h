@@ -7,6 +7,9 @@ struct ApplyResult {
   bool ok;
   bool needsRestart;
   char error[64];
+  bool hasLastScr;  // request carried a valid "last_scr" (NVS key outside Config): the caller stores lastScr
+  uint8_t lastScr;
+  bool tcalSet;     // request carried a valid "tcal" (now in Config): the caller applies it to the touch driver
 };
 
 void configDefaults(Config&);
@@ -15,7 +18,8 @@ void configClamp(Config&);
 // Secrets are emitted as "<key>_set": bool. False if buf is too small.
 bool configToJson(const Config&, char* buf, size_t len);
 // Same keys as POST /api/save accepts, with every secret in PLAIN TEXT (no "_set" flags). For the backup download only: never log the output.
-bool configToBackupJson(const Config&, char* buf, size_t len);
+// lastScr (the NVS "last_scr" byte) is emitted normalised through resolveStartScreen so the file always re-imports.
+bool configToBackupJson(const Config&, char* buf, size_t len, uint8_t lastScr = 0);
 // Partial update applied in place, all-or-nothing: on error the Config is untouched (no temporary Config copy). Empty secret strings keep the old value.
 ApplyResult configApplyJson(Config&, const char* json);
 // The same in two steps, so a caller can parse before taking a lock and keep only apply() inside it.

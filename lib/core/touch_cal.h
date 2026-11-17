@@ -9,3 +9,5 @@ bool touchCalSolve(const int16_t raw[3][2], const int16_t scr[3][2], TouchCal& o
 void touchCalApply(const TouchCal&, int16_t rx, int16_t ry, int16_t& x, int16_t& y);
 // Equivalent of the original map(200..3800) on both axes.
 TouchCal touchCalDefault();
+// Sane stored map: 6 finite floats, non-singular, scale and offsets within what a 12-bit raw panel can produce.
+bool touchCalValid(const float t[6]);

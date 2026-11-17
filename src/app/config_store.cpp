@@ -149,6 +149,7 @@ bool cfgApplyJson(const char* json, ApplyResult& out) {
     out.ok = false;
     snprintf(out.error, sizeof out.error, "nvs_save");
   }
+  if (out.hasLastScr) lastScreenSave(out.lastScr);
   onConfigChanged();
   return out.ok;
 }

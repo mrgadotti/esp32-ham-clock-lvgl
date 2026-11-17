@@ -192,7 +192,9 @@ Settings are split between two places:
   reports whether each one is set. Saving the page changes only the fields
   you submit. **Export backup** (`GET /api/backup`) is the exception: the
   downloaded JSON contains every password and API key in plain text, so store
-  it safely. Import restores them on a new clock (then press Save). Like the
+  it safely. It holds every setting, including the touch calibration of that
+  panel (recalibrate if touch is off on the new board). Import restores them
+  on a new clock (then press Save). Like the
   rest of the web page, `/api/backup` has no authentication: anyone on the
   LAN (or connected to the AP) can download it.
   The HTTP routes and the full settings reference are in [docs/api.md](docs/api.md).

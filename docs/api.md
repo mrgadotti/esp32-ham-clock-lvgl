@@ -158,10 +158,33 @@ restoring on another board.
   `Content-Disposition: attachment; filename=esp32-ham-clock-backup.json`,
   `Cache-Control: no-store`.
 - Keys are the same as `/api/config`, but the secret fields are real values
-  instead of `*_set` flags.
+  instead of `*_set` flags, plus `last_scr` (see below).
 - The response is built in a shared buffer that is wiped after sending. It is
   never logged.
 - Error: `500 {"error":"config_too_large"}`.
+
+### What the backup contains
+
+Every persisted value (NVS namespace `hamclk`), nothing else is stored:
+
+- All 76 table fields (including `tcal` below): WiFi and AP (SSIDs, passwords), station (callsign,
+  locator, lat/lon, timezone, GPS auto-position), DX cluster, HamAlert, APRS-IS
+  and beacon, alert and LED settings, QRZ and OpenWeather credentials, UART2 and
+  bridge settings, Bluetooth pairing, display (backlight, night dimming, invert,
+  language, rotation, auto-switch), `screen_order`, `scr_en`, the per-screen
+  filters (`s2_*`, `s7_*`, `s8_*`, `screen1_time`) and `aprs_sort`.
+- `tcal`, the touch calibration of the panel (per device, see below).
+- `last_scr`, the last manually selected screen (NVS key `last_scr`, not part of
+  the table). Always a valid screen id (never 0, Settings, Matrix or Game); on
+  import anything else is rejected with `400 bad_value:last_scr`.
+
+Before this, the backup lacked `tcal`, `last_scr`, `screen1_time`, `s2_*`,
+`s7_*`, `s8_*`, `aprs_sort` and `br_pair_*`. Old backups without them still
+import, and keys the firmware does not know are ignored. `/api/config` also
+returns the table keys above (including `tcal`) but never `last_scr` or secrets.
+
+The touch calibration belongs to THIS panel. If touch is off on the new board,
+recalibrate with a 15 s hold on the clock screen, or from Settings.
 
 > **Security warning.** The backup file contains WiFi passwords, the AP
 > password, the HamAlert password, the APRS-IS passcode, the QRZ password and the
@@ -353,8 +376,9 @@ Notes:
   plain text. `user_lat_lon_valid` is ignored on restore.
 - An empty secret value keeps the board's current secret. A `/api/config`
   response (which has only `*_set` flags) therefore does not restore secrets.
-- Touch calibration is not in the JSON, so calibrate the new board after
-  restoring (`/api/reset_touch` or hold the screen at boot).
+- The touch calibration of the old panel (`tcal`) is restored too and applied
+  at once. If touch is off on the new board, recalibrate (`/api/reset_touch`,
+  a 15 s hold on the clock screen, or Settings).
 - If the restore changes WiFi or UART2 settings, the new board restarts; check
   `/api/status` afterwards.
 
@@ -489,12 +513,16 @@ Sections follow the web page.
 5 Weather, 6 APRS list, 7 POTA, 8 HamAlert, 9 APRS radar, 12 Forecast,
 13 Location.
 
-### Not exposed over JSON
+### Keys without a form field
 
-These are stored in NVS but have no JSON key, so they never appear in
-`/api/config` or the backup, and cannot be set through the API:
+These are stored in NVS and are in `/api/config` and the backup. The page does not
+edit them (they are set from the device), but Import restores them:
 
-- `tcal` (touch calibration; cleared by `/api/reset_touch`)
 - `screen1_time`, `s2_mode`, `s2_band`, `s7_mode`, `s7_band`, `s8_mode`,
-  `s8_band`, `aprs_sort` (screen state, set from the device)
-- `br_pair_addr`, `br_pair_name` (Bluetooth pairing state)
+  `s8_band`, `aprs_sort` (screen filters and sort order, ints)
+- `br_pair_addr`, `br_pair_name` (Bluetooth bridge pairing)
+- `tcal`: touch calibration, `[a,b,c,d,e,f]` (x = a*rx + b*ry + c, y = d*rx +
+  e*ry + f). Omitted while the panel is uncalibrated. On write it must be 6
+  finite numbers with |a|,|b|,|d|,|e| <= 1, |c|,|f| <= 4096 and a non-zero
+  determinant, else `400 bad_value:tcal` and nothing is changed. It takes effect
+  at once, without a reboot or the calibration screen. `/api/reset_touch` clears it.
