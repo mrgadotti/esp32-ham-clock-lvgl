@@ -15,7 +15,7 @@ static Config defaults() {
 
 void test_defaults_match_original() {
   Config c = defaults();
-  TEST_ASSERT_EQUAL_STRING("dxspots.com", c.cluster_host);
+  TEST_ASSERT_EQUAL_STRING("dxcluster.iu1bow.it", c.cluster_host);
   TEST_ASSERT_EQUAL_INT(7300, c.cluster_port);
   TEST_ASSERT_EQUAL_STRING("rotate.aprs2.net", c.aprs_host);
   TEST_ASSERT_EQUAL_INT(14580, c.aprs_port);
@@ -89,7 +89,7 @@ void test_clamps() {
   TEST_ASSERT_TRUE(configApplyJson(c, "{\"aprs_radius\":0,\"tft_backlight\":0,\"tft_switch_time_sec\":99999}").ok);
   TEST_ASSERT_EQUAL_INT(1, c.aprs_radius);
   TEST_ASSERT_TRUE(configApplyJson(c, "{\"aprs_radius\":500}").ok);
-  TEST_ASSERT_EQUAL_INT(100, c.aprs_radius);
+  TEST_ASSERT_EQUAL_INT(150, c.aprs_radius);
   TEST_ASSERT_TRUE(configApplyJson(c, "{\"aprs_radius\":50}").ok);
   TEST_ASSERT_EQUAL_INT(50, c.aprs_radius);
   TEST_ASSERT_EQUAL_INT(5, c.tft_backlight);

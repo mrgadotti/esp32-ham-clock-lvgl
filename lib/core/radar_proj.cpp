@@ -12,13 +12,13 @@ bool radarProject(const RadarView& v, float distKm, float bearingDeg, float rang
   px = (int16_t)ix; py = (int16_t)iy;
   return true;
 }
-RadarView radarZoomAt(const RadarView& v, int16_t tapX, int16_t tapY, float rangeKm, int16_t radiusPx,
-                      int16_t originX, int16_t originY) {
-  const float s = radiusPx / rangeKm * v.zoom;
-  if (!(s > 0) || !isfinite(s)) return v;
-  RadarView n;
-  n.cxKm = v.cxKm + (tapX - originX) / s;
-  n.cyKm = v.cyKm - (tapY - originY) / s;
-  n.zoom = v.zoom * 2 > 10 ? 10 : v.zoom * 2;
-  return n;
+RadarView radarZoomStep(const RadarView& v, int dir) {
+  static const float kZ[] = {1, 2, 4, 8, 10, 15, 20};
+  const int n = sizeof kZ / sizeof kZ[0];
+  int i = 0;  // nearest preset to the current zoom
+  for (int k = 1; k < n; k++) if (fabsf(kZ[k] - v.zoom) < fabsf(kZ[i] - v.zoom)) i = k;
+  i += dir > 0 ? 1 : dir < 0 ? -1 : 0;
+  RadarView r = v;
+  r.zoom = kZ[i < 0 ? 0 : i >= n ? n - 1 : i];
+  return r;
 }

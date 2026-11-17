@@ -31,7 +31,7 @@ Legend: W = editable in web form (/api/config + /api/save). D = device-only (tou
 ### DX cluster (9 keys, W)
 | key | type | default | notes |
 |---|---|---|---|
-| cluster_host | String | dxspots.com | trim |
+| cluster_host | String | dxcluster.iu1bow.it (LVGL port; original dxspots.com) | trim |
 | cluster_port | Int | 7300 | web sends parseInt (NaN->not int-> reset to default 7300 server side) |
 | cluster_noann | Bool | true | set/noann |
 | cluster_nowwv | Bool | true | |

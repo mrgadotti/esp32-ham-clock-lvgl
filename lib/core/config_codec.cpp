@@ -46,7 +46,7 @@ const ConfigField kFields[] = {
     F(FT_STR, "aprs_callsign", aprs_callsign, 0, 0, false, false),
     F(FT_STR, "aprs_passcode", aprs_passcode, 0, 0, true, false),
     F(FT_INT, "aprs_ssid", aprs_ssid, 0, 15, false, false),
-    F(FT_INT, "aprs_radius", aprs_radius, 1, 100, false, false),
+    F(FT_INT, "aprs_radius", aprs_radius, 1, 150, false, false),
     F(FT_BOOL, "aprs_beacon", aprs_beacon, 0, 0, false, false),
     F(FT_STR, "aprs_symbol", aprs_symbol, 0, 0, false, false),
     F(FT_STR, "aprs_comment", aprs_comment, 0, 0, false, false),
@@ -109,7 +109,7 @@ static void setStr(char* dst, size_t size, const char* src) {
 
 void configDefaults(Config& c) {
   memset(&c, 0, sizeof c);
-  setStr(c.cluster_host, sizeof c.cluster_host, "dxspots.com");
+  setStr(c.cluster_host, sizeof c.cluster_host, "dxcluster.iu1bow.it");
   c.cluster_port = 7300;
   c.cluster_noann = c.cluster_nowwv = c.cluster_nowcy = c.cluster_usefl = true;
   setStr(c.cluster_filters, sizeof c.cluster_filters, "set/ft8");
