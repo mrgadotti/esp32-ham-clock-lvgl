@@ -156,7 +156,7 @@ add("Weather", "footer (320 px)", "font_14", 320 - 4, FOOT + T("NoApiKey", "Wait
 # ---------------- Forecast (forecast_screen.cpp: 4 columns of 79 px) ----------------
 add("Forecast", "col head font_18 (79 px)", "font_18", 79 - 2, T("Plus3h", "Plus6h", "DaySun", "DayMon", "DayTue", "DayWed", "DayThu", "DayFri", "DaySat") + ["D+3"])
 add("Forecast", "col temp font_18", "font_18", 79 - 2, ["-12°", "--"])
-add("Forecast", "col night 'NIGHT -12' (no degree sign: the temp row above has it)", "font_14", 79 - 2, both("%s -12", "ColNight"))
+add("Forecast", "col night 'NIGHT -88' (no degree sign: the temp row above has it)", "font_14", 79 - 2, both("%s -88", "ColNight"))
 add("Forecast", "col humidity font_18", "font_18", 79 - 2, ["100%"])
 add("Forecast", "col wind '12.5m/s'", "font_14", 79 - 2, ["99.9m/s"])
 add("Forecast", "message (296 px, wraps to 2 lines)", "font_18", 296 * 2, T("NoApiKey", "ForecastNoData", "NoData", "NoForecast"))
@@ -164,10 +164,10 @@ add("Forecast", "message (296 px, wraps to 2 lines)", "font_18", 296 * 2, T("NoA
 # ---------------- Clock (clock_screen.cpp: frame 300 px, labels 320 px centred) ----------------
 add("Clock", "callsign font_24", "font_24", 296, ["PY2XXX-15/QRP"])
 add("Clock", "OPERATOR STATION", "font_14", 296, T("OperatorStation"))
-add("Clock", "time font_clock_48 (216 px label, per-second redraw)", "font_clock_48", 216, ["00:00:00", "88:88:88"])
+add("Clock", "time font_clock_48 (224 px label, per-second redraw)", "font_clock_48", 224, ["00:00:00", "88:88:88"])
 add("Clock", "mode LOCAL TIME / UTC", "font_14", 296, T("LocalTime", "Utc"))
-add("Clock", "date 'Weekday, 30 Month 2026' font_18 (3-letter weekday when the text is over 27 bytes)", "font_18", 296,
-    [(lambda full, abbr: full if len(full.encode()) <= 27 else abbr)(
+add("Clock", "date 'Weekday, 30 Month 2026' font_18 (3-letter weekday when the full text is wider than 296 px)", "font_18", 296,
+    [(lambda full, abbr: full if width("font_18", full) <= 296 else abbr)(
         "%s, 30 %s 2026" % (TR[w][i], TR[m][i]), "%s, 30 %s 2026" % (TR["Day" + w[7:10]][i], TR[m][i]))
      for i in (0, 1) for w in TR if w.startswith("Weekday") for m in TR if m.startswith("Month")])
 # ip row: dot x=15..25, GPS label x=30; centred text must stay right of the GPS label (ends ~ x=30+GPS)

@@ -50,3 +50,16 @@ reachable (about +0.8 KB with the symbol table); removing the local copies and d
   weather, propagation/bands, location and the three overlays; compare with the previous screenshots.
 - UI task stack watermark (`[MEM] uistk`) >= 3.2 KB free after cycling every screen and the overlays.
 - Wednesday + September (or November) date on the clock in EN to see the 3-letter weekday fallback.
+
+## Review follow-up
+- Clock date: the 3-letter weekday is chosen by measuring the full text with `lv_text_get_size` (public API in
+  `font/lv_text.h`; `lv_text_get_width` is private) against the 296 px label instead of the 27-byte rule; the script
+  models the same rule (PT never reaches 296 px, so it is unaffected).
+- Clock time label is x=48, w=224 (centre 160); script row checks 224.
+- Overlay APRS bearing/distance labels pass x/width/align through `uiLabel`.
+- `static_assert` ties `kScreens` to `kScreenNames` in settings_screen.cpp.
+- check_text_fit samples the forecast night column with `-88`: 72/77, no overflow. Result: 0 overflow, 7 tight.
+- No `pend*` globals or "plain function pointer" comments remain in WP4 files; the ones left are in
+  aprs_list_screen.cpp, spot_list_screen.cpp (WP3) and svc/uart2.cpp (not WP4).
+- cyd size: text 1,391,993, data 370,400, bss 90,617 (pio Flash used 1,740,069). 170 native tests pass; cyd and
+  esp32-38pin build.

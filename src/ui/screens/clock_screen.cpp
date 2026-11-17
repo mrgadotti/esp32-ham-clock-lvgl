@@ -13,6 +13,8 @@
 #include "../widgets/ui_kit.h"
 
 namespace {
+constexpr int DATE_W = 296;
+
 class ClockScreen : public Screen {
  public:
   ScreenId id() const override { return ScreenId::HamClock; }
@@ -32,14 +34,14 @@ class ClockScreen : public Screen {
     for (char* c = up; *c; c++) if (*c >= 'a' && *c <= 'z') *c -= 32;
     uiLabel(p, &font_24, COL_TEXT, up, 0, 18, 320, LV_TEXT_ALIGN_CENTER);
     uiLabel(p, &font_14, COL_ACCENT, tr(Tr::OperatorStation), 0, 48, 320, LV_TEXT_ALIGN_CENTER);
-    // N-05: the per-second label is only as wide as its text (214 px) so each tick invalidates less
-    time_ = uiLabel(p, &font_clock_48, COL_TEXT, "", 52, 68, 216, LV_TEXT_ALIGN_CENTER);
+    // N-05: the per-second label is only as wide as its text (214 px + slack) so each tick invalidates less
+    time_ = uiLabel(p, &font_clock_48, COL_TEXT, "", 48, 68, 224, LV_TEXT_ALIGN_CENTER);
     lv_label_set_long_mode(time_, LV_LABEL_LONG_CLIP);
     mode_ = uiLabel(p, &font_14, COL_FREQ, "", 0, 124, 320, LV_TEXT_ALIGN_CENTER);
     lv_obj_add_flag(mode_, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_ext_click_area(mode_, 20);
     lv_obj_add_event_cb(mode_, onMode, LV_EVENT_CLICKED, nullptr);
-    date_ = uiLabel(p, &font_18, COL_TEXT, "", 12, 142, 296, LV_TEXT_ALIGN_CENTER);
+    date_ = uiLabel(p, &font_18, COL_TEXT, "", (320 - DATE_W) / 2, 142, DATE_W, LV_TEXT_ALIGN_CENTER);
     lv_label_set_long_mode(date_, LV_LABEL_LONG_CLIP);
     ip_ = uiLabel(p, &font_18, COL_TEXT, "", 0, 200, 320, LV_TEXT_ALIGN_CENTER);
 
@@ -67,14 +69,15 @@ class ClockScreen : public Screen {
     cfgUpdate([](Config& c) { c.screen1_time = c.screen1_time ? 0 : 1; });
   }
 
-  // "Weekday, 30 Month 2026"; the longest English date (Wednesday, 30 September 2026) is 300 px and would overflow the
-  // 296 px label, so a date over 27 bytes uses the 3-letter weekday (tools/check_text_fit.py models the same rule).
+  // "Weekday, 30 Month 2026"; when it is wider than the 296 px label (Wednesday, 30 September 2026 is 300 px) the
+  // 3-letter weekday is used (tools/check_text_fit.py models the same rule).
   void setDate(const struct tm& tm) {
     char d[40];
     const char* mon = tr((Tr)((int)Tr::MonthJanuary + tm.tm_mon));
-    int n = snprintf(d, sizeof d, "%s, %d %s %d", tr((Tr)((int)Tr::WeekdaySunday + tm.tm_wday)), tm.tm_mday, mon,
-                     tm.tm_year + 1900);
-    if (n > 27) snprintf(d, sizeof d, "%s, %d %s %d", tr((Tr)((int)Tr::DaySun + tm.tm_wday)), tm.tm_mday, mon, tm.tm_year + 1900);
+    snprintf(d, sizeof d, "%s, %d %s %d", tr((Tr)((int)Tr::WeekdaySunday + tm.tm_wday)), tm.tm_mday, mon, tm.tm_year + 1900);
+    lv_point_t sz;
+    lv_text_get_size(&sz, d, &font_18, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+    if (sz.x > DATE_W) snprintf(d, sizeof d, "%s, %d %s %d", tr((Tr)((int)Tr::DaySun + tm.tm_wday)), tm.tm_mday, mon, tm.tm_year + 1900);
     lv_label_set_text(date_, d);
   }
 

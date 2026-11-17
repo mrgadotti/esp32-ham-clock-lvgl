@@ -165,15 +165,10 @@ void buildAprs(lv_obj_t* ov, const AprsStation& st) {
   drawObj(ov, 236, 50, 60, 66, onCompassDraw, bearing);
   if (bearing >= 0) snprintf(b, sizeof b, "%03d\xC2\xB0", bearing);
   else snprintf(b, sizeof b, "---");
-  lv_obj_t* bl = uiLabel(ov, &font_14, cyan, b, 0, 118);
-  lv_obj_set_width(bl, 60);
-  lv_obj_set_style_text_align(bl, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_set_x(bl, 236);
+  uiLabel(ov, &font_14, cyan, b, 236, 118, 60, LV_TEXT_ALIGN_CENTER);
   if (st.hasLatLon && st.distKm >= 0) snprintf(b, sizeof b, "%d %s", (int)st.distKm, tr(Tr::Km));
   else snprintf(b, sizeof b, "- %s", tr(Tr::Km));
-  lv_obj_t* dl = uiLabel(ov, &font_14, COL_ACCENT, b, 226, 134);
-  lv_obj_set_width(dl, 80);
-  lv_obj_set_style_text_align(dl, LV_TEXT_ALIGN_CENTER, 0);
+  uiLabel(ov, &font_14, COL_ACCENT, b, 226, 134, 80, LV_TEXT_ALIGN_CENTER);
 
   AprsWx wx{};
   if (st.isWx && aprsDecodeWx(st.comment, wx)) {
