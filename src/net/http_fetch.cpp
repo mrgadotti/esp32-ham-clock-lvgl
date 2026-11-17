@@ -17,16 +17,12 @@ char httpBody[kHttpBodySize];
 static bool s_allocFail, s_retryUsed;  // last fetch died of an SSL allocation failure; the quick retry was already given
 
 bool httpPollGate(uint32_t now) {
-  static uint32_t notBefore;
-  static uint8_t deferrals;
-  if (hamalertBusy()) return false;  // an 8 s fetch would cut HamAlert's 9 s window
-  if ((int32_t)(now - notBefore) < 0) return false;
+  static TlsGate gate;
+  if (hamalertBusy() || tlsGateWaiting(gate, now)) return false;  // an 8 s fetch would cut HamAlert's 9 s window
   uint32_t big = memLargest8();
-  if (tlsDecide(big, deferrals) == TlsDecision::Go) { deferrals = 0; return true; }
-  deferrals++;
-  notBefore = now + kTlsDeferMs;
-  Serial.printf("[HTTP] deferred (largest=%u)\n", (unsigned)big);
-  return false;
+  TlsAction a = tlsGateStep(gate, now, big);
+  if (a == TlsAction::Defer) Serial.printf("[HTTP] deferred (largest=%u)\n", (unsigned)big);
+  return a == TlsAction::Go;
 }
 
 uint32_t httpQuickRetryMs() {

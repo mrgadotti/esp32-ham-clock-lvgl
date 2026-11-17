@@ -54,7 +54,7 @@ void potaTick(uint32_t now) {
   }
   potaSortByTimeDesc(spots, n);
   for (size_t i = 0; i < n; i++) qrzOnNewSpot(spots[i]);  // POTA entries carry no grid, so no distance
-  g_store.pota.write([&](RingBuffer<Spot, 30>& r) {
+  g_store.pota.write([&](RingBuffer<Spot, kSpotScratchN>& r) {
     r.clear();
     for (size_t i = n; i-- > 0;) r.pushFront(spots[i]);
   });

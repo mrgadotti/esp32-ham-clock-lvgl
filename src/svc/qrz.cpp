@@ -126,12 +126,15 @@ void qrzTick(uint32_t now) {
 
   QrzInfo info;
   bool ok = false, notFound = false;
+  int fetches = 0;  // the first is already gated; later ones (login, then lookup) re-check
+  auto mayFetch = [&] { return fetches++ == 0 || httpPollGate(now); };
   for (int attempt = 0; attempt < 2; ++attempt) {
     if (!s_key[0] || now - s_keyAt >= SESSION_TTL_MS) {
-      if (!login(now)) break;
+      if (!mayFetch() || !login(now)) break;
     }
     char url[128];
     snprintf(url, sizeof url, "https://xmldata.qrz.com/xml/current/?s=%s;callsign=%s", s_key, call);
+    if (!mayFetch()) break;
     if (!httpGet(url, httpBody, kHttpBodySize, QRZ_HTTP_TIMEOUT_MS)) { setStatus("error: lookup http"); break; }
     if (strstr(httpBody, "Session Timeout") || strstr(httpBody, "Invalid session")) {
       s_key[0] = 0;  // re-login once

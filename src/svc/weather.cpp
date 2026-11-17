@@ -106,10 +106,9 @@ void weatherTick(uint32_t now) {
   if (WiFi.status() != WL_CONNECTED) return;
   bool cd = reached(now, s_nextCur, s_curFirst), fd = reached(now, s_nextFc, s_fcFirst);
   if (!cd && !fd) return;
-  cfgGet(s_cfg);
+  if (!s_cfg.weather_key[0] || !httpPollGate(now)) return;  // s_cfg was refreshed within the last second
   double lat, lon;
-  if (!s_cfg.weather_key[0] || !serviceCoords(lat, lon)) return;
-  if (!httpPollGate(now)) return;
+  if (!serviceCoords(lat, lon)) return;
   if (cd) fetchCurrent(now, lat, lon);
   else fetchForecast(now, lat, lon);
 }

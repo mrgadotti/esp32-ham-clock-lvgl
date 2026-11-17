@@ -13,5 +13,16 @@ constexpr int kMbedtlsAllocFailed = -0x7F00;  // MBEDTLS_ERR_SSL_ALLOC_FAILED, l
 enum class TlsDecision : uint8_t { Go, Defer };
 TlsDecision tlsDecide(uint32_t largestFreeBlock, uint8_t deferralsSoFar);
 
+// Deferral state machine for the poll gate. All time compares are unsigned differences against a short window, so
+// they survive millis() wrapping; `deferring` (not a stale timestamp) says whether a window is open.
+struct TlsGate {
+  bool deferring = false;
+  uint32_t deferredAt = 0;
+  uint8_t deferrals = 0;
+};
+enum class TlsAction : uint8_t { Wait, Go, Defer };  // Wait: inside a defer window; Defer: new deferral (log it)
+bool tlsGateWaiting(const TlsGate& g, uint32_t now);  // true: Wait, no need to measure the heap
+TlsAction tlsGateStep(TlsGate& g, uint32_t now, uint32_t largestFreeBlock);
+
 // One quick retry (kTlsQuickRetryMs) after an SSL allocation failure, instead of waiting for the next full interval.
 bool tlsQuickRetry(int mbedtlsError, bool alreadyRetried);
