@@ -4,7 +4,9 @@
 #include <string.h>
 #include <time.h>
 
+#include "hold_detector.h"
 #include "i18n.h"
+#include "../../app/events.h"
 #include "../../app/config_store.h"
 #include "../../app/data_store.h"
 #include "../../net/time_service.h"
@@ -68,17 +70,60 @@ class ClockScreen : public Screen {
     lv_obj_set_style_text_color(g, lv_color_hex(0xA0A0A0), 0);
     lv_label_set_text(g, LV_SYMBOL_SETTINGS);
     lv_obj_center(g);
+    // Long press anywhere on the screen (gear/toggle are clickable and keep their own events) opens touch calibration.
+    lv_obj_add_event_cb(p, onTouch, LV_EVENT_ALL, this);
+    bar_ = lv_obj_create(p);
+    lv_obj_remove_style_all(bar_);
+    lv_obj_set_style_bg_opa(bar_, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(bar_, COL_ACCENT, 0);
+    lv_obj_set_pos(bar_, 0, 238);
+    lv_obj_set_height(bar_, 2);
+    lv_obj_add_flag(bar_, LV_OBJ_FLAG_HIDDEN);
     lastSec_ = -1;
     refresh();
   }
 
-  void tick(uint32_t) override { refresh(); }
+  void tick(uint32_t) override {
+    refresh();
+    if (!hold_.active()) {
+      lv_obj_add_flag(bar_, LV_OBJ_FLAG_HIDDEN);
+      return;
+    }
+    uint32_t now = lv_tick_get();
+    if (hold_.update(now)) {
+      lv_obj_add_flag(bar_, LV_OBJ_FLAG_HIDDEN);
+      UiEvent e;
+      e.kind = EventKind::StartTouchCal;  // deferred: handled by UiManager outside any widget callback
+      postUiEvent(e);
+      return;
+    }
+    uint32_t el = hold_.elapsed(now);
+    if (el < kBarStartMs) return;
+    lv_obj_set_width(bar_, (int)((uint64_t)320 * (el - kBarStartMs) / (HoldDetector::kHoldMs - kBarStartMs)));
+    lv_obj_remove_flag(bar_, LV_OBJ_FLAG_HIDDEN);
+  }
 
  private:
+  static constexpr uint32_t kBarStartMs = 5000;
+  HoldDetector hold_;
+  lv_obj_t* bar_;
   lv_obj_t *time_, *mode_, *date_, *ip_, *dot_, *gps_;
   int lastSec_, lastDay_ = -1;
   char lastIp_[16] = "";
   bool lastOk_ = false, lastGps_ = false;
+
+  static void onTouch(lv_event_t* e) {
+    auto* self = (ClockScreen*)lv_event_get_user_data(e);
+    lv_event_code_t c = lv_event_get_code(e);
+    if (c == LV_EVENT_PRESSED || c == LV_EVENT_PRESSING) {
+      lv_point_t pt;
+      lv_indev_get_point(lv_indev_active(), &pt);
+      if (c == LV_EVENT_PRESSED) self->hold_.press(pt.x, pt.y, lv_tick_get());
+      else self->hold_.move(pt.x, pt.y);
+    } else if (c == LV_EVENT_RELEASED || c == LV_EVENT_PRESS_LOST) {
+      self->hold_.release();
+    }
+  }
 
   static void onMode(lv_event_t*) {
     cfgUpdate([](Config& c) { c.screen1_time = c.screen1_time ? 0 : 1; });
