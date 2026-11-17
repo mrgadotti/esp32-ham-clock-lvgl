@@ -20,7 +20,7 @@
 // Poll as a state machine, one small step per net tick: connect -> swallow banner -> login/commands -> read lines.
 // Each state has its own timeout and no state waits inside a tick.
 namespace {
-constexpr uint32_t kPeriodMs = 60000, kTotalMs = 9000, kIdleMs = 1800, kBannerMs = 1200;
+constexpr uint32_t kPeriodMs = 60000, kTotalMs = 9000, kIdleMs = 1800, kBannerMs = 1200, kStallMs = 2000;
 constexpr size_t kMax = kSpotScratchN, kLineMax = 1400, kReadBudget = 1024;
 constexpr uint16_t kGapMs[] = {0, 180, 220, 160};  // before: user, pass, set/json, sh/dx 30
 enum class St : uint8_t { Idle, Connecting, Banner, Login, Read };
@@ -34,8 +34,8 @@ WiFiClient client;
 char lineBuf[kLineMax + 1];
 LineReader reader(lineBuf, sizeof lineBuf, true);
 St st = St::Idle;
-uint32_t last, tStart, tStep, lastRx, nowUtc;
-bool tried;
+uint32_t last, tStart, tStep, lastRx, lastTick, nowUtc;
+bool tried, cut;  // cut: a tick came more than kStallMs late (blocked net task), so the session is incomplete
 size_t n;
 uint8_t step;
 
@@ -65,8 +65,8 @@ void finish() {
   client.stop();
   spotScratchHeld() = false;
   st = St::Idle;
-  if (n == 0) {
-    Serial.println("[HAMALERT] no spots, keeping old list");
+  if (n == 0 || cut) {
+    Serial.println(cut ? "[HAMALERT] session stalled, keeping old list" : "[HAMALERT] no spots, keeping old list");
     return;
   }
   double ml, mo;
@@ -76,7 +76,7 @@ void finish() {
     if (haveMe && spots[i].loc[0] && locatorToLatLon(spots[i].loc, la, lo)) spots[i].distKm = (int16_t)distanceKm(ml, mo, la, lo);
     qrzOnNewSpot(spots[i]);
   }
-  g_store.hamalert.write([&](RingBuffer<Spot, 30>& r) {
+  g_store.hamalert.write([&](RingBuffer<Spot, kSpotScratchN>& r) {
     r.clear();
     for (size_t i = n; i-- > 0;) r.pushFront(spots[i]);  // server sends newest first
   });
@@ -88,7 +88,11 @@ void onLine(const char* line) {
 }
 }  // namespace
 
+bool hamalertBusy() { return st != St::Idle; }
+
 void hamalertTick(uint32_t now) {
+  if (st != St::Idle && now - lastTick > kStallMs) cut = true;
+  lastTick = now;
   bool sta = false;
   g_store.net.read([&](const NetStatus& s) { sta = s.sta; });
   refreshCfg();
@@ -98,6 +102,7 @@ void hamalertTick(uint32_t now) {
     tried = true;
     last = now;
     n = 0;
+    cut = false;
     step = 0;
     nowUtc = (uint32_t)time(nullptr);
     spotScratchHeld() = true;
