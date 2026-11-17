@@ -138,8 +138,10 @@ void spotTableSet(lv_obj_t* t, size_t n, CellFn cell, void* ctx) {
   st->rows = n;
   lv_obj_set_height(st->spacer, (int32_t)n * st->rowH);
   lv_obj_update_layout(t);
-  int32_t over = lv_obj_get_scroll_bottom(t);
-  if (over < 0) lv_obj_scroll_by(t, 0, -over, LV_ANIM_OFF);  // the list got shorter than the scroll position
+  int32_t over = lv_obj_get_scroll_bottom(t), sy = lv_obj_get_scroll_y(t);
+  // The list got shorter than the scroll position. A list shorter than the view has over < 0 too: only undo the real
+  // scroll, or the rows get pushed down to the bottom of the view.
+  if (over < 0 && sy > 0) lv_obj_scroll_by(t, 0, LV_MIN(-over, sy), LV_ANIM_OFF);
   lv_obj_invalidate(t);
 }
 
