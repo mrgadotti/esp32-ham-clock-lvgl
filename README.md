@@ -32,10 +32,12 @@ Screens, in swipe order:
 
 ## Screens
 
-Mock screenshots of each screen, captured from the device in English with
-sample data (the DX, POTA, HamAlert and APRS tables are filled with fake rows,
-and the other network-dependent screens show their "no data" state). The
-Settings screen was opened from the gear icon on the Clock screen.
+Screenshots of each screen, captured from a running device with its stored
+settings and live data, so the UI is in Brazilian Portuguese (the device's
+language). Screens that were still waiting for data show their waiting
+message: DX Cluster and APRS list (no spots or stations yet), and HamAlert
+(no login configured). The Settings screen is opened from the gear icon on
+the Clock screen.
 
 |   |   |   |
 |:---:|:---:|:---:|
@@ -51,22 +53,25 @@ While the board starts, the splash screen shows a live log of each boot step
 name is shown in the log; the password is never logged.
 
 <img src="docs/screenshots/13-boot-log.png" width="200"><br>
-Boot log on the splash screen, early in the boot (before the WiFi join).
+Boot log on the splash screen while the WiFi connection starts.
 
 ### Menus
 
 <img src="docs/screenshots/14-dx-menu.png" width="200"> <img src="docs/screenshots/15-aprs-menu.png" width="200"><br>
 DX Cluster menu (mode and band filters, Clear DX list) and APRS list menu
-(sort order, APRS settings, Beacon now, Clear APRS list).
+(sort order, APRS settings, Beacon now, Clear APRS list), in Portuguese.
 
 ### Web configuration page
 
-The configuration page served by the board, shown with placeholder values
-(callsign `PY0TEST`, fake WiFi network, no passwords). The WiFi and Station
-sections are expanded; the other sections are collapsed.
+The configuration page served by the board, rendered with the settings the
+board reports at `/api/config`. Passwords and API keys are never sent by the
+API, so the page shows them only as "(set)". The latitude and longitude fields
+are left blank in the images. The WiFi and Station sections are expanded; the
+other sections are collapsed. The Export backup warning appears in the header
+after pressing **Export backup**.
 
 <img src="docs/screenshots/web-desktop-en.png" width="600"><br>
-Desktop view (about 1000 px wide), English.
+Desktop view (about 1000 px wide), English, after pressing Export backup.
 
 <img src="docs/screenshots/web-desktop-pt.png" width="600"><br>
 Desktop view, PT-BR language selected in the header.
