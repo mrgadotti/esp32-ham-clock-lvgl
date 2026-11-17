@@ -203,7 +203,7 @@ data/ total size: ~148 KB + 145 KB HTML + 30 KB CSS + 36 KB manuals + logo.bmp 3
 
 ### AP fallback / captive portal
 - `startAPMode()` (15930-15947): `WiFi.mode(WIFI_AP)`; `softAP("ESP32-HAM-CLOCK", "1234567890")` (hardcoded, `#define AP_SSID/AP_PASSWORD` at 1223-1224, WPA2 fixed password, same on every device). IP is default 192.168.4.1.
-- Entered when: no wifi_ssid saved at boot (18176-18180), or connect fails after attempts (18176), or later via reconnect logic (16099, 16124). AP-only (no STA) so the portal is stable. While in AP mode a STA retry is attempted every WIFI_AP_RETRY_INTERVAL_MS = 5 min (2396, 16086). On STA success the AP is shut down (18283-18285).
+- Entered when: no wifi_ssid saved at boot (18176-18180), or connect fails after attempts (18176), or later via reconnect logic (16099, 16124). AP-only (no STA) so the portal is stable. While in AP mode a STA retry is attempted every WIFI_AP_RETRY_INTERVAL_MS = 5 min in the original (2396, 16086); the LVGL port uses 2 min. On STA success the AP is shut down (18283-18285).
 - **No captive portal**: no DNSServer, no redirect/onNotFound; user must browse to 192.168.4.1 manually. No mDNS either (grep for MDNS found nothing). IP is shown on TFT.
 - After a save the device reboots (always).
 

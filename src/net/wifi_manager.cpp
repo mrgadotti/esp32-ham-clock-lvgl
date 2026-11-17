@@ -11,8 +11,8 @@
 
 namespace {
 const char* kApSsid = "ESP32-HAM-CLOCK";
-const uint32_t kConnectTimeoutMs = 15000;
-const uint32_t kApRetryMs = 5UL * 60 * 1000;
+const uint32_t kConnectTimeoutMs = 40000;  // real board sometimes needs >15 s to join
+const uint32_t kApRetryMs = 2UL * 60 * 1000;
 
 enum class St { Init, Connecting, Connected, Backoff, Ap };
 St st = St::Init;

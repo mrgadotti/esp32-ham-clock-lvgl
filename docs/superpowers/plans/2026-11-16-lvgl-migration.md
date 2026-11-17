@@ -546,7 +546,7 @@ void cfgUpdate(void (*fn)(Config&));                                  // mutate 
 - `DataStore g_store`, `postUiEvent` and `popUiEvent` (queue depth 4).
 - `void wifiTick(uint32_t now)`:
   - tries SSID1, then SSID2, then the AP fallback;
-  - STA retries follow `backoffMs`; while in AP mode it retries STA every 5 min;
+  - STA retries follow `backoffMs`; while in AP mode it retries STA every 2 min;
   - it turns the AP off once STA connects, and writes `g_store.net`.
 - `bool timeValid(); void timeTick(uint32_t now)`: NTP `pool.ntp.org` every hour, skipped while GPS time is valid.
 - `void localTimeOf(time_t utc, struct tm&)`: float-hours `timezone` offset, as in the original.
