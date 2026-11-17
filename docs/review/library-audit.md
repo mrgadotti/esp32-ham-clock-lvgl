@@ -24,8 +24,8 @@ because no code changed.
 | KISS / AX.25 framing | `lib/core/ax25_kiss.cpp` | Arduino APRS/AX.25 libs (LibAPRS, etc.) | Kept | Those bundle modem/hardware code and Arduino.h; only encode/deframe/TNC2 text is needed and it is unit tested. | 0 |
 | Touch debounce | `src/hal/touch.cpp`, `touch_cal_ui.cpp` | `XPT2046_Touchscreen` (already used) | Kept | Two-miss pressure debounce is app policy, one line each. | 0 |
 | PWM backlight | `src/hal/display.cpp` | `ledc*` (already used) | Not touched | Already the core ledc API; file is off limits (scroll optimisation work). | 0 |
-| LED handling | `src/hal/rgb_led.cpp` | core `ledc` / `neopixelWrite` | Kept | Thin GPIO/ledc wrapper, no logic to remove. | 0 |
+| LED handling | `src/hal/rgb_led.cpp` | core digitalWrite | Kept | Active-low RGB blink state machine, no library equivalent; plain GPIO. | 0 |
 
 ## Baseline (unchanged tree, 362b3a4)
 
-`pio test -e native`: 177 of 177 passed. See the commit report for the cyd / esp32-38pin build sizes.
+`pio test -e native`: 177 of 177 passed. cyd: flash 1,459,237 B, RAM 118,700 B. esp32-38pin: flash 1,458,725 B, RAM 118,676 B. Both are within budget (<= 1,550,000 B).
