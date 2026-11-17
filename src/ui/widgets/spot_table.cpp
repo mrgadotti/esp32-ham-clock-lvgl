@@ -53,6 +53,7 @@ void onDraw(lv_event_t* e) {
     cell.y2 = cell.y1 + st->rowH - 1;
     if (cell.y1 > clip.y2) break;
     if (r & 1) {
+      layer->_clip_area = clip;  // the previous row's label clip is still set; it would cut the stripe
       lv_area_t row = {o.x1, cell.y1, o.x1 + st->width - 1, cell.y2};
       lv_draw_fill(layer, &fd, &row);
     }
