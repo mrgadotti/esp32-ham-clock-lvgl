@@ -8,6 +8,7 @@
 #include "../../app/config_store.h"
 #include "../../app/data_store.h"
 #include "../../app/mem_log.h"
+#include "../../svc/aprs_beacon.h"
 #include "../../hal/display.h"
 #include "../../hal/touch_cal_ui.h"
 #include "../fonts/fonts.h"
@@ -62,6 +63,14 @@ lv_obj_t* slider(lv_obj_t* parent, int32_t lo, int32_t hi, int32_t v) {
   lv_slider_set_range(s, lo, hi);
   lv_slider_set_value(s, v, LV_ANIM_OFF);
   return s;
+}
+
+void button(lv_obj_t* list, Tr t, lv_event_cb_t cb) {
+  lv_obj_t* b = lv_button_create(list);
+  lv_obj_t* l = lv_label_create(b);
+  lv_obj_set_style_text_font(l, &font_14, 0);
+  lv_label_set_text(l, tr(t));
+  lv_obj_add_event_cb(b, cb, LV_EVENT_CLICKED, nullptr);
 }
 
 class SettingsScreen : public Screen {
@@ -163,6 +172,9 @@ class SettingsScreen : public Screen {
       int32_t v = kAprsKm[lv_dropdown_get_selected((lv_obj_t*)lv_event_get_target(e))];
       cfgUpdate([v](Config& c) { c.aprs_radius = v; });  // APRS-IS reconnects with the new filter (aprs_is.cpp sameSession)
     });
+    button(list, Tr::BeaconNow, [](lv_event_t*) { aprsBeaconRequest(); });
+    button(list, Tr::ClearAprsList, [](lv_event_t*) { g_store.aprs.write([](RingBuffer<AprsStation, 30>& r) { r.clear(); }); });
+    button(list, Tr::ClearDxList, [](lv_event_t*) { g_store.dx.write([](RingBuffer<Spot, kDxSpots>& r) { r.clear(); }); });
 
     uiLabel(list, &font_14, COL_ACCENT, tr(Tr::EnabledScreens));
     for (size_t i = 0; i < sizeof kScreens / sizeof *kScreens; i++) {

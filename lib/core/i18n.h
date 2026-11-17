@@ -107,6 +107,9 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(AutoSwitch, "Auto-switch", "Troca automática") \
   X(AlertTime, "Alert time", "Tempo do alerta") \
   X(AprsRadius, "APRS radius", "Raio APRS") \
+  X(BeaconNow, "Beacon now", "Beacon agora") \
+  X(ClearAprsList, "Clear APRS list", "Limpar lista APRS") \
+  X(ClearDxList, "Clear DX list", "Limpar lista DX") \
   X(Off, "Off", "Desligado") \
   X(EnabledScreens, "Enabled screens", "Telas ativas") \
   X(FreeHeap, "Free heap", "Heap livre") \

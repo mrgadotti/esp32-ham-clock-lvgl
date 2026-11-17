@@ -191,7 +191,7 @@ add("Settings", "label beside slider (308-152)", "font_14", 308 - 152 - 4, T("Br
 add("Settings", "label beside switch (308-60)", "font_14", 308 - 60 - 4, T("NightDim", "InvertColors"))
 add("Settings", "label beside dropdown (308-120)", "font_14", 308 - 120 - 4, T("Rotation", "Language", "AutoSwitch", "AlertTime", "AprsRadius"))
 add("Settings", "dropdown option text (120 px - arrow)", "font_14", 120 - 40, ["Português", "300 s", "English", "100 km"])
-add("Settings", "calibrate button / heading", "font_14", 300, T("CalibrateTouch", "EnabledScreens"))
+add("Settings", "calibrate button / heading", "font_14", 300, T("CalibrateTouch", "EnabledScreens", "ClearDxList", "ClearAprsList", "BeaconNow"))
 add("Settings", "screen checkbox names", "font_14", 300 - 30, T("Clock", "DxCluster", "Propagation", "HfBands", "Weather", "AprsIs", "Pota", "HamAlert", "AprsRadar", "Forecast", "Location"))
 add("Settings", "info rows (300 px DOT)", "font_14", 300, ["SSID: " + "x" * 12, "IP: 255.255.255.255", "RSSI: -100 dBm", "%s: 999999 B" % TR["FreeHeap"][1], "%s: Nov 16 2026 12:00:00" % TR["Firmware"][1]])
 
