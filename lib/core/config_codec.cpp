@@ -120,7 +120,7 @@ void configDefaults(Config& c) {
   c.aprs_port = 14580;
   setStr(c.aprs_callsign, sizeof c.aprs_callsign, "nocall");
   setStr(c.aprs_passcode, sizeof c.aprs_passcode, "0");
-  c.aprs_radius = 50;
+  c.aprs_radius = 10;
   c.aprs_beacon = true;
   setStr(c.aprs_symbol, sizeof c.aprs_symbol, "/V");
   c.aprs_int_min = 29;

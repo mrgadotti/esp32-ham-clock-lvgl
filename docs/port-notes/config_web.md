@@ -58,7 +58,7 @@ hama_host (def hamalert.org), hama_port (Int def 7300, 1..65535 else default), h
 | aprs_callsign | String | "nocall" | trim; empty -> falls back to user_callsign (getAprsBaseCallsign 14783) |
 | aprs_passcode | Int | 0 | web `parseInt||0` |
 | aprs_ssid | Int | 0 | clamp 0..15 (normalizeAprsSsid 14767) |
-| aprs_radius | Int | 50 | clamp 1..50 |
+| aprs_radius | Int | 10 | clamp 1..50 |
 | (filter pos uses user_lat/lon, no separate keys) | | | |
 
 ### APRS TX beacon (4 keys, W)

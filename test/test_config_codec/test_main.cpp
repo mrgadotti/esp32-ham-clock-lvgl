@@ -19,7 +19,7 @@ void test_defaults_match_original() {
   TEST_ASSERT_EQUAL_INT(7300, c.cluster_port);
   TEST_ASSERT_EQUAL_STRING("rotate.aprs2.net", c.aprs_host);
   TEST_ASSERT_EQUAL_INT(14580, c.aprs_port);
-  TEST_ASSERT_EQUAL_INT(50, c.aprs_radius);
+  TEST_ASSERT_EQUAL_INT(10, c.aprs_radius);
   TEST_ASSERT_EQUAL_INT(29, c.aprs_int_min);
   TEST_ASSERT_EQUAL_UINT8(0, c.tft_lang);
   TEST_ASSERT_EQUAL_INT(100, c.tft_backlight);
