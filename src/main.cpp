@@ -79,7 +79,7 @@ static void uiTask(void*) {
 #ifdef PERF_TEST
     uint32_t pt0 = micros();
 #endif
-    lv_timer_handler();
+    uint32_t wait = lv_timer_handler();  // ms until LVGL needs to run again
 #ifdef PERF_TEST
     uint32_t pd = micros() - pt0;
     perfHandlerCalls++;
@@ -106,26 +106,42 @@ static void uiTask(void*) {
       lv_mem_monitor(&m);
       memLogSetLvFree(m.free_size);
     }
-    vTaskDelay(pdMS_TO_TICKS(1));
+    vTaskDelay(pdMS_TO_TICKS(wait < 1 ? 1 : wait > 5 ? 5 : wait));  // cap: touch and events are polled between LVGL timers
   }
 }
 
+// Heap order after WiFi comes up (M-06): TLS needs ~2 x 16.6 KB of contiguous blocks per handshake, and every open
+// socket pins small blocks in the middle of that region. So the HTTPS services run their first round before the
+// socket services (DX, APRS-IS, HamAlert) may connect, plus a short settle time.
+constexpr uint32_t kSocketDelayMs = 3000;   // after the first HTTPS round
+constexpr uint32_t kRoundFallbackMs = 15000;  // first round is declared done anyway (no clock, no weather key...)
+
 static void netTask(void*) {
   webInit();
+  uint32_t staAt = 0, roundAt = 0;
   for (;;) {
     uint32_t now = millis();
+    bool sta = false;
+    g_store.net.read([&](const NetStatus& s) { sta = s.sta; });
+    if (!sta) staAt = roundAt = 0;
+    else if (!staAt) staAt = now | 1;
     wifiTick(now);
     webTick();
     timeTick(now);
-    dxTick(now);
-    aprsIsTick(now);
-    aprsBeaconTick(now);
-    rgbLedTick(now);
     potaTick(now);
-    hamalertTick(now);
     qrzTick(now);
     weatherTick(now);
     propTick(now);
+    // The tick that sees a valid clock also ran the first propagation fetch, so the round is over at the end of it.
+    now = millis();  // the HTTPS fetches above can take seconds
+    if (sta && !roundAt && (timeValid() || now - staAt >= kRoundFallbackMs)) roundAt = now | 1;
+    if (!sta || (roundAt && now - roundAt >= kSocketDelayMs)) {  // !sta: let the services close their sockets
+      dxTick(now);
+      aprsIsTick(now);
+      hamalertTick(now);
+    }
+    aprsBeaconTick(now);
+    rgbLedTick(now);
     memLogTick(now);
     vTaskDelay(pdMS_TO_TICKS(20));
   }

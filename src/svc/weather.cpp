@@ -22,6 +22,11 @@ static WeatherData s_w;
 static uint32_t s_nextCur, s_nextFc, s_lastSched;
 static bool s_curFirst = true, s_fcFirst = true;  // first fetch fires immediately
 
+static uint32_t retryMs() {
+  uint32_t q = httpQuickRetryMs();  // one quick retry after an SSL allocation failure
+  return q ? q : RETRY_MS;
+}
+
 static bool reached(uint32_t now, uint32_t at, bool first) { return first || (int32_t)(now - at) >= 0; }
 
 // The URL carries the API key: never log it.
@@ -58,7 +63,7 @@ static void fetchCurrent(uint32_t now, double lat, double lon) {
   s_w.fetchFailed = !ok;
   g_store.weather.write([](WeatherData& w) { w = s_w; });
   s_curFirst = false;
-  s_nextCur = now + (ok ? CUR_MS : RETRY_MS);
+  s_nextCur = now + (ok ? CUR_MS : retryMs());
 }
 
 static void fetchForecast(uint32_t now, double lat, double lon) {
@@ -83,7 +88,7 @@ static void fetchForecast(uint32_t now, double lat, double lon) {
   s_w.forecastFetchFailed = !ok;
   g_store.weather.write([](WeatherData& w) { w = s_w; });
   s_fcFirst = false;
-  s_nextFc = now + (ok ? FC_MS : RETRY_MS);
+  s_nextFc = now + (ok ? FC_MS : retryMs());
 }
 
 void weatherTick(uint32_t now) {
@@ -101,9 +106,9 @@ void weatherTick(uint32_t now) {
   if (WiFi.status() != WL_CONNECTED) return;
   bool cd = reached(now, s_nextCur, s_curFirst), fd = reached(now, s_nextFc, s_fcFirst);
   if (!cd && !fd) return;
-  cfgGet(s_cfg);
+  if (!s_cfg.weather_key[0] || !httpPollGate(now)) return;  // s_cfg was refreshed within the last second
   double lat, lon;
-  if (!s_cfg.weather_key[0] || !serviceCoords(lat, lon)) return;
+  if (!serviceCoords(lat, lon)) return;
   if (cd) fetchCurrent(now, lat, lon);
   else fetchForecast(now, lat, lon);
 }

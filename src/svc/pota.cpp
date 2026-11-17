@@ -20,14 +20,14 @@ void potaTick(uint32_t now) {
   static bool tried;
   bool sta = false;
   g_store.net.read([&](const NetStatus& n) { sta = n.sta; });
-  if (!sta || (tried && now - last < kPeriodMs)) return;
+  if (!sta || (tried && now - last < kPeriodMs) || !httpPollGate(now)) return;
   tried = true;
   last = now;
 
   char apiUrl[sizeof(Config::pota_api_url)];
   cfgRead([&](const Config& c) { strlcpy(apiUrl, c.pota_api_url, sizeof apiUrl); });
   JsonDocument filter;
-  for (const char* k : {"activator", "frequency", "mode", "reference", "spotTime", "locationDesc", "comments", "spotter"})
+  for (const char* k : {"activator", "frequency", "mode", "reference", "spotTime", "locationDesc", "comments"})
     filter[k] = true;  // per-element filter: the array is streamed item by item
   const char* url = apiUrl[0] ? apiUrl : "https://api.pota.app/v1/spots";
   Spot* spots = spotScratch();
@@ -44,6 +44,8 @@ void potaTick(uint32_t now) {
   }, &ctx);
   if (!ok) {
     Serial.println("[POTA] fetch failed, keeping old list");
+    uint32_t q = httpQuickRetryMs();
+    if (q) last = now + q - kPeriodMs;  // one quick retry after an SSL allocation failure
     return;
   }
   if (n == 0) {
@@ -52,7 +54,7 @@ void potaTick(uint32_t now) {
   }
   potaSortByTimeDesc(spots, n);
   for (size_t i = 0; i < n; i++) qrzOnNewSpot(spots[i]);  // POTA entries carry no grid, so no distance
-  g_store.pota.write([&](RingBuffer<Spot, 30>& r) {
+  g_store.pota.write([&](RingBuffer<Spot, kSpotScratchN>& r) {
     r.clear();
     for (size_t i = n; i-- > 0;) r.pushFront(spots[i]);
   });

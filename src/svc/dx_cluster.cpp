@@ -7,32 +7,62 @@
 
 #include "app/config_store.h"
 #include "app/data_store.h"
+#include "app/mem_log.h"
 #include "app/service_coords.h"
 #include "backoff.h"
 #include "dx_parse.h"
 #include "geo.h"
 #include "net/time_service.h"
+#include "svc/async_connect.h"
+#include "svc/line_reader.h"
+#include "svc/qrz.h"
 
 namespace {
 const uint32_t kLoginDelayMs = 1000, kCmdGapMs = 50, kKeepAliveMs = 30000, kSilenceMs = 5UL * 60 * 1000;
-const int32_t kConnectTimeoutMs = 4000;  // blocks the net task while connecting (same as the original)
 
+struct Cfg {
+  char host[64], callsign[16], locator[11], filters[128];
+  int32_t port;
+  bool noann, nowwv, nowcy, usefl;
+} c;  // net task only; refreshed when cfgVersion() moves
+uint32_t cfgVer;
+bool haveCfg;
+
+AsyncConnect conn;
 WiFiClient client;
-bool up = false, haveAttempt = false, gotData = false, discard = false, loginSent = false;
+bool up = false, connecting = false, haveAttempt = false, gotData = false, loginSent = false;
 uint8_t failures = 0;
 uint32_t dropped = 0;
 uint32_t lastAttempt, loginAt, lastRx, lastKeep, lastCmd;
 char line[256];
-size_t len;
+LineReader reader(line, sizeof line, true);
 char queue[320];  // pending config commands, '\n' separated
-Config c;         // net task only
 char curHost[64];
 int32_t curPort;
 
+void refreshCfg() {
+  uint32_t v = cfgVersion();
+  if (haveCfg && v == cfgVer) return;
+  haveCfg = true;
+  cfgVer = v;
+  cfgRead([](const Config& s) {
+    strlcpy(c.host, s.cluster_host, sizeof c.host);
+    strlcpy(c.callsign, s.user_callsign, sizeof c.callsign);
+    strlcpy(c.locator, s.user_locator, sizeof c.locator);
+    strlcpy(c.filters, s.cluster_filters, sizeof c.filters);
+    c.port = s.cluster_port;
+    c.noann = s.cluster_noann; c.nowwv = s.cluster_nowwv; c.nowcy = s.cluster_nowcy; c.usefl = s.cluster_usefl;
+  });
+}
+
 void drop(bool failed) {
+  conn.cancel();
   client.stop();
-  up = false;
-  if (failed && failures < 255) failures++;
+  up = connecting = false;
+  if (failed) {
+    if (failures < 255) failures++;
+    lastAttempt = millis();  // backoff counts from the end of the failed attempt
+  }
 }
 
 void queueCmd(const char* s) {
@@ -41,14 +71,14 @@ void queueCmd(const char* s) {
 
 void buildQueue() {
   queue[0] = 0;
-  if (strlen(c.user_locator) >= 4) { char b[24]; snprintf(b, sizeof b, "set/qra %s", c.user_locator); queueCmd(b); }
-  if (c.cluster_noann) queueCmd("set/noann");
-  if (c.cluster_nowwv) queueCmd("set/nowwv");
-  if (c.cluster_nowcy) queueCmd("set/nowcy");
-  if (c.cluster_usefl && c.cluster_filters[0]) {
+  if (strlen(c.locator) >= 4) { char b[24]; snprintf(b, sizeof b, "set/qra %s", c.locator); queueCmd(b); }
+  if (c.noann) queueCmd("set/noann");
+  if (c.nowwv) queueCmd("set/nowwv");
+  if (c.nowcy) queueCmd("set/nowcy");
+  if (c.usefl && c.filters[0]) {
     // Several commands may be separated by newlines; blank lines are skipped.
-    char f[sizeof c.cluster_filters];
-    strlcpy(f, c.cluster_filters, sizeof f);
+    char f[sizeof c.filters];
+    strlcpy(f, c.filters, sizeof f);
     for (char* s = strtok(f, "\r\n"); s; s = strtok(nullptr, "\r\n")) {
       while (*s == ' ') s++;
       if (*s) queueCmd(s);
@@ -58,19 +88,15 @@ void buildQueue() {
   }
 }
 
-void onLine() {
-  line[len] = 0;
+void onLine(const char* l) {
   if (!timeValid()) {  // spot dates need a valid clock
     if (!dropped++) Serial.println("[DX] clock not set: dropping spots");
     return;
   }
   Spot s;
-  if (!parseDxLine(line, (uint32_t)time(nullptr), s)) return;
+  if (!parseDxLine(l, (uint32_t)time(nullptr), s)) return;
   double la, lo, ml, mo;
-  if (s.loc[0] && locatorToLatLon(s.loc, la, lo)) {
-    s.lat = (float)la; s.lon = (float)lo; s.hasLatLon = true;
-    if (serviceCoords(ml, mo)) s.distKm = (int16_t)distanceKm(ml, mo, la, lo);
-  }
+  if (s.loc[0] && locatorToLatLon(s.loc, la, lo) && serviceCoords(ml, mo)) s.distKm = (int16_t)distanceKm(ml, mo, la, lo);
   qrzOnNewSpot(s);
   g_store.dx.write([&](RingBuffer<Spot, kDxSpots>& r) { r.pushFront(s); });
 }
@@ -78,11 +104,18 @@ void onLine() {
 void connectNow(uint32_t now) {
   haveAttempt = true;
   lastAttempt = now;
-  strlcpy(curHost, c.cluster_host, sizeof curHost);
-  curPort = c.cluster_port;
-  if (!client.connect(curHost, (uint16_t)curPort, kConnectTimeoutMs)) { drop(true); return; }
-  up = true; gotData = false; loginSent = false; discard = false;
-  len = 0; queue[0] = 0;
+  strlcpy(curHost, c.host, sizeof curHost);
+  curPort = c.port;
+  MEM_DIAG_ONCE("dx: before connect");
+  conn.start(curHost, (uint16_t)curPort, now);
+  connecting = true;
+}
+
+void onConnected(uint32_t now) {
+  MEM_DIAG_ONCE("dx: after connect");
+  up = true; gotData = false; loginSent = false;
+  reader.reset();
+  queue[0] = 0;
   lastRx = lastKeep = lastCmd = now;
   loginAt = now + kLoginDelayMs;
 }
@@ -91,37 +124,35 @@ void connectNow(uint32_t now) {
 void dxTick(uint32_t now) {
   bool sta = false;
   g_store.net.read([&](const NetStatus& n) { sta = n.sta; });
-  cfgGet(c);
-  if (up && (!sta || strcmp(curHost, c.cluster_host) != 0 || curPort != c.cluster_port)) {
+  refreshCfg();
+  if ((up || connecting) && (!sta || strcmp(curHost, c.host) != 0 || curPort != c.port)) {
     drop(false);
     failures = 0;
   }
+  if (connecting) {
+    AsyncConnect::State s = conn.poll(now, client);
+    if (s == AsyncConnect::Dns || s == AsyncConnect::Connecting) return;
+    connecting = false;
+    if (s == AsyncConnect::Done) onConnected(now);
+    else drop(true);
+    return;
+  }
   if (!up) {
-    if (!sta || !c.cluster_host[0]) return;
+    if (!sta || !c.host[0]) return;
     if (haveAttempt && now - lastAttempt < backoffMs(failures)) return;
     connectNow(now);
     return;
   }
   if (!client.connected() && !client.available()) { drop(true); return; }
 
-  for (int i = 0; i < 256 && client.available(); i++) {
-    int ch = client.read();
-    if (ch < 0) break;
+  if (reader.pump(client, 256, onLine)) {
     lastRx = now;
     if (!gotData) { gotData = true; failures = 0; }
-    if (ch == '\n' || ch == '\r') {
-      if (len && !discard) onLine();
-      len = 0;
-      discard = false;
-    } else if (ch >= 32 && ch < 127 && !discard) {
-      if (len < sizeof line - 1) line[len++] = (char)ch;
-      else discard = true;  // over-long line: drop it up to the next newline
-    }
   }
 
   if (now - lastRx > kSilenceMs) { drop(true); return; }
   if (!loginSent && (int32_t)(now - loginAt) >= 0) {
-    client.print(c.user_callsign[0] ? c.user_callsign : "SWL");
+    client.print(c.callsign[0] ? c.callsign : "SWL");
     client.print("\r\n");
     loginSent = true;
     lastKeep = lastCmd = now;

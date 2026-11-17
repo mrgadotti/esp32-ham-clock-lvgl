@@ -17,7 +17,7 @@ void propTick(uint32_t now) {
   NetStatus n;
   g_store.net.read([&](const NetStatus& s) { n = s; });
   if (!n.sta || !timeValid()) return;
-  if (!first && (int32_t)(now - nextAt) < 0) return;
+  if ((!first && (int32_t)(now - nextAt) < 0) || !httpPollGate(now)) return;
   first = false;
   PropagationData p{};
   g_store.prop.read([&](const PropagationData& s) { p = s; });
@@ -27,6 +27,7 @@ void propTick(uint32_t now) {
     g_store.prop.write([&](PropagationData& d) { d = p; });
     nextAt = now + PROP_INTERVAL_MS;
   } else {
-    nextAt = now + PROP_RETRY_MS;
+    uint32_t q = httpQuickRetryMs();
+    nextAt = now + (q ? q : PROP_RETRY_MS);
   }
 }

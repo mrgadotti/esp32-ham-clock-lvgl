@@ -7,10 +7,31 @@
 #include <string.h>
 
 #include "app/mem_log.h"
+#include "svc/hamalert.h"
+#include "tls_policy.h"
 
 constexpr uint32_t HTTP_TIMEOUT_MS = 8000;
 
 char httpBody[kHttpBodySize];
+
+static bool s_allocFail, s_retryUsed;  // last fetch died of an SSL allocation failure; the quick retry was already given
+
+bool httpPollGate(uint32_t now) {
+  static TlsGate gate;
+  if (hamalertBusy() || tlsGateWaiting(gate, now)) return false;  // an 8 s fetch would cut HamAlert's 9 s window
+  uint32_t big = memLargest8();
+  TlsAction a = tlsGateStep(gate, now, big);
+  if (a == TlsAction::Defer) Serial.printf("[HTTP] deferred (largest=%u)\n", (unsigned)big);
+  return a == TlsAction::Go;
+}
+
+uint32_t httpQuickRetryMs() {
+  bool again = s_allocFail;
+  s_allocFail = false;
+  if (!again) return 0;
+  s_retryUsed = true;
+  return kTlsQuickRetryMs;
+}
 
 // Runs `body(http, ctx)` on a 200 response. Logs the host only: query strings carry credentials.
 // Non-template so the HTTPClient + TLS setup exists once; fetchWith() below adapts lambdas.
@@ -27,13 +48,18 @@ static bool fetch(const char* url, uint32_t timeoutMs, bool (*body)(HTTPClient&,
   uint32_t t0 = millis();
   uint32_t big0 = memLargest8();
   if (!http.begin(https ? static_cast<WiFiClient&>(sec) : plain, url)) return false;
+  MEM_DIAG_ONCE("first fetch: before");
   int code = http.GET();
+  MEM_DIAG_ONCE("first fetch: after");
+  if (code == 200) s_retryUsed = s_allocFail = false;
+  else if (https) s_allocFail = tlsQuickRetry(sec.lastError(nullptr, 0), s_retryUsed);
   const char* h = strstr(url, "://");
   h = h ? h + 3 : url;
   Serial.printf("[HTTP] GET %.*s -> %d (%u ms) largest=%u->%u free=%u\n", (int)strcspn(h, "/?:;"), h, code, (unsigned)(millis() - t0),
                 (unsigned)big0, (unsigned)memLargest8(), (unsigned)ESP.getFreeHeap());
   bool ok = code == 200 && body(http, ctx);
   http.end();
+  MEM_DIAG_ONCE("first fetch: after end");
   return ok;
 }
 

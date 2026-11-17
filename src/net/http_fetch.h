@@ -8,6 +8,13 @@
 constexpr size_t kHttpBodySize = 6144;
 extern char httpBody[kHttpBodySize];
 
+// Net task only. Call before a poll's first HTTPS fetch and return when it says false (nothing is consumed, ask again
+// next tick): it waits while HamAlert holds the line and defers (2 s, at most 5 times) while the largest free block is
+// too small for a TLS handshake.
+bool httpPollGate(uint32_t nowMs);
+// After a failed fetch: 4000 if it was an SSL allocation failure and the one quick retry is still available, else 0.
+uint32_t httpQuickRetryMs();
+
 // Net task only. https uses setInsecure() (no CA pinning, as in the original).
 // Body is NUL-terminated; fails cleanly if it does not fit in len-1 bytes.
 bool httpGet(const char* url, char* buf, size_t len, uint32_t timeoutMs);

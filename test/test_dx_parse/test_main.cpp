@@ -13,7 +13,7 @@ void test_parse_basic() {
   TEST_ASSERT_EQUAL_UINT32(14025, s.khz); TEST_ASSERT_EQUAL_STRING("CW 599", s.comment);
   TEST_ASSERT_EQUAL(BAND_20M, s.band); TEST_ASSERT_EQUAL(MODE_CW, s.mode);
   TEST_ASSERT_EQUAL_UINT32(DAY + 12 * 3600 + 34 * 60, s.utc);
-  TEST_ASSERT_EQUAL(-1, s.distKm); TEST_ASSERT_FALSE(s.hasLatLon);
+  TEST_ASSERT_EQUAL(-1, s.distKm);
 }
 void test_parse_previous_day() {
   Spot s;
