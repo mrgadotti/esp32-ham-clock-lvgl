@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stdarg.h>
 #include "aprs_symbol.h"
+#include "fifo_queue.h"
 #include "aprs_wx.h"
 #include "i18n.h"
 
@@ -20,6 +21,8 @@ static uint32_t deadline;
 static bool closeReq;
 static lv_obj_t* frame;
 static int lastPulse = -1;
+static FifoQueue<UiEvent, 4> pending;  // alerts that arrived while an overlay was showing (UI task only)
+static void show(const UiEvent&);
 
 static void onClose(lv_event_t*) { closeReq = true; }  // delete happens in overlayTick
 
@@ -200,7 +203,11 @@ void buildAprs(lv_obj_t* ov, const AprsStation& st) {
 bool overlayActive() { return ov != nullptr; }
 
 void overlayShow(const UiEvent& e) {
-  closeNow();
+  if (ov) pending.push(e);  // never replace the visible overlay; queue full drops the oldest queued one
+  else show(e);
+}
+
+static void show(const UiEvent& e) {
   static char body[160];  // static: keeps 160 B off the UI task stack (UI task only)
   const char* title;
   const lv_image_dsc_t* wxImg = nullptr;
@@ -285,5 +292,9 @@ void overlayTick(uint32_t nowMs) {
       lv_obj_set_style_border_width(frame, p ? 1 : 3, 0);
     }
   }
-  if (ov && (closeReq || (int32_t)(nowMs - deadline) >= 0)) closeNow();
+  if (ov && (closeReq || (int32_t)(nowMs - deadline) >= 0)) {
+    closeNow();
+    UiEvent next;
+    if (pending.pop(next)) show(next);
+  }
 }

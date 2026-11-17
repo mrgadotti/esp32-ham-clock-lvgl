@@ -24,6 +24,7 @@ void test_defaults_match_original() {
   TEST_ASSERT_EQUAL_UINT8(0, c.tft_lang);
   TEST_ASSERT_EQUAL_INT(100, c.tft_backlight);
   TEST_ASSERT_EQUAL_INT(30, c.tft_sw_sec);
+  TEST_ASSERT_EQUAL_INT(60, c.alrt_scr_s);  // deliberate deviation from the original 5 s
   TEST_ASSERT_EQUAL_STRING("0", c.aprs_passcode);
   TEST_ASSERT_EQUAL_HEX32(0x33FE, c.scr_en);
   TEST_ASSERT_EQUAL_STRING("1234567890", c.ap_pass);

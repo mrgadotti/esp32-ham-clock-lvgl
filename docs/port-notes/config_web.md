@@ -72,7 +72,7 @@ aprs_beacon (Bool, default true), aprs_symbol (String 2 chars, default "/V"; san
 | aprs_alert_near_en | Bool | true | |
 | alrt_wx_en | Bool | false | APRS weather alerts |
 | aprs_alrt_sec | Int | 300 | 0..86400 (min interval same station) |
-| alrt_scr_s | Int | 5 | 1..60 (TFT alert time) |
+| alrt_scr_s | Int | 60 | 1..60 (TFT alert time) |
 | alrt_dst_km | Float | 1.0 | 0.1..500 |
 
 ### Weather alerts (3 keys, W)

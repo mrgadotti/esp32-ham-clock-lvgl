@@ -126,7 +126,7 @@ void configDefaults(Config& c) {
   c.aprs_int_min = 29;
   c.aprs_alert_en = c.aprs_al_near = c.led_al_en = true;
   c.aprs_alrt_sec = 300;
-  c.alrt_scr_s = 5;
+  c.alrt_scr_s = 60;
   c.alrt_dst_km = 1.0f;
   c.wx_w_thr = 12.0f;
   c.led_al_dur = 5000;
