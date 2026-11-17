@@ -20,7 +20,8 @@
 #define LV_DEF_REFR_PERIOD 16 /*[ms]*/
 #define LV_DPI_DEF 130        /*[px/inch]*/
 
-/*--- Software renderer: only the formats this build actually uses (RGB565 display, RGB565/ARGB8888 images) ---*/
+/*--- Software renderer: RGB565 (display, icons), RGB565A8 (opa_layered layers) and ARGB8888. Keep ARGB8888: LVGL hard-codes it
+ *    for corner-clip layers (the dropdown list's rounded strips); with it off they silently draw nothing. ---*/
 #define LV_DRAW_BUF_STRIDE_ALIGN 1
 #define LV_DRAW_BUF_ALIGN 4
 /* Layered draws (opacity, transform, some shadows) borrow this from LV_MEM; keep it small. */
@@ -39,11 +40,11 @@
 #define LV_USE_DRAW_SW_COMPLEX_GRADIENTS 0
 
 /*--- Asserts: a failed allocation or NULL logs over the console and reboots instead of hanging the UI task.
- *    esp_rom_printf is ROM code and ISR-safe; esp_restart() does not return.
+ *    esp_rom_printf is ROM code and ISR-safe; esp_rom_uart_tx_wait_idle flushes the line; esp_restart() does not return.
  *    No __FILE__/__LINE__: they cost about 3 KB of flash across the LVGL assert sites. ---*/
 #define LV_USE_ASSERT_NULL 1
 #define LV_USE_ASSERT_MALLOC 1
-#define LV_ASSERT_HANDLER { esp_rom_printf("[LV] assert\n"); esp_restart(); }
+#define LV_ASSERT_HANDLER { esp_rom_printf("[LV] assert\n"); esp_rom_uart_tx_wait_idle(0); esp_restart(); }
 
 #define LV_GRADIENT_MAX_STOPS 2
 #define LV_OBJ_STYLE_CACHE 0 /* default 1 costs RAM per object */
