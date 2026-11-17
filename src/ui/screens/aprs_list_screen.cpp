@@ -25,7 +25,6 @@ struct Menu {
   bool flag[4];  // beacon, alert, range, led
 };
 Menu* menu = nullptr;
-Menu pend;  // cfgUpdate takes a plain function pointer
 
 void closeMenu() {
   if (!menu) return;
@@ -94,9 +93,9 @@ class AprsListScreen : public Screen {
 
   static void onOk(lv_event_t*) {
     if (!menu) return;
-    pend = *menu;
+    const Menu pend = *menu;  // closeMenu() frees *menu
     closeMenu();
-    cfgUpdate([](Config& c) {
+    cfgUpdate([pend](Config& c) {
       c.aprs_sort = pend.sort;
       c.aprs_beacon = pend.flag[0];
       c.aprs_alert_en = pend.flag[1];

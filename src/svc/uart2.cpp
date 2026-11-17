@@ -68,11 +68,10 @@ void syncClock(const GpsState& g, uint32_t now) {
   g_timeSetMs = now | 1;
 }
 
-char g_saveAddr[13], g_saveName[41];  // cfgUpdate takes a plain function pointer
-void saveBridgePair() {
-  cfgUpdate([](Config& c) {
-    strlcpy(c.br_pair_addr, g_saveAddr, sizeof c.br_pair_addr);
-    strlcpy(c.br_pair_name, g_saveName, sizeof c.br_pair_name);
+void saveBridgePair(const char* addr, const char* name) {
+  cfgUpdate([addr, name](Config& c) {
+    strlcpy(c.br_pair_addr, addr, sizeof c.br_pair_addr);
+    strlcpy(c.br_pair_name, name, sizeof c.br_pair_name);
   });
 }
 }  // namespace
@@ -239,6 +238,7 @@ void uart2Task(void*) {
         char cmd[BRIDGE_CMD_MAX];
         bool have = false;
         bool save = false;
+        char saveAddr[13], saveName[41];
         xSemaphoreTake(g_mu, portMAX_DELAY);
         if (g_fsm) {
           g_fsm->tick(now);
@@ -246,14 +246,14 @@ void uart2Task(void*) {
           if (g_pairPending && g_fsm->pairResult != 0) {
             g_pairPending = false;
             if (g_fsm->pairResult > 0) {
-              strlcpy(g_saveAddr, g_fsm->pairedAddr, sizeof g_saveAddr);
-              strlcpy(g_saveName, g_fsm->pairedName, sizeof g_saveName);
+              strlcpy(saveAddr, g_fsm->pairedAddr, sizeof saveAddr);
+              strlcpy(saveName, g_fsm->pairedName, sizeof saveName);
               save = true;
             }
           }
         }
         xSemaphoreGive(g_mu);
-        if (save) saveBridgePair();
+        if (save) saveBridgePair(saveAddr, saveName);
         if (have) Serial2.println(cmd);
       }
 

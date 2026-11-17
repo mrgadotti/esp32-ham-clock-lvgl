@@ -16,9 +16,6 @@ namespace {
 constexpr uint32_t kRefreshMs = 1000;  // table rebuild is costly (up to 500 cells): at most 1 Hz
 constexpr size_t kTextMax = 15;        // the last column fits ~14 characters; shorter cell text saves LV_MEM
 
-int32_t pendMode, pendBand;  // cfgUpdate takes a plain function pointer
-const SpotListDef* pendDef;
-
 class SpotListScreen : public Screen {
  public:
   explicit SpotListScreen(const SpotListDef& d) : d_(d) {}
@@ -74,10 +71,9 @@ class SpotListScreen : public Screen {
 
   static void onSave() {
     if (!self_) return;
-    pendMode = self_->mode_;
-    pendBand = self_->band_;
-    pendDef = &self_->d_;
-    cfgUpdate([](Config& c) { c.*pendDef->modeKey = pendMode; c.*pendDef->bandKey = pendBand; });
+    const SpotListDef* def = &self_->d_;
+    int32_t mode = self_->mode_, band = self_->band_;
+    cfgUpdate([def, mode, band](Config& c) { c.*def->modeKey = mode; c.*def->bandKey = band; });
     self_->force_ = true;  // rebuild now with the new filter
   }
 
