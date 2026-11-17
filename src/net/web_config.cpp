@@ -1,4 +1,5 @@
 #include "web_config.h"
+#include "app/boot_log.h"
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
@@ -14,9 +15,6 @@
 #include "board.h"
 #include "config_html.h"
 
-#ifndef FW_VERSION
-#define FW_VERSION "2.0.0-dev"
-#endif
 
 namespace {
 const size_t kMaxBody = 6 * 1024;

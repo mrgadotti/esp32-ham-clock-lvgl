@@ -1,4 +1,5 @@
 #include "pota.h"
+#include "app/boot_log.h"
 
 #include <Arduino.h>
 #include <string.h>
@@ -70,4 +71,6 @@ void potaTick(uint32_t now) {
     for (size_t i = n; i-- > 0;) r.pushFront(spots[i]);
   });
   Serial.printf("[POTA] %u spots\n", (unsigned)n);
+  static bool logged;
+  if (!logged) { logged = true; bootLog("POTA ok, %u spots", (unsigned)n); }
 }

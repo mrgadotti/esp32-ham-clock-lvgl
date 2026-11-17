@@ -1,4 +1,5 @@
 #include "hamalert.h"
+#include "app/boot_log.h"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -124,6 +125,8 @@ void hamalertTick(uint32_t now) {
         return;
       }
       MEM_DIAG_ONCE("hamalert: after connect");
+      static bool logged;
+      if (!logged) { logged = true; bootLog("HamAlert connected"); }
       tStart = tStep = now;
       st = St::Banner;
       return;

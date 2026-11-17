@@ -1,4 +1,5 @@
 #include "svc/qrz.h"
+#include "app/boot_log.h"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -59,6 +60,8 @@ static bool login(uint32_t now) {
   s_keyAt = now;
   s_loginFailed = false;
   Serial.println("[QRZ] session ok");
+  static bool logged;
+  if (!logged) { logged = true; bootLog("QRZ login ok"); }
   return true;
 }
 

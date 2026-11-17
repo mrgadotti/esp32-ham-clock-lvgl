@@ -1,4 +1,5 @@
 #include "wifi_manager.h"
+#include "app/boot_log.h"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -67,6 +68,7 @@ void startAp() {
   }
   apUp = true;
   Serial.printf("[WIFI] AP %s up, IP %s\n", kApSsid, WiFi.softAPIP().toString().c_str());
+  bootLog("AP fallback %s", WiFi.softAPIP().toString().c_str());
 }
 
 void stopAp() {
@@ -87,6 +89,7 @@ bool beginSta(uint32_t now) {
     WiFi.setHostname("esp32-ham-clock");
     WiFi.begin(s, p);
     Serial.printf("[WIFI] connecting to %s\n", s);
+    bootLog("WiFi connecting to %s", s);
     stamp = now;
     return true;
   }
@@ -116,6 +119,7 @@ void wifiTick(uint32_t now) {
         retryFromAp = false;
         stopAp();
         Serial.printf("[WIFI] connected, IP %s\n", WiFi.localIP().toString().c_str());
+        bootLog("WiFi %s %d dBm", WiFi.localIP().toString().c_str(), (int)WiFi.RSSI());
         // This router's DHCP offers DNS 0.0.0.0 (option 6 unusable), so lwIP has no resolver: use public ones.
         if (WiFi.dnsIP(0) == IPAddress(0, 0, 0, 0)) {
           ip_addr_t d;
@@ -124,6 +128,7 @@ void wifiTick(uint32_t now) {
           IP_ADDR4(&d, 8, 8, 8, 8);
           dns_setserver(1, &d);
           Serial.println("[WIFI] DHCP gave no DNS, using 1.1.1.1 / 8.8.8.8");
+          bootLog("DNS fallback 1.1.1.1 / 8.8.8.8");
         }
         st = St::Connected;
       } else if (now - stamp > kConnectTimeoutMs) {

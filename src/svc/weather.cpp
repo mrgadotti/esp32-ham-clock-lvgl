@@ -1,4 +1,5 @@
 #include "svc/weather.h"
+#include "app/boot_log.h"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -53,6 +54,8 @@ static void fetchCurrent(uint32_t now, double lat, double lon) {
   g_store.weather.read([](const WeatherData& w) { s_w = w; });
   bool ok = httpGetJson(u, doc, &f) && weatherParseCurrent(doc, s_w);
   if (ok) {
+    static bool logged;
+    if (!logged) { logged = true; bootLog("Weather ok: %s", s_w.cityName); }
     s_w.fetchedAt = now | 1;
     JsonDocument af, ad;
     af["list"][0]["components"]["pm2_5"] = true;

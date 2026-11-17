@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <lvgl.h>
 
+#include "app/boot_log.h"
 #include "app/config_store.h"
 #include "app/data_store.h"
 #include "app/events.h"
@@ -88,7 +89,9 @@ static void perfReport() {
 static void uiTask(void*) {
   cfgRefreshUiSnapshot();
   applyCfgToHal();
-  if (!touchCalLoadSaved() || touchHeldAtBoot(2000)) touchCalRun(nullptr);
+  bool calOk = touchCalLoadSaved();
+  bootLog(calOk ? "Touch calibration loaded" : "Touch calibration needed");
+  if (!calOk || touchHeldAtBoot(2000)) touchCalRun(nullptr);
   uiInit();
   uint32_t lastMem = 0;
 #ifdef PERF_TEST
@@ -154,6 +157,21 @@ static void uiTask(void*) {
 constexpr uint32_t kSocketDelayMs = 3000;   // after the first HTTPS round
 constexpr uint32_t kRoundFallbackMs = 15000;  // first round is declared done anyway (no clock, no weather key...)
 
+// One boot-log line with the services the config enables (no hosts or credentials), then the heap state.
+static void logServices() {
+  char b[48] = "Svc: POTA PROP";  // no config switch: always on
+  auto add = [&](bool on, const char* n) { if (on) { strlcat(b, " ", sizeof b); strlcat(b, n, sizeof b); } };
+  cfgRead([&](const Config& c) {
+    add(c.cluster_host[0], "DX");
+    add(c.aprs_host[0] && c.user_callsign[0], "APRS");
+    add(c.hama_host[0] && c.hama_user[0] && c.hama_pass[0], "HAMA");
+    add(c.weather_key[0], "WX");
+    add(c.qrz_user[0] && c.qrz_pass[0], "QRZ");
+  });
+  bootLog("%s", b);
+  bootLog("Heap free %u max %u", (unsigned)ESP.getFreeHeap(), (unsigned)memLargest8());
+}
+
 static void netTask(void*) {
   webInit();
   uint32_t staAt = 0, roundAt = 0;
@@ -174,6 +192,7 @@ static void netTask(void*) {
     now = millis();  // the HTTPS fetches above can take seconds
     if (sta && !roundAt && (timeValid() || now - staAt >= kRoundFallbackMs)) {
       roundAt = now | 1;
+      logServices();
       g_store.net.write([](NetStatus& s) { s.roundDone = true; });  // releases the boot screen (ui_manager)
     }
     if (!sta || (roundAt && now - roundAt >= kSocketDelayMs)) {  // !sta: let the services close their sockets
@@ -196,15 +215,19 @@ void setup() {
 #else
   Serial.begin(115200);
 #endif
+  bootLog("ESP32-HAM-CLOCK %s", FW_VERSION);
   Serial.printf("[MEM] boot largest=%u free=%u\n", (unsigned)memLargest8(), (unsigned)ESP.getFreeHeap());
   Config boot;
   configStoreLoad(boot);
+  bootLog("Config: %s, %s", boot.user_callsign, boot.tft_lang ? "PT-BR" : "EN");
   displayInit(boot.tft_rot, boot.tft_inv);
+  bootLog("Display 320x240 rot %d inv %d", (int)boot.tft_rot, (int)boot.tft_inv);
   displaySetBacklight(boot.tft_backlight);
   Serial.printf("[MEM] after display largest=%u free=%u\n", (unsigned)memLargest8(), (unsigned)ESP.getFreeHeap());
   themeApply(lv_display_get_default());
   touchInit();
   touchCreateIndev();
+  bootLog("Touch ready");
   eventsInit();
   qrzInit();
   aprsIngestInit();

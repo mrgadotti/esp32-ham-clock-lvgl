@@ -1,4 +1,5 @@
 #include "svc/propagation.h"
+#include "app/boot_log.h"
 
 #include <Arduino.h>
 #include <time.h>
@@ -24,6 +25,8 @@ void propTick(uint32_t now) {
   if (httpGet("https://www.hamqsl.com/solarxml.php", httpBody, kHttpBodySize, 8000) &&
       parsePropagationXml(httpBody, p)) {
     p.fetchedAt = (uint32_t)time(nullptr);
+    static bool logged;
+    if (!logged) { logged = true; bootLog("Propagation ok"); }
     g_store.prop.write([&](PropagationData& d) { d = p; });
     nextAt = now + PROP_INTERVAL_MS;
   } else {

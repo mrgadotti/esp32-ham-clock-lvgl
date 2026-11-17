@@ -202,7 +202,11 @@ add("Settings", "info rows (300 px DOT)", "font_14", 300, ["SSID: " + "x" * 12, 
 # ---------------- Boot (boot_screen.cpp) ----------------
 add("Boot", "title font_24", "font_24", 320, ["ESP32-HAM-CLOCK"])
 add("Boot", "callsign font_24", "font_24", 320, ["PY2XXX-15/QRP"])
-add("Boot", "log lines (x=10)", "font_14", 300, T("Booting") + both("WiFi: %s", "Ok") + both("NTP: %s", "Ok") + ["NTP: ..."])
+add("Boot", "log lines (x=10, ellipsis if longer; 39 chars max)", "font_14", 300, [
+    "ESP32-HAM-CLOCK 2.0.0-dev", "Config: PY2XXX-15/QRP, PT-BR", "Display 320x240 rot 3 inv 1", "Touch calibration needed",
+    "WiFi connecting to MyHomeNetwork-5G", "WiFi 255.255.255.255 -100 dBm", "AP fallback 192.168.4.1",
+    "NTP synced 2026-11-16 12:00 UTC", "DNS fallback 1.1.1.1 / 8.8.8.8", "Svc: POTA PROP DX APRS HAMA WX QRZ",
+    "DX connected dxc.ve7cc.net:23", "Heap free 123456 max 123456"])
 
 # ---------------- Touch calibration (touch_cal_ui.cpp, centred label) ----------------
 add("Touch cal", "prompts (320 px)", "font_14", 320, T("CalTouch", "CalVerify", "CalBad", "CalFailed"))

@@ -1,4 +1,5 @@
 #include "aprs_is.h"
+#include "app/boot_log.h"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -118,6 +119,8 @@ void aprsIsTick(uint32_t now) {
       return;
     }
     MEM_DIAG_ONCE("aprs-is: after connect");
+    static bool logged;
+    if (!logged) { logged = true; bootLog("APRS-IS connected %s:%d", c.host, (int)c.port); }
     client.printf("user %s", c.call);
     if (c.ssid > 0) client.printf("-%d", (int)c.ssid);
     client.printf(" pass %s vers ESP32-HAM-CLOCK-LVGL 2.0", c.pass[0] ? c.pass : "-1");
