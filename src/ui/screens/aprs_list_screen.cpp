@@ -132,18 +132,18 @@ class AprsListScreen : public Screen {
     uiLabel(p, &font_14, lv_color_hex(0xC0C0C0), tr(Tr::SortBy), 8, 6);
     const Tr sn[] = {Tr::SortTime, Tr::SortCall, Tr::SortDist};
     for (int i = 0; i < 3; i++) menu->tile[i] = uiTile(p, tr(sn[i]), 8 + i * 96, 26, 92, 26, onTile, i);
-    uiLabel(p, &font_14, lv_color_hex(0xC0C0C0), tr(Tr::AprsSetting), 8, 66);
+    uiLabel(p, &font_14, lv_color_hex(0xC0C0C0), tr(Tr::AprsSetting), 8, 58);
     const Tr bn[] = {Tr::Beaconing, Tr::AprsAlert, Tr::RangeAlert, Tr::LedBuzzer};
     for (int i = 0; i < 4; i++) {
       lv_obj_t* cb = menu->box[i] = lv_checkbox_create(p);
       lv_checkbox_set_text(cb, tr(bn[i]));
       lv_obj_set_style_text_font(cb, &font_14, 0);
-      lv_obj_set_pos(cb, 24, 86 + i * 24);
+      lv_obj_set_pos(cb, 24, 76 + i * 22);
       if (menu->flag[i]) lv_obj_add_state(cb, LV_STATE_CHECKED);
       lv_obj_add_event_cb(cb, onBox, LV_EVENT_VALUE_CHANGED, (void*)(intptr_t)i);
     }
-    uiTile(p, tr(Tr::BeaconNow), 8, 180, 148, 24, onBeacon, 0);
-    uiTile(p, tr(Tr::ClearAprsList), 164, 180, 148, 24, onClear, 0);
+    uiTilePaint(uiTile(p, tr(Tr::BeaconNow), 8, 172, 148, 26, onBeacon, 0), false);
+    uiTilePaint(uiTile(p, tr(Tr::ClearAprsList), 164, 172, 148, 26, onClear, 0), false);
     lv_obj_t* ok = uiTile(p, tr(Tr::Ok), 40, 208, 100, 26, onOk, 0);
     lv_obj_t* cancel = uiTile(p, tr(Tr::Cancel), 180, 208, 100, 26, onCancel, 0);
     uiTilePaint(ok, true);
