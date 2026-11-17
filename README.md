@@ -43,6 +43,21 @@ and the network-dependent screens show their "no data" state).
 | <img src="docs/screenshots/07-propagation.png" width="200"><br>Propagation | <img src="docs/screenshots/08-bands.png" width="200"><br>HF bands | <img src="docs/screenshots/09-weather.png" width="200"><br>Weather |
 | <img src="docs/screenshots/10-forecast.png" width="200"><br>Forecast | <img src="docs/screenshots/11-location.png" width="200"><br>Location | <img src="docs/screenshots/12-settings.png" width="200"><br>Settings |
 
+### Web configuration page
+
+The configuration page served by the board, shown with placeholder values
+(callsign `PY0TEST`, fake WiFi network). The WiFi, Station and Display
+sections are expanded; the other sections are collapsed.
+
+<img src="docs/screenshots/web-desktop-en.png" width="600"><br>
+Desktop view (about 1000 px wide), English.
+
+<img src="docs/screenshots/web-desktop-pt.png" width="600"><br>
+Desktop view, PT-BR language selected in the header.
+
+<img src="docs/screenshots/web-phone-en.png" width="200"><br>
+Phone view (360 px wide), English. The layout stacks into one column.
+
 ## Hardware
 
 Two board targets are supported:
