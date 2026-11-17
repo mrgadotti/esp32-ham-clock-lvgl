@@ -4,6 +4,8 @@
 
 #include "../../src/app/config_store.cpp"
 
+void onConfigChanged() {}  // strong definition lives in events.cpp, not linked here
+
 void setUp() {
   g_stubNvs.clear();
   g_stubPuts = 0;
