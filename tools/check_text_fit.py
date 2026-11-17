@@ -193,7 +193,7 @@ add("Settings", "label beside slider (308-152)", "font_14", 308 - 152 - 4, T("Br
 add("Settings", "label beside switch (308-60)", "font_14", 308 - 60 - 4, T("NightDim", "InvertColors"))
 add("Settings", "label beside dropdown (308-120)", "font_14", 308 - 120 - 4, T("Rotation", "Language", "AutoSwitch", "AlertTime", "AprsRadius"))
 add("Settings", "dropdown option text (120 px - arrow)", "font_14", 120 - 40, ["Português", "300 s", "English", "100 km"])
-add("Settings", "action buttons (300 px - 16 pad)", "font_14", 300 - 16, T("CalibrateTouch"))
+add("Settings", "Calibrate touch button (max 150 px - 16 pad)", "font_14", 150 - 16, T("CalibrateTouch"))
 add("Settings", "title right of back arrow (x=44) vs end of bar", "font_18", 320 - 44 - 6, T("Settings"))
 add("Settings", "section heading", "font_14", 300, T("EnabledScreens"))
 add("Settings", "screen checkbox names", "font_14", 300 - 30, T("Clock", "DxCluster", "Propagation", "HfBands", "Weather", "AprsIs", "Pota", "HamAlert", "AprsRadar", "Forecast", "Location"))

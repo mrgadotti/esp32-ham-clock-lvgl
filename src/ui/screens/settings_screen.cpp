@@ -65,14 +65,13 @@ lv_obj_t* slider(lv_obj_t* parent, int32_t lo, int32_t hi, int32_t v) {
   return s;
 }
 
+// Small dark tile fitted to its label (8 px pad each side, max 150 px), left-aligned in the column list.
 void button(lv_obj_t* list, Tr t, lv_event_cb_t cb) {
-  lv_obj_t* b = lv_button_create(list);
-  lv_obj_set_size(b, lv_pct(100), 32);  // identical full-width buttons
-  lv_obj_t* l = lv_label_create(b);
-  lv_obj_set_style_text_font(l, &font_14, 0);
-  lv_label_set_text(l, tr(t));
-  lv_obj_center(l);
-  lv_obj_add_event_cb(b, cb, LV_EVENT_CLICKED, nullptr);
+  lv_obj_t* b = uiTile(list, tr(t), 0, 0, 0, 28, cb, 0);
+  uiTilePaint(b, false);
+  lv_obj_set_width(b, LV_SIZE_CONTENT);
+  lv_obj_set_style_max_width(b, 150, 0);
+  lv_obj_set_style_pad_hor(b, 8, 0);
 }
 
 class SettingsScreen : public Screen {
