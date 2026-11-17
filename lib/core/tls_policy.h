@@ -6,10 +6,10 @@
 // handshake (-32512). The real fix is ordering (the first HTTPS round runs before screen 1, see ui_manager), so the
 // threshold stays a transient-holder guard only; raising it would just burn the deferrals after the UI is up.
 // It never blocks for good: after kTlsMaxDeferrals deferrals the poll goes anyway.
-constexpr uint32_t kTlsMinBlock = 28u * 1024;
+constexpr uint32_t kTlsMinBlock = 33u * 1024;  // measured: handshake failed at 30708 and once at 32756, never at >= 34804
 constexpr uint8_t kTlsMaxDeferrals = 5;
 constexpr uint32_t kTlsDeferMs = 2000;
-constexpr uint32_t kTlsQuickRetryMs = 4000;
+constexpr uint32_t kTlsRetryMinMs = 4000, kTlsRetryMaxMs = 60000;  // allocation-failure retries: 4, 8, 16, 32, 60, 60 ... s
 constexpr int kMbedtlsAllocFailed = -0x7F00;  // MBEDTLS_ERR_SSL_ALLOC_FAILED, logged as -32512
 
 enum class TlsDecision : uint8_t { Go, Defer };
@@ -26,5 +26,6 @@ enum class TlsAction : uint8_t { Wait, Go, Defer };  // Wait: inside a defer win
 bool tlsGateWaiting(const TlsGate& g, uint32_t now);  // true: Wait, no need to measure the heap
 TlsAction tlsGateStep(TlsGate& g, uint32_t now, uint32_t largestFreeBlock);
 
-// One quick retry (kTlsQuickRetryMs) after an SSL allocation failure, instead of waiting for the next full interval.
-bool tlsQuickRetry(int mbedtlsError, bool alreadyRetried);
+// After an SSL allocation failure retry soon (and again, doubling to 60 s) instead of waiting for the next full interval.
+// `failures` counts consecutive allocation failures including this one (>= 1). Other errors: 0 = use the normal interval.
+uint32_t tlsAllocRetryMs(int mbedtlsError, uint8_t failures);

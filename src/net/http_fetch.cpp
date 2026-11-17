@@ -14,7 +14,8 @@ constexpr uint32_t HTTP_TIMEOUT_MS = 8000;
 
 char httpBody[kHttpBodySize];
 
-static bool s_allocFail, s_retryUsed;  // last fetch died of an SSL allocation failure; the quick retry was already given
+static uint32_t s_retryMs;    // retry delay for the last fetch if it died of an SSL allocation failure, else 0
+static uint8_t s_allocFails;  // consecutive SSL allocation failures
 
 bool httpPollGate(uint32_t now) {
   static TlsGate gate;
@@ -26,11 +27,9 @@ bool httpPollGate(uint32_t now) {
 }
 
 uint32_t httpQuickRetryMs() {
-  bool again = s_allocFail;
-  s_allocFail = false;
-  if (!again) return 0;
-  s_retryUsed = true;
-  return kTlsQuickRetryMs;
+  uint32_t ms = s_retryMs;
+  s_retryMs = 0;
+  return ms;
 }
 
 // Runs `body(http, ctx)` on a 200 response. Logs the host only: query strings carry credentials.
@@ -51,8 +50,12 @@ static bool fetch(const char* url, uint32_t timeoutMs, bool (*body)(HTTPClient&,
   MEM_DIAG_ONCE("first fetch: before");
   int code = http.GET();
   MEM_DIAG_ONCE("first fetch: after");
-  if (code == 200) s_retryUsed = s_allocFail = false;
-  else if (https) s_allocFail = tlsQuickRetry(sec.lastError(nullptr, 0), s_retryUsed);
+  if (code == 200) s_allocFails = s_retryMs = 0;
+  else if (https) {
+    int err = sec.lastError(nullptr, 0);
+    if (err == kMbedtlsAllocFailed && s_allocFails < 255) s_allocFails++;
+    s_retryMs = tlsAllocRetryMs(err, s_allocFails);
+  }
   const char* h = strstr(url, "://");
   h = h ? h + 3 : url;
   Serial.printf("[HTTP] GET %.*s -> %d (%u ms) largest=%u->%u free=%u\n", (int)strcspn(h, "/?:;"), h, code, (unsigned)(millis() - t0),

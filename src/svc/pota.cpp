@@ -50,7 +50,7 @@ void potaTick(uint32_t now) {
     g_store.net.write([](NetStatus& s) { s.potaFail = true; });
     bool empty = true;
     g_store.pota.read([&](const RingBuffer<Spot, 30>& r) { empty = r.size() == 0; });
-    uint32_t q = httpQuickRetryMs();  // one quick retry after an SSL allocation failure
+    uint32_t q = httpQuickRetryMs();  // retry soon after an SSL allocation failure
     uint32_t wait = q ? q : empty ? listRetryMs(fails) : kPeriodMs;  // empty list: retry sooner than the normal period
     if (fails < 255) fails++;
     last = now + wait - kPeriodMs;

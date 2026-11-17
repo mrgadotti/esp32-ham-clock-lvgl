@@ -12,7 +12,7 @@ extern char httpBody[kHttpBodySize];
 // next tick): it waits while HamAlert holds the line and defers (2 s, at most 5 times) while the largest free block is
 // too small for a TLS handshake.
 bool httpPollGate(uint32_t nowMs);
-// After a failed fetch: 4000 if it was an SSL allocation failure and the one quick retry is still available, else 0.
+// After a failed fetch: 4 s doubling to 60 s while SSL allocation keeps failing (reset by any 200), else 0 = normal interval.
 uint32_t httpQuickRetryMs();
 
 // Net task only. https uses setInsecure() (no CA pinning, as in the original).
