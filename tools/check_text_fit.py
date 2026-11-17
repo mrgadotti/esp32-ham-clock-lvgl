@@ -78,6 +78,7 @@ HDR_FREE = 320 - 6 - 6 - 6  # title x=6, clock margin 6, 6 px gap
 titles = ["Propagation", "HfBands", "Weather", "Forecast", "Location", "Settings", "AprsRadar", "DxCluster", "Pota", "HamAlert"]
 add("Header", "title vs clock 'hh:mm Z'", "font_18", HDR_FREE - CLK, T(*titles))
 add("Header", "APRS list title (x=46) vs clock", "font_18", HDR_FREE - 40 - CLK, T("AprsIs", "AprsKiss", "AprsTnc2"))
+add("Header", "DX/POTA/HamAlert title (x=46) vs clock", "font_18", HDR_FREE - 40 - CLK, T("DxCluster", "Pota", "HamAlert"))
 add("Header", "radar title vs 'x16' zoom", "font_18", HDR_FREE - width("font_18", "×16"), T("AprsRadar"))
 
 # ---------------- spot tables (spot_table.cpp: cell pad_left SPOT_TABLE_PAD_L = 1, pad_right 0, font_14) ----------------
@@ -226,16 +227,18 @@ add("Alert overlay", "weather alert body (226 px beside icon)", "font_18", 226,
 add("Alert overlay", "beacon body (290 px)", "font_18", 290, ["PY2XXX-15", "-23.12345,-046.12345", "WIDE1-1,WIDE2-1"])
 
 # ---------------- report ----------------
-bad = 0
+bad = warn = 0  # WARN: fits, but within 1 px of the limit (kerning is ignored, so the real width may differ by ~1 px)
 cur = None
 for screen, item, font, avail, strs in rows:
     worst = max(strs, key=lambda s: width(font, s))
     w = width(font, worst)
     over = w > avail
+    tight = not over and w >= avail - 1
     bad += over
+    warn += tight
     if screen != cur:
         print(f"\n== {screen}")
         cur = screen
-    print(f"  {'OVERFLOW' if over else 'ok':8} {item:52} {font:13} need {w:4} / {avail:4}  {worst!r}")
-print(f"\n{bad} overflow(s) in {len(rows)} checks")
+    print(f"  {'OVERFLOW' if over else 'WARN' if tight else 'ok':8} {item:52} {font:13} need {w:4} / {avail:4}  {worst!r}")
+print(f"\n{bad} overflow(s), {warn} tight (<= 1 px slack) in {len(rows)} checks")
 sys.exit(1 if bad else 0)
