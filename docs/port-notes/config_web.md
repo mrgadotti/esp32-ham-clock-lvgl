@@ -58,7 +58,7 @@ hama_host (def hamalert.org), hama_port (Int def 7300, 1..65535 else default), h
 | aprs_callsign | String | "nocall" | trim; empty -> falls back to user_callsign (getAprsBaseCallsign 14783) |
 | aprs_passcode | Int | 0 | web `parseInt||0` |
 | aprs_ssid | Int | 0 | clamp 0..15 (normalizeAprsSsid 14767) |
-| aprs_radius | Int | 10 | clamp 1..50 |
+| aprs_radius | Int | 10 | clamp 1..100 |
 | (filter pos uses user_lat/lon, no separate keys) | | | |
 
 ### APRS TX beacon (4 keys, W)
@@ -189,7 +189,7 @@ Config fields (about 66 unique, excluding qrz_status RO):
 - HamAlert: hamalert_host, hamalert_port, hamalert_login, hamalert_password
 - Station: user_callsign, user_locator, timezone (step 0.5, -12..14), user_lat, user_lon, use_gps_if_active
 - QRZ/WX/SDR: qrz_user, qrz_pass, qrz_status (RO), weather_key, openwebrx_url
-- APRS-IS: aprs_host, aprs_port, aprs_callsign, aprs_ssid (select 0-15), aprs_passcode, aprs_radius (UI min 0 max 50; server clamps 1..50), aprs_beacon, aprs_symbol (maxlength 2), aprs_comment (maxlength 43), aprs_interval_min
+- APRS-IS: aprs_host, aprs_port, aprs_callsign, aprs_ssid (select 0-15), aprs_passcode, aprs_radius (UI min 0; server clamps 1..100), aprs_beacon, aprs_symbol (maxlength 2), aprs_comment (maxlength 43), aprs_interval_min
 - Alerts: aprs_alert, aprs_alert_enabled, aprs_alert_nearby_enabled, aprs_alert_wx_enabled, aprs_alert_min_sec, aprs_alert_screen_sec, aprs_alert_distance_km, enable_led_alert, led_alert_duration_ms, led_alert_blink_ms, weather_alert_storm_enabled, weather_alert_wind_enabled, weather_alert_wind_threshold_ms
 - TFT: tft_backlight (range), tft_night_dimming (range), tft_lang, tft_style, table_size, tft_rotation, tft_invert (select "0"/"1" sent as bool), tft_auto_switch, tft_switch_time_sec, touch_rotation, touch_swap_mode, screen_slot_1..12 (-> screen_order[])
 - Not in the UI but in the API/NVS: pota_host, pota_port, pota_filter, menu_hue (sent by neither form; /api/save leaves menu_hue alone but resets pota_port).

@@ -64,9 +64,10 @@ class AprsRadarScreen : public Screen {
     uint32_t v = g_store.aprs.version();
     double la = 0, lo = 0;
     bool me = serviceCoords(la, lo);
+    const int32_t rad = cfg().aprs_radius;
     // QTH or radius change moves every station: recompute, not only on new data
-    if (v == ver_ && me == me_ && la == la_ && lo == lo_) return;
-    ver_ = v; me_ = me; la_ = la; lo_ = lo;
+    if (v == ver_ && me == me_ && la == la_ && lo == lo_ && rad == rad_) return;
+    ver_ = v; me_ = me; la_ = la; lo_ = lo; rad_ = rad;
     n_ = 0;
     g_store.aprs.read([&](const RingBuffer<AprsStation, 30>& r) {
       for (size_t i = 0; i < r.size() && n_ < MAXN; i++) {
@@ -90,6 +91,7 @@ class AprsRadarScreen : public Screen {
   uint32_t ver_ = ~0u;
   bool me_ = false;
   double la_ = 0, lo_ = 0;
+  int32_t rad_ = -1;
 
   void viewChanged() {
     if (view_.zoom > 1.0f) {
@@ -122,7 +124,7 @@ class AprsRadarScreen : public Screen {
     lv_draw_arc(l, &d);
   }
   // Range ring. lv_draw_arc builds circle masks of ~22 B per pixel of radius in LV_MEM and a failed allocation halts
-  // (LV_ASSERT_MALLOC): at 8x the rings are 800 px, so big rings are drawn as chords (sagitta <= 0.5 px) and only
+  // (LV_ASSERT_MALLOC): at 10x the rings are 1000 px, so big rings are drawn as chords (sagitta <= 0.5 px) and only
   // those that touch the layer's current clip area become draw tasks (onDraw runs once per render chunk).
   // Rings that miss the screen are skipped; the angle advances by a rotation, no trig per segment.
   static void ring(lv_layer_t* l, int cx, int cy, int r, lv_color_t c) {

@@ -79,7 +79,7 @@ titles = ["Propagation", "HfBands", "Weather", "Forecast", "Location", "Settings
 add("Header", "title vs clock 'hh:mm Z'", "font_18", HDR_FREE - CLK, T(*titles))
 add("Header", "APRS list title (x=46) vs clock", "font_18", HDR_FREE - 40 - CLK, T("AprsIs", "AprsKiss", "AprsTnc2"))
 add("Header", "DX/POTA/HamAlert title (x=46) vs clock", "font_18", HDR_FREE - 40 - CLK, T("DxCluster", "Pota", "HamAlert"))
-add("Header", "radar title vs 'x16' zoom", "font_18", HDR_FREE - width("font_18", "×16"), T("AprsRadar"))
+add("Header", "radar title vs 'x10' zoom", "font_18", HDR_FREE - width("font_18", "×10"), T("AprsRadar"))
 
 # ---------------- spot tables (spot_table.cpp: cell pad_left SPOT_TABLE_PAD_L = 1, pad_right 0, font_14) ----------------
 PAD = 1
@@ -189,8 +189,8 @@ add("Location", "toast SAVED/NO FIX (left of button)", "font_18", 202 - 8 - 8, T
 # ---------------- Settings (settings_screen.cpp: row 308 px; dropdown/slider widgets 120+) ----------------
 add("Settings", "label beside slider (308-152)", "font_14", 308 - 152 - 4, T("Brightness"))
 add("Settings", "label beside switch (308-60)", "font_14", 308 - 60 - 4, T("NightDim", "InvertColors"))
-add("Settings", "label beside dropdown (308-120)", "font_14", 308 - 120 - 4, T("Rotation", "Language", "AutoSwitch", "AlertTime"))
-add("Settings", "dropdown option text (120 px - arrow)", "font_14", 120 - 40, ["Português", "300 s", "English"])
+add("Settings", "label beside dropdown (308-120)", "font_14", 308 - 120 - 4, T("Rotation", "Language", "AutoSwitch", "AlertTime", "AprsRadius"))
+add("Settings", "dropdown option text (120 px - arrow)", "font_14", 120 - 40, ["Português", "300 s", "English", "100 km"])
 add("Settings", "calibrate button / heading", "font_14", 300, T("CalibrateTouch", "EnabledScreens"))
 add("Settings", "screen checkbox names", "font_14", 300 - 30, T("Clock", "DxCluster", "Propagation", "HfBands", "Weather", "AprsIs", "Pota", "HamAlert", "AprsRadar", "Forecast", "Location"))
 add("Settings", "info rows (300 px DOT)", "font_14", 300, ["SSID: " + "x" * 12, "IP: 255.255.255.255", "RSSI: -100 dBm", "%s: 999999 B" % TR["FreeHeap"][1], "%s: Nov 16 2026 12:00:00" % TR["Firmware"][1]])

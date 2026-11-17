@@ -13,10 +13,13 @@ void test_zoom_recenters() {
   TEST_ASSERT_EQUAL_FLOAT(2, v.zoom);
   int16_t x, y; TEST_ASSERT_TRUE(radarProject(v, 25, 90, 50, 100, 160, 128, x, y));
   TEST_ASSERT_EQUAL(160, x); TEST_ASSERT_EQUAL(128, y); }
-void test_zoom_caps_at_8() {
+void test_zoom_steps_and_caps_at_10() {
   RadarView v = radarReset();
-  for (int i = 0; i < 5; i++) v = radarZoomAt(v, 160, 128, 50, 100, 160, 128);
-  TEST_ASSERT_EQUAL_FLOAT(8, v.zoom); }
+  const float want[] = {2, 4, 8, 10, 10};
+  for (float z : want) {
+    v = radarZoomAt(v, 160, 128, 50, 100, 160, 128);
+    TEST_ASSERT_EQUAL_FLOAT(z, v.zoom);
+  } }
 void test_outside_returns_false() {
   int16_t x, y; TEST_ASSERT_FALSE(radarProject({1, 0, 0}, 200, 90, 50, 100, 160, 128, x, y)); }
 void test_zoom_tap_north_sets_cy() {
@@ -35,5 +38,5 @@ void test_invalid_inputs() {
   RadarView v = radarZoomAt({2, 3, 4}, 200, 100, 0, 100, 160, 128);
   TEST_ASSERT_EQUAL_FLOAT(2, v.zoom); TEST_ASSERT_EQUAL_FLOAT(3, v.cxKm); TEST_ASSERT_EQUAL_FLOAT(4, v.cyKm); }
 int main() { UNITY_BEGIN(); RUN_TEST(test_project_east); RUN_TEST(test_project_north); RUN_TEST(test_zoom_recenters);
-  RUN_TEST(test_zoom_caps_at_8); RUN_TEST(test_outside_returns_false);
+  RUN_TEST(test_zoom_steps_and_caps_at_10); RUN_TEST(test_outside_returns_false);
   RUN_TEST(test_zoom_tap_north_sets_cy); RUN_TEST(test_project_west_south); RUN_TEST(test_invalid_inputs); return UNITY_END(); }

@@ -19,6 +19,6 @@ RadarView radarZoomAt(const RadarView& v, int16_t tapX, int16_t tapY, float rang
   RadarView n;
   n.cxKm = v.cxKm + (tapX - originX) / s;
   n.cyKm = v.cyKm - (tapY - originY) / s;
-  n.zoom = v.zoom * 2 > 8 ? 8 : v.zoom * 2;
+  n.zoom = v.zoom * 2 > 10 ? 10 : v.zoom * 2;
   return n;
 }

@@ -27,6 +27,7 @@ static_assert(sizeof kScreens / sizeof *kScreens == sizeof kScreenNames / sizeof
               "kScreens and kScreenNames must list the same screens");
 const int32_t kSwSec[] = {10, 15, 30, 60, 120, 300};
 const int32_t kAlertSec[] = {5, 10, 15, 30, 45, 60};  // alrt_scr_s presets (config range 1..60)
+const int32_t kAprsKm[] = {5, 10, 15, 20, 30, 50, 100};  // aprs_radius presets (config range 1..100)
 
 lv_obj_t* row(lv_obj_t* list, const char* text) {
   lv_obj_t* r = lv_obj_create(list);
@@ -155,6 +156,14 @@ class SettingsScreen : public Screen {
       cfgUpdate([v](Config& c) { c.alrt_scr_s = v; });
     });
 
+    uint32_t rsel = 0;
+    for (uint32_t i = 1; i < sizeof kAprsKm / sizeof *kAprsKm; i++)
+      if (abs(kAprsKm[i] - c.aprs_radius) < abs(kAprsKm[rsel] - c.aprs_radius)) rsel = i;
+    dd_[4] = dropdown(list, tr(Tr::AprsRadius), "5 km\n10 km\n15 km\n20 km\n30 km\n50 km\n100 km", rsel, [](lv_event_t* e) {
+      int32_t v = kAprsKm[lv_dropdown_get_selected((lv_obj_t*)lv_event_get_target(e))];
+      cfgUpdate([v](Config& c) { c.aprs_radius = v; });  // APRS-IS reconnects with the new filter (aprs_is.cpp sameSession)
+    });
+
     uiLabel(list, &font_14, COL_ACCENT, tr(Tr::EnabledScreens));
     for (size_t i = 0; i < sizeof kScreens / sizeof *kScreens; i++) {
       lv_obj_t* cb = lv_checkbox_create(list);
@@ -206,7 +215,7 @@ class SettingsScreen : public Screen {
     lv_label_set_text(info_[i], t);
   }
 
-  lv_obj_t *nd_ = nullptr, *ndSlider_ = nullptr, *dd_[4] = {}, *info_[5] = {};
+  lv_obj_t *nd_ = nullptr, *ndSlider_ = nullptr, *dd_[5] = {}, *info_[5] = {};
   char cache_[4][48] = {};
   uint32_t lastInfo_ = 0;
 };
