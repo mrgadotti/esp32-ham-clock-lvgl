@@ -15,9 +15,9 @@ bool timeValid() {
 }
 
 void localTimeOf(time_t utc, struct tm& out) {
-  Config c;
-  cfgGet(c);
-  utc += (time_t)(c.timezone * 3600.0f);
+  float tz = 0;
+  cfgRead([&](const Config& c) { tz = c.timezone; });  // not cfgGet: a 1.3 KB Config on the caller's stack
+  utc += (time_t)(tz * 3600.0f);
   gmtime_r(&utc, &out);
 }
 

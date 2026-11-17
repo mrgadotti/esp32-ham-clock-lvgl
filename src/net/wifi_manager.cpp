@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <esp_wifi.h>
 #include <lwip/dns.h>
 
 #include "app/config_store.h"
@@ -24,11 +25,29 @@ bool apUp = false;
 bool retryFromAp = false;
 Config c;
 
+// Runs every second: no String temporaries (IPAddress::toString, WiFi.SSID) so the net task does not churn the heap
+// next to TLS. IP/SSID text is rebuilt only when the link or address changes.
 void publish() {
+  static bool lastSta = false, lastAp = false;
+  static uint32_t lastAddr = 0;
+  static char ip[16] = "", ssid[33] = "";
   bool sta = WiFi.status() == WL_CONNECTED;
-  char ip[16], ssid[33];
-  strlcpy(ip, sta ? WiFi.localIP().toString().c_str() : (apUp ? WiFi.softAPIP().toString().c_str() : ""), sizeof ip);
-  strlcpy(ssid, sta ? WiFi.SSID().c_str() : (apUp ? kApSsid : ""), sizeof ssid);
+  uint32_t addr = sta ? (uint32_t)WiFi.localIP() : apUp ? (uint32_t)WiFi.softAPIP() : 0;
+  if (sta != lastSta || apUp != lastAp || addr != lastAddr) {
+    lastSta = sta;
+    lastAp = apUp;
+    lastAddr = addr;
+    snprintf(ip, sizeof ip, "%u.%u.%u.%u", (unsigned)(addr & 255), (unsigned)(addr >> 8 & 255),
+             (unsigned)(addr >> 16 & 255), (unsigned)(addr >> 24));
+    if (!addr) ip[0] = 0;
+    wifi_config_t wc;
+    if (sta && esp_wifi_get_config(WIFI_IF_STA, &wc) == ESP_OK) {
+      memcpy(ssid, wc.sta.ssid, 32);  // sta.ssid has no NUL for a 32-char SSID
+      ssid[32] = 0;
+    } else {
+      strlcpy(ssid, apUp && !sta ? kApSsid : "", sizeof ssid);
+    }
+  }
   int8_t rssi = sta ? WiFi.RSSI() : 0;
   g_store.net.write([&](NetStatus& n) {
     n.sta = sta;

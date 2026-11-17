@@ -12,6 +12,7 @@
 #include "ax25_kiss.h"
 #include "board.h"
 #include "bridge_proto.h"
+#include "gps_time.h"
 #include "nmea.h"
 #include "net/time_service.h"
 
@@ -54,24 +55,13 @@ bool samePort(const PortCfg& a, const PortCfg& b) {
   return a.mode == b.mode && a.baud == b.baud && a.dbits == b.dbits && a.stop == b.stop && !strcmp(a.par, b.par);
 }
 
-// Days since 1970-01-01 for a civil date (Hinnant's algorithm); newlib has no timegm.
-int64_t daysFromCivil(int y, int m, int d) {
-  y -= m <= 2;
-  int era = (y >= 0 ? y : y - 399) / 400;
-  int yoe = y - era * 400;
-  int doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
-  int doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-  return (int64_t)era * 146097 + doe - 719468;
-}
-
 void syncClock(const GpsState& g, uint32_t now) {
   if (!g.fix || !g.date || !g.utc) return;
   if (g_timeSetMs && now - g_timeSetMs < 60000UL) return;
   if (ntpSyncedWithin(2UL * 3600 * 1000)) return;
-  int d = g.date / 10000, mo = g.date / 100 % 100, y = 2000 + g.date % 100;
-  int hh = g.utc / 10000, mi = g.utc / 100 % 100, ss = g.utc % 100;
-  if (y < 2024 || mo < 1 || mo > 12 || d < 1 || d > 31 || hh > 23 || mi > 59 || ss > 59) return;
-  struct timeval tv = {(time_t)(daysFromCivil(y, mo, d) * 86400 + hh * 3600 + mi * 60 + ss), 0};
+  int64_t t;
+  if (!gpsToUnix(g.date, g.utc, t)) return;
+  struct timeval tv = {(time_t)t, 0};
   settimeofday(&tv, nullptr);
   g_timeSetMs = now | 1;
 }
