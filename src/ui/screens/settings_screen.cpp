@@ -174,6 +174,7 @@ class SettingsScreen : public Screen {
     });
     button(list, Tr::BeaconNow, [](lv_event_t*) { aprsBeaconRequest(); });
     button(list, Tr::ClearAprsList, [](lv_event_t*) { g_store.aprs.write([](RingBuffer<AprsStation, 30>& r) { r.clear(); }); });
+    button(list, Tr::ClearDxList, [](lv_event_t*) { g_store.dx.write([](RingBuffer<Spot, kDxSpots>& r) { r.clear(); }); });
 
     uiLabel(list, &font_14, COL_ACCENT, tr(Tr::EnabledScreens));
     for (size_t i = 0; i < sizeof kScreens / sizeof *kScreens; i++) {
