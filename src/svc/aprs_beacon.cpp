@@ -1,6 +1,7 @@
 #include "aprs_beacon.h"
 
 #include <Arduino.h>
+#include <atomic>
 #include <ctype.h>
 #include <string.h>
 
@@ -26,8 +27,11 @@ uint32_t cfgVer;
 bool haveCfg;
 
 bool armed, everSent;  // armed: due is scheduled; cleared whenever the channel is not ready
+std::atomic<bool> beaconReq;  // set by the UI task, consumed by the tick
 uint32_t due, lastTx, count;  // lastTx/count survive reconnects so the cadence is kept
 }  // namespace
+
+void aprsBeaconRequest() { beaconReq = true; }
 
 void aprsBeaconTick(uint32_t now) {
   uint32_t v = cfgVersion();
@@ -46,18 +50,20 @@ void aprsBeaconTick(uint32_t now) {
   double lat = 0, lon = 0;
   bool ready = c.beacon && aprsTxCallValid(c.call) && serviceCoords(lat, lon) &&
                (kiss || aprsIsReadyToSend());
+  bool force = beaconReq.exchange(false);  // a request while not ready is dropped
   if (!ready) {
     armed = false;
     return;
   }
-  if (!armed) {  // wait 60 s after ready, and the rest of the interval since the last TX
+  if (force) armed = true;
+  else if (!armed) {  // wait 60 s after ready, and the rest of the interval since the last TX
     armed = true;
     due = now + kFirstDelayMs;
     uint32_t next = lastTx + (uint32_t)c.intMin * 60000u;
     if (everSent && (int32_t)(next - due) > 0) due = next;
     return;
   }
-  if ((int32_t)(now - due) < 0) return;
+  if (!force && (int32_t)(now - due) < 0) return;
   due = now + (uint32_t)c.intMin * 60000u;
 
   char call[12];
