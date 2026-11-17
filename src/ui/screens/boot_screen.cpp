@@ -29,7 +29,7 @@ lv_obj_t* bootScreenCreate() {
 
 void bootScreenUpdate(bool wifiUp) {
   if (!log) return;
-  lv_label_set_text_fmt(log, "%s\nWiFi: %s\nNTP: %s", tr(Tr::Booting), wifiUp ? "OK" : "...",
-                        timeValid() ? "OK" : "...");
+  lv_label_set_text_fmt(log, "%s\nWiFi: %s\nNTP: %s", tr(Tr::Booting), wifiUp ? tr(Tr::Ok) : "...",
+                        timeValid() ? tr(Tr::Ok) : "...");
   lv_obj_align(log, LV_ALIGN_BOTTOM_LEFT, 10, -10);
 }

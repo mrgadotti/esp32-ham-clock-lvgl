@@ -6,7 +6,9 @@
 // The UTC clock lives in header.h (headerTickUtc).
 
 // Label with font, colour and text, placed at (x, y) of the parent (callers that align it afterwards can omit x/y).
-lv_obj_t* uiLabel(lv_obj_t* parent, const lv_font_t* font, lv_color_t color, const char* text, int x = 0, int y = 0);
+// w > 0 fixes the width; align is only set when not AUTO.
+lv_obj_t* uiLabel(lv_obj_t* parent, const lv_font_t* font, lv_color_t color, const char* text, int x = 0, int y = 0,
+                  int w = 0, lv_text_align_t align = LV_TEXT_ALIGN_AUTO);
 
 // Clickable rounded tile with a centred font_14 label; `id` is passed to cb as user data (CLICKED).
 lv_obj_t* uiTile(lv_obj_t* parent, const char* text, int x, int y, int w, int h, lv_event_cb_t cb, intptr_t id);

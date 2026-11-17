@@ -11,18 +11,16 @@
 #include "../fonts/fonts.h"
 #include "../theme.h"
 #include "../widgets/header.h"
+#include "../widgets/ui_kit.h"
 
 namespace {
-double pendLat, pendLon;  // cfgUpdate takes a plain function pointer (UI task only)
-
 class LocationScreen : public Screen {
  public:
   ScreenId id() const override { return ScreenId::Location; }
 
   void create(lv_obj_t* p) override {
     hdr_ = headerCreate(p, Tr::Location);
-    info_ = lv_label_create(p);
-    lv_obj_set_style_text_font(info_, &font_18, 0);
+    info_ = uiLabel(p, &font_18, COL_TEXT, "");
     lv_obj_set_style_text_line_space(info_, 6, 0);
     lv_obj_align(info_, LV_ALIGN_TOP_LEFT, 8, HEADER_H + 8);
     lv_obj_t* b = lv_button_create(p);
@@ -32,10 +30,8 @@ class LocationScreen : public Screen {
     lv_obj_t* l = lv_label_create(b);
     lv_label_set_text(l, tr(Tr::Save));
     lv_obj_center(l);
-    toast_ = lv_label_create(p);
-    lv_obj_set_style_text_font(toast_, &font_18, 0);
+    toast_ = uiLabel(p, &font_18, COL_TEXT, "");
     lv_obj_align(toast_, LV_ALIGN_BOTTOM_LEFT, 8, -8);  // below the 6 info lines (end at y~190)
-    lv_label_set_text(toast_, "");
     refresh();
   }
 
@@ -55,6 +51,7 @@ class LocationScreen : public Screen {
   lv_obj_t *hdr_, *info_, *toast_;
   uint32_t ver_ = 0, lastMs_ = 0, toastUntil_ = 0;
   GpsState g_{};
+  char buf_[256];  // member: keeps 256 B off the UI task stack
 
   bool fixNow() const { return g_.fix && millis() - g_.lastFixMs < 15000; }
 
@@ -62,18 +59,18 @@ class LocationScreen : public Screen {
     ver_ = g_store.gps.version();
     g_store.gps.read([&](const GpsState& v) { g_ = v; });
     bool fix = fixNow();
-    char loc[7] = "------", buf[256];
+    char loc[7] = "------";
     if (fix) latLonToLocator(g_.lat, g_.lon, loc);
-    int n = snprintf(buf, sizeof buf, "%s %s  %s %s\n%s %u (G%u R%u E%u B%u)\n", tr(Tr::GpsLabel),
+    int n = snprintf(buf_, sizeof buf_, "%s %s  %s %s\n%s %u (G%u R%u E%u B%u)\n", tr(Tr::GpsLabel),
                      tr(g_.active ? Tr::GpsActive : Tr::GpsInactive), tr(Tr::Fix), tr(fix ? Tr::Yes : Tr::No), tr(Tr::Sats),
                      g_.sats, g_.satsGps, g_.satsGlo, g_.satsGal, g_.satsBds);
     if (fix)
-      snprintf(buf + n, sizeof buf - n, "%s %.5f\n%s %.5f\n%s %.1f km/h\n%s %s", tr(Tr::Lat), g_.lat, tr(Tr::Lon), g_.lon,
-               tr(Tr::Speed), g_.speedKmh, tr(Tr::Locator), loc);
+      snprintf(buf_ + n, sizeof buf_ - n, "%s %.5f\n%s %.5f\n%s %.1f %s\n%s %s", tr(Tr::Lat), g_.lat, tr(Tr::Lon), g_.lon,
+               tr(Tr::Speed), g_.speedKmh, tr(Tr::KmH), tr(Tr::Locator), loc);
     else
-      snprintf(buf + n, sizeof buf - n, "%s --\n%s --\n%s --\n%s %s", tr(Tr::Lat), tr(Tr::Lon), tr(Tr::Speed),
+      snprintf(buf_ + n, sizeof buf_ - n, "%s --\n%s --\n%s --\n%s %s", tr(Tr::Lat), tr(Tr::Lon), tr(Tr::Speed),
                tr(Tr::Locator), loc);
-    if (strcmp(lv_label_get_text(info_), buf)) lv_label_set_text(info_, buf);
+    if (strcmp(lv_label_get_text(info_), buf_)) lv_label_set_text(info_, buf_);
   }
 
   static void onSave(lv_event_t* e) {
@@ -81,11 +78,10 @@ class LocationScreen : public Screen {
     s->refresh();
     bool fix = s->fixNow();
     if (fix) {
-      pendLat = s->g_.lat;
-      pendLon = s->g_.lon;
-      cfgUpdate([](Config& c) {
-        c.user_lat = pendLat;
-        c.user_lon = pendLon;
+      const double lat = s->g_.lat, lon = s->g_.lon;
+      cfgUpdate([lat, lon](Config& c) {
+        c.user_lat = lat;
+        c.user_lon = lon;
         c.user_ll_ok = true;
       });
     }

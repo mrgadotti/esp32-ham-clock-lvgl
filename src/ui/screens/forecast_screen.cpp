@@ -12,6 +12,7 @@
 #include "../fonts/fonts.h"
 #include "../theme.h"
 #include "../widgets/header.h"
+#include "../widgets/ui_kit.h"
 
 namespace {
 constexpr int COLS = 4, COL_W = 79;
@@ -34,15 +35,15 @@ class ForecastScreen : public Screen {
         lv_obj_set_style_bg_color(l, lv_color_hex(0x404040), 0);
         lv_obj_set_style_bg_opa(l, LV_OPA_COVER, 0);
       }
-      head_[c] = wxLabel(p, &font_18, COL_ACCENT, x, 32, COL_W, LV_TEXT_ALIGN_CENTER);
-      temp_[c] = wxLabel(p, &font_18, CYAN, x, 60, COL_W, LV_TEXT_ALIGN_CENTER);
-      night_[c] = wxLabel(p, &font_14, GREY, x, 84, COL_W, LV_TEXT_ALIGN_CENTER);
-      hum_[c] = wxLabel(p, &font_18, COL_TEXT, x, 104, COL_W, LV_TEXT_ALIGN_CENTER);
-      wind_[c] = wxLabel(p, &font_14, COL_TEXT, x, 132, COL_W, LV_TEXT_ALIGN_CENTER);
+      head_[c] = uiLabel(p, &font_18, COL_ACCENT, "", x, 32, COL_W, LV_TEXT_ALIGN_CENTER);
+      temp_[c] = uiLabel(p, &font_18, CYAN, "", x, 60, COL_W, LV_TEXT_ALIGN_CENTER);
+      night_[c] = uiLabel(p, &font_14, GREY, "", x, 84, COL_W, LV_TEXT_ALIGN_CENTER);
+      hum_[c] = uiLabel(p, &font_18, COL_TEXT, "", x, 104, COL_W, LV_TEXT_ALIGN_CENTER);
+      wind_[c] = uiLabel(p, &font_14, COL_TEXT, "", x, 132, COL_W, LV_TEXT_ALIGN_CENTER);
       icon_[c] = wxIconCreate(p, x + (COL_W - 50) / 2, 158);
     }
-    msg_ = wxLabel(p, &font_18, COL_ERROR, 12, 90, 296);
-    foot_ = wxLabel(p, &font_14, lv_color_hex(0x52AA52), 0, 222, 320, LV_TEXT_ALIGN_CENTER);
+    msg_ = uiLabel(p, &font_18, COL_ERROR, "", 12, 90, 296);
+    foot_ = uiLabel(p, &font_14, lv_color_hex(0x52AA52), "", 0, 222, 320, LV_TEXT_ALIGN_CENTER);
     lv_label_set_long_mode(foot_, LV_LABEL_LONG_DOT);
     lv_obj_set_height(foot_, 18);
     refresh(true);
@@ -54,6 +55,7 @@ class ForecastScreen : public Screen {
   lv_obj_t *hdr_, *head_[COLS], *temp_[COLS], *night_[COLS], *hum_[COLS], *wind_[COLS], *icon_[COLS], *msg_, *foot_;
   uint32_t ver_ = ~0u;
   char clock_[8] = "", foot2_[96] = "";
+  WeatherData w_;  // member, not a stack local (K-03)
 
   void refresh(bool force) {
     char clk[8];
@@ -67,7 +69,7 @@ class ForecastScreen : public Screen {
     uint32_t v = g_store.weather.version();
     if (!force && v == ver_) return;
     ver_ = v;
-    WeatherData w;
+    WeatherData& w = w_;
     g_store.weather.read([&](const WeatherData& s) { w = s; });
     const bool haveKey = cfg().weather_key[0] != 0;
     char b[96];
@@ -102,7 +104,7 @@ class ForecastScreen : public Screen {
       }
       lv_label_set_text_fmt(temp_[c], "%.0f\xC2\xB0", (double)w.detailTempC[c]);
       if (c >= 2 && w.nightTempValid[c - 2])
-        lv_label_set_text_fmt(night_[c], "%s %.0f\xC2\xB0", tr(Tr::ColNight), (double)w.nightTempC[c - 2]);
+        lv_label_set_text_fmt(night_[c], "%s %.0f", tr(Tr::ColNight), (double)w.nightTempC[c - 2]);
       else lv_label_set_text(night_[c], c >= 2 ? "--" : "");
       lv_label_set_text_fmt(hum_[c], "%d%%", w.detailHumidity[c]);
       lv_label_set_text_fmt(wind_[c], "%.1f%s", (double)w.detailWindMs[c], tr(Tr::Ms));

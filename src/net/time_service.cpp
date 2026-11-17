@@ -14,13 +14,6 @@ bool timeValid() {
   return tm.tm_year + 1900 >= 2024;
 }
 
-void localTimeOf(time_t utc, struct tm& out) {
-  Config c;
-  cfgGet(c);
-  utc += (time_t)(c.timezone * 3600.0f);
-  gmtime_r(&utc, &out);
-}
-
 static volatile uint32_t g_ntpSyncMs;  // millis() of the last SNTP sync, 0 = never
 bool ntpSyncedWithin(uint32_t ms) {
   uint32_t t = g_ntpSyncMs;

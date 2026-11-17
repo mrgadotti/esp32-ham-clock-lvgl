@@ -11,18 +11,12 @@
 #include "../fonts/fonts.h"
 #include "../theme.h"
 #include "../widgets/header.h"
+#include "../widgets/ui_kit.h"
+#include "wx_map.h"
 
 namespace {
 #define CYAN lv_color_hex(0x00FFFF)
 #define GREY lv_color_hex(0x909090)
-
-lv_color_t pmColor(float v, float a, float b, float c, float d) {
-  if (v <= a) return COL_MODE;
-  if (v <= b) return COL_FREQ;
-  if (v <= c) return lv_color_hex(0xFF7F00);
-  if (v <= d) return COL_ERROR;
-  return lv_color_hex(0xF80000);
-}
 
 class WeatherScreen : public Screen {
  public:
@@ -30,20 +24,18 @@ class WeatherScreen : public Screen {
 
   void create(lv_obj_t* p) override {
     hdr_ = headerCreate(p, Tr::Weather);
-    tLbl_ = wxLabel(p, &font_14, GREY, 15, 32);
-    lv_label_set_text(tLbl_, tr(Tr::Temperature));
-    temp_ = wxLabel(p, &font_24, CYAN, 15, 50);
+    tLbl_ = uiLabel(p, &font_14, GREY, tr(Tr::Temperature), 15, 32);
+    temp_ = uiLabel(p, &font_24, CYAN, "", 15, 50);
     icon_ = wxIconCreate(p, 215, 32);
-    desc_ = wxLabel(p, &font_14, COL_TEXT, 160, 86, 160, LV_TEXT_ALIGN_CENTER);
+    desc_ = uiLabel(p, &font_14, COL_TEXT, "", 160, 86, 160, LV_TEXT_ALIGN_CENTER);
     const Tr names[3] = {Tr::Humidity, Tr::Pressure, Tr::Wind};
     for (int i = 0; i < 3; i++) {
-      lbl_[i] = wxLabel(p, &font_14, GREY, 15, 128 + i * 26);
-      lv_label_set_text(lbl_[i], tr(names[i]));
-      val_[i] = wxLabel(p, &font_18, COL_TEXT, 110, 124 + i * 26);
+      lbl_[i] = uiLabel(p, &font_14, GREY, tr(names[i]), 15, 128 + i * 26);
+      val_[i] = uiLabel(p, &font_18, COL_TEXT, "", 110, 124 + i * 26);
     }
-    pm25_ = wxLabel(p, &font_18, COL_TEXT, 15, 198);
-    pm10_ = wxLabel(p, &font_18, COL_TEXT, 165, 198);
-    foot_ = wxLabel(p, &font_14, lv_color_hex(0x52AA52), 0, 222, 320, LV_TEXT_ALIGN_CENTER);
+    pm25_ = uiLabel(p, &font_18, COL_TEXT, "", 15, 198);
+    pm10_ = uiLabel(p, &font_18, COL_TEXT, "", 165, 198);
+    foot_ = uiLabel(p, &font_14, lv_color_hex(0x52AA52), "", 0, 222, 320, LV_TEXT_ALIGN_CENTER);
     lv_label_set_long_mode(foot_, LV_LABEL_LONG_DOT);  // long city names: ellipsis, never wrap
     lv_obj_set_height(foot_, 18);
     lv_label_set_long_mode(desc_, LV_LABEL_LONG_DOT);   // at most 2 lines (rows below start at y=124)
@@ -57,6 +49,7 @@ class WeatherScreen : public Screen {
   lv_obj_t *hdr_, *tLbl_, *temp_, *icon_, *desc_, *lbl_[3], *val_[3], *pm25_, *pm10_, *foot_;
   uint32_t ver_ = ~0u;
   char clock_[8] = "", foot2_[96] = "";
+  WeatherData w_;  // member, not a stack local (K-03)
 
   void refresh(bool force) {
     char clk[8];
@@ -69,7 +62,7 @@ class WeatherScreen : public Screen {
     uint32_t v = g_store.weather.version();
     if (!force && v == ver_) return;
     ver_ = v;
-    WeatherData w;
+    WeatherData& w = w_;
     g_store.weather.read([&](const WeatherData& s) { w = s; });
     char b[96];
     wxFooter(b, sizeof b, w, cfg().weather_key[0] != 0);
@@ -85,9 +78,9 @@ class WeatherScreen : public Screen {
     lv_label_set_text_fmt(val_[2], "%.1f %s", (double)w.windMs, tr(Tr::Ms));
     lv_obj_set_style_text_color(val_[2], wxWindColor(w.windMs), 0);
     lv_label_set_text_fmt(pm25_, "PM2.5: %.1f", (double)w.pm25);
-    lv_obj_set_style_text_color(pm25_, pmColor(w.pm25, 12, 35, 55, 150), 0);
+    lv_obj_set_style_text_color(pm25_, wxLevelColor(wxPmLevel(w.pm25, 12, 35, 55, 150)), 0);
     lv_label_set_text_fmt(pm10_, "PM10: %.1f", (double)w.pm10);
-    lv_obj_set_style_text_color(pm10_, pmColor(w.pm10, 20, 50, 100, 200), 0);
+    lv_obj_set_style_text_color(pm10_, wxLevelColor(wxPmLevel(w.pm10, 20, 50, 100, 200)), 0);
   }
 };
 }  // namespace

@@ -4,11 +4,14 @@
 #include "../theme.h"
 #include "header.h"
 
-lv_obj_t* uiLabel(lv_obj_t* parent, const lv_font_t* font, lv_color_t color, const char* text, int x, int y) {
+lv_obj_t* uiLabel(lv_obj_t* parent, const lv_font_t* font, lv_color_t color, const char* text, int x, int y, int w,
+                  lv_text_align_t align) {
   lv_obj_t* l = lv_label_create(parent);
   lv_obj_set_style_text_font(l, font, 0);
   lv_obj_set_style_text_color(l, color, 0);
   lv_label_set_text(l, text);
+  if (w) lv_obj_set_width(l, w);
+  if (align != LV_TEXT_ALIGN_AUTO) lv_obj_set_style_text_align(l, align, 0);
   lv_obj_set_pos(l, x, y);
   return l;
 }

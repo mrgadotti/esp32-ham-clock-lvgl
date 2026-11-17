@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <stdarg.h>
+#include "aprs_symbol.h"
 #include "aprs_wx.h"
 #include "i18n.h"
 
@@ -11,6 +13,7 @@
 #include "../fonts/fonts.h"
 #include "../icons/weather_icons.h"
 #include "../theme.h"
+#include "../widgets/ui_kit.h"
 
 static lv_obj_t* ov;
 static uint32_t deadline;
@@ -30,15 +33,14 @@ static void closeNow() {
 
 
 namespace {
-enum IconKind { ICON_NONE, ICON_CAR, ICON_HOUSE, ICON_HUMAN };
-
-lv_obj_t* mkLabel(lv_obj_t* p, const lv_font_t* f, lv_color_t c, const char* txt, int x, int y) {
-  lv_obj_t* l = lv_label_create(p);
-  lv_obj_set_style_text_font(l, f, 0);
-  lv_obj_set_style_text_color(l, c, 0);
-  lv_label_set_text(l, txt);
-  lv_obj_set_pos(l, x, y);
-  return l;
+// Appends to a NUL-terminated buffer; never writes past cap (C-09).
+__attribute__((format(printf, 3, 4))) void appendf(char* buf, size_t cap, const char* fmt, ...) {
+  size_t n = strnlen(buf, cap);
+  if (n + 1 >= cap) return;
+  va_list ap;
+  va_start(ap, fmt);
+  vsnprintf(buf + n, cap - n, fmt, ap);
+  va_end(ap);
 }
 
 void box(lv_layer_t* ly, int x1, int y1, int x2, int y2, lv_color_t c, int r) {
@@ -67,8 +69,8 @@ void onIconDraw(lv_event_t* e) {
   lv_obj_get_coords(o, &a);
   int x = a.x1, y = a.y1;
   const lv_color_t grey = lv_color_hex(0x808080), red = lv_color_hex(0xFF0000), yel = lv_color_hex(0xFFFF00);
-  switch ((IconKind)(intptr_t)lv_obj_get_user_data(o)) {
-    case ICON_CAR:
+  switch ((AprsIcon)(intptr_t)lv_obj_get_user_data(o)) {
+    case AprsIcon::Car:
       box(ly, x + 2, y + 18, x + 61, y + 31, red, 4);
       box(ly, x + 16, y + 9, x + 48, y + 18, red, 4);
       box(ly, x + 56, y + 21, x + 61, y + 24, yel, 1);
@@ -78,7 +80,7 @@ void onIconDraw(lv_event_t* e) {
       box(ly, x + 44, y + 26, x + 56, y + 38, grey, LV_RADIUS_CIRCLE);
       box(ly, x + 47, y + 29, x + 53, y + 35, lv_color_hex(0xC0C0C0), LV_RADIUS_CIRCLE);
       break;
-    case ICON_HOUSE: {
+    case AprsIcon::House: {
       box(ly, x + 12, y + 16, x + 50, y + 39, yel, 0);
       lv_draw_triangle_dsc_t t;
       lv_draw_triangle_dsc_init(&t);
@@ -92,7 +94,7 @@ void onIconDraw(lv_event_t* e) {
       box(ly, x + 39, y + 22, x + 46, y + 29, lv_color_hex(0x00A0FF), 0);
       break;
     }
-    case ICON_HUMAN:
+    case AprsIcon::Human:
       box(ly, x + 27, y + 1, x + 37, y + 11, lv_color_hex(0x3030FF), LV_RADIUS_CIRCLE);
       line(ly, x + 32, y + 13, x + 32, y + 26, red, 3);
       line(ly, x + 22, y + 18, x + 42, y + 18, red, 3);
@@ -141,35 +143,6 @@ lv_obj_t* drawObj(lv_obj_t* p, int x, int y, int w, int h, lv_event_cb_t cb, int
   return o;
 }
 
-// {table, code} -> icon or description
-void symbolInfo(const char* s, IconKind& icon, Tr& desc) {
-  icon = ICON_NONE;
-  desc = Tr::DescOther;
-  if (s[0] == 'L') { desc = Tr::DescLora; return; }
-  if (s[0] != '/') return;
-  switch (s[1]) {
-    case '>': icon = ICON_CAR; break;
-    case '-': icon = ICON_HOUSE; break;
-    case '[': icon = ICON_HUMAN; break;
-    case '#': desc = Tr::DescDigi; break;
-    case 'r': desc = Tr::DescRepeater; break;
-    case 'l': desc = Tr::DescLaptop; break;
-    case '_': desc = Tr::DescWx; break;
-    case 's': desc = Tr::DescShip; break;
-    case 'a': desc = Tr::DescAmbulance; break;
-    case 'b': desc = Tr::DescBike; break;
-    case 'd': desc = Tr::DescFire; break;
-    case 'h': desc = Tr::DescHospital; break;
-    case 'y': desc = Tr::DescYagi; break;
-    case 'g': desc = Tr::DescGlider; break;
-    case 'k': case 'u': desc = Tr::DescTruck; break;
-    case 'v': desc = Tr::DescVan; break;
-    case 'p': desc = Tr::DescRover; break;
-    case 'n': desc = Tr::DescNode; break;
-    default: break;
-  }
-}
-
 void buildAprs(lv_obj_t* ov, const AprsStation& st) {
   const lv_color_t white = COL_TEXT, grey = lv_color_hex(0xC0C0C0), cyan = lv_color_hex(0x00FFFF);
   frame = lv_obj_create(ov);
@@ -182,46 +155,46 @@ void buildAprs(lv_obj_t* ov, const AprsStation& st) {
   lv_obj_remove_flag(frame, LV_OBJ_FLAG_CLICKABLE);
 
   char b[48];
-  mkLabel(ov, &font_24, white, st.call[0] ? st.call : "-", 18, 52);
+  uiLabel(ov, &font_24, white, st.call[0] ? st.call : "-", 18, 52);
   if (st.freqMhz > 0) snprintf(b, sizeof b, "%.3f %s", (double)st.freqMhz, tr(Tr::Mhz));
   else snprintf(b, sizeof b, "-");
-  mkLabel(ov, &font_14, grey, b, 18, 82);
+  uiLabel(ov, &font_14, grey, b, 18, 82);
 
   // compass 60x60 + bearing/distance under it
   int bearing = st.hasLatLon && st.bearing >= 0 ? st.bearing : -1;
   drawObj(ov, 236, 50, 60, 66, onCompassDraw, bearing);
   if (bearing >= 0) snprintf(b, sizeof b, "%03d\xC2\xB0", bearing);
   else snprintf(b, sizeof b, "---");
-  lv_obj_t* bl = mkLabel(ov, &font_14, cyan, b, 0, 118);
+  lv_obj_t* bl = uiLabel(ov, &font_14, cyan, b, 0, 118);
   lv_obj_set_width(bl, 60);
   lv_obj_set_style_text_align(bl, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_set_x(bl, 236);
   if (st.hasLatLon && st.distKm >= 0) snprintf(b, sizeof b, "%d %s", (int)st.distKm, tr(Tr::Km));
   else snprintf(b, sizeof b, "- %s", tr(Tr::Km));
-  lv_obj_t* dl = mkLabel(ov, &font_14, COL_ACCENT, b, 226, 134);
+  lv_obj_t* dl = uiLabel(ov, &font_14, COL_ACCENT, b, 226, 134);
   lv_obj_set_width(dl, 80);
   lv_obj_set_style_text_align(dl, LV_TEXT_ALIGN_CENTER, 0);
 
   AprsWx wx{};
   if (st.isWx && aprsDecodeWx(st.comment, wx)) {
     int y = 106;
-    if (wx.hasTempC) { snprintf(b, sizeof b, "%s %.1f C", tr(Tr::WxTemp), (double)wx.tempC); mkLabel(ov, &font_14, lv_color_hex(0x4080FF), b, 18, y); y += 18; }
-    if (wx.hasHumidity) { snprintf(b, sizeof b, "%s %d %%", tr(Tr::HumidityLabel), wx.humidityPct); mkLabel(ov, &font_14, white, b, 18, y); y += 18; }
-    if (wx.hasPressure) { snprintf(b, sizeof b, "%s %.1f hPa", tr(Tr::PressureLabel), (double)wx.pressureHpa); mkLabel(ov, &font_14, white, b, 18, y); }
+    if (wx.hasTempC) { snprintf(b, sizeof b, "%s %.1f C", tr(Tr::WxTemp), (double)wx.tempC); uiLabel(ov, &font_14, lv_color_hex(0x4080FF), b, 18, y); y += 18; }
+    if (wx.hasHumidity) { snprintf(b, sizeof b, "%s %d %%", tr(Tr::HumidityLabel), wx.humidityPct); uiLabel(ov, &font_14, white, b, 18, y); y += 18; }
+    if (wx.hasPressure) { snprintf(b, sizeof b, "%s %.1f %s", tr(Tr::PressureLabel), (double)wx.pressureHpa, tr(Tr::HPa)); uiLabel(ov, &font_14, white, b, 18, y); }
     if (wx.hasWindSpeed) {
-      if (wx.hasWindDir) snprintf(b, sizeof b, "%s %d\xC2\xB0 %.1f km/h", tr(Tr::WxWind), wx.windDirDeg, (double)wx.windSpeedKmh);
-      else snprintf(b, sizeof b, "%s %.1f km/h", tr(Tr::WxWind), (double)wx.windSpeedKmh);
-      mkLabel(ov, &font_14, lv_color_hex(0x00FF00), b, 18, 160);
+      if (wx.hasWindDir) snprintf(b, sizeof b, "%s %d\xC2\xB0 %.1f %s", tr(Tr::WxWind), wx.windDirDeg, (double)wx.windSpeedKmh, tr(Tr::KmH));
+      else snprintf(b, sizeof b, "%s %.1f %s", tr(Tr::WxWind), (double)wx.windSpeedKmh, tr(Tr::KmH));
+      uiLabel(ov, &font_14, lv_color_hex(0x00FF00), b, 18, 160);
     }
   } else {
-    IconKind ik;
+    AprsIcon ik;
     Tr d;
-    symbolInfo(st.sym, ik, d);
-    if (ik != ICON_NONE) drawObj(ov, 18, 106, 64, 42, onIconDraw, ik);
-    else mkLabel(ov, &font_18, white, tr(d), 18, 116);
+    aprsSymbolInfo(st.sym, ik, d);
+    if (ik != AprsIcon::None) drawObj(ov, 18, 106, 64, 42, onIconDraw, (intptr_t)ik);
+    else uiLabel(ov, &font_18, white, tr(d), 18, 116);
   }
   if (st.comment[0] && !(st.isWx && wx.hasAny)) {
-    lv_obj_t* c = mkLabel(ov, &font_14, grey, st.comment, 18, 176);
+    lv_obj_t* c = uiLabel(ov, &font_14, grey, st.comment, 18, 176);
     lv_obj_set_width(c, 284);
     lv_label_set_long_mode(c, LV_LABEL_LONG_WRAP);
     lv_obj_set_height(c, 38);
@@ -233,39 +206,36 @@ bool overlayActive() { return ov != nullptr; }
 
 void overlayShow(const UiEvent& e) {
   closeNow();
-  char title[40], body[160];
+  static char body[160];  // static: keeps 160 B off the UI task stack (UI task only)
+  const char* title;
   const lv_image_dsc_t* wxImg = nullptr;
   bool aprs = false;
   uint32_t secs = (uint32_t)cfg().alrt_scr_s;
+  body[0] = 0;
   switch (e.kind) {
     case EventKind::AprsAlert:
-      snprintf(title, sizeof title, "%s", tr(Tr::AprsAlertTitle));
+      title = tr(Tr::AprsAlertTitle);
       aprs = true;
-      body[0] = 0;
       break;
     case EventKind::Beaconing:
-      snprintf(title, sizeof title, "%s", tr(Tr::AprsBeaconing));
-      snprintf(body, sizeof body, "%s\n%s\n%s", e.beacon.call, e.beacon.position, e.beacon.path);
+      title = tr(Tr::AprsBeaconing);
+      appendf(body, sizeof body, "%s\n%s\n%s", e.beacon.call, e.beacon.position, e.beacon.path);
       secs = 2;
       break;
     case EventKind::WeatherAlert:
-      snprintf(title, sizeof title, "%s", tr(Tr::WeatherAlert));
-      body[0] = 0;
+      title = tr(Tr::WeatherAlert);
       if (e.wx.stormPossible) {
         wxImg = &wxicon_200;
-        snprintf(body, sizeof body, "%s\n", tr(e.wx.stormNow ? Tr::StormNow : Tr::PossibleStorm));
+        appendf(body, sizeof body, "%s\n", tr(e.wx.stormNow ? Tr::StormNow : Tr::PossibleStorm));
       }
       if (e.wx.windPossible) {
         if (!wxImg) wxImg = &wxicon_wind;
-        size_t n = strlen(body);
-        n += snprintf(body + n, sizeof body - n, "%s\n%s %.1f %s\n", tr(Tr::StrongWind), tr(Tr::WindLabel), (double)e.wx.maxWindMs, tr(Tr::Ms));
+        appendf(body, sizeof body, "%s\n%s %.1f %s\n", tr(Tr::StrongWind), tr(Tr::WindLabel), (double)e.wx.maxWindMs, tr(Tr::Ms));
         if (e.wx.maxWindGustMs > 0)
-          snprintf(body + n, sizeof body - n, "%s %.1f %s\n", tr(Tr::Gust), (double)e.wx.maxWindGustMs, tr(Tr::Ms));
+          appendf(body, sizeof body, "%s %.1f %s\n", tr(Tr::Gust), (double)e.wx.maxWindGustMs, tr(Tr::Ms));
       }
-      {  // stormEtaHours carries the storm repeat interval in minutes; wind alone repeats every minute
-        size_t n = strlen(body);
-        snprintf(body + n, sizeof body - n, "%s %u %s", tr(Tr::Repeat), e.wx.stormPossible ? (unsigned)e.wx.stormEtaHours : 1u, tr(Tr::Min));
-      }
+      // stormEtaHours carries the storm repeat interval in minutes; wind alone repeats every minute
+      appendf(body, sizeof body, "%s %u %s", tr(Tr::Repeat), e.wx.stormPossible ? (unsigned)e.wx.stormEtaHours : 1u, tr(Tr::Min));
       break;
     default:
       return;
@@ -283,29 +253,23 @@ void overlayShow(const UiEvent& e) {
   lv_obj_add_flag(ov, LV_OBJ_FLAG_CLICKABLE);  // swallows touches
   lv_obj_remove_flag(ov, LV_OBJ_FLAG_SCROLLABLE);
 
-  lv_obj_t* t = lv_label_create(ov);
-  lv_obj_set_style_text_font(t, &font_24, 0);
-  lv_obj_set_style_text_color(t, COL_ACCENT, 0);
-  lv_label_set_text(t, title);
+  lv_obj_t* t = uiLabel(ov, &font_24, COL_ACCENT, title);
   lv_obj_align(t, LV_ALIGN_TOP_MID, 0, aprs ? 8 : 42);  // non-APRS titles can be wide: stay below the X button (y<=40)
 
-  if (aprs) buildAprs(ov, e.station);
-  lv_obj_t* b = aprs ? nullptr : lv_label_create(ov);
-  if (b) {
-  lv_obj_set_style_text_font(b, &font_18, 0);
-  lv_obj_set_style_text_align(b, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_set_width(b, 290);
-  lv_label_set_text(b, body);
-  if (wxImg) {  // weather alert: icon on the left, text left-aligned beside it
-    lv_obj_t* im = lv_image_create(ov);
-    lv_image_set_src(im, wxImg);
-    lv_obj_set_pos(im, 18, 90);
-    lv_obj_set_width(b, 226);
-    lv_obj_set_style_text_align(b, LV_TEXT_ALIGN_LEFT, 0);
-    lv_obj_align(b, LV_ALIGN_TOP_LEFT, 82, 76);  // top-anchored: up to 6 lines never reach the title
+  if (aprs) {
+    buildAprs(ov, e.station);
   } else {
-    lv_obj_align(b, LV_ALIGN_CENTER, 0, 10);
-  }
+    lv_obj_t* b = uiLabel(ov, &font_18, COL_TEXT, body, 0, 0, 290, LV_TEXT_ALIGN_CENTER);
+    if (wxImg) {  // weather alert: icon on the left, text left-aligned beside it
+      lv_obj_t* im = lv_image_create(ov);
+      lv_image_set_src(im, wxImg);
+      lv_obj_set_pos(im, 18, 90);
+      lv_obj_set_width(b, 226);
+      lv_obj_set_style_text_align(b, LV_TEXT_ALIGN_LEFT, 0);
+      lv_obj_align(b, LV_ALIGN_TOP_LEFT, 82, 76);  // top-anchored: up to 6 lines never reach the title
+    } else {
+      lv_obj_align(b, LV_ALIGN_CENTER, 0, 10);
+    }
   }
 
   lv_obj_t* x = lv_button_create(ov);

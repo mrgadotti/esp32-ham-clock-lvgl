@@ -13,10 +13,9 @@
 #include "../fonts/fonts.h"
 #include "../theme.h"
 #include "../widgets/header.h"
+#include "../widgets/ui_kit.h"
 
 namespace {
-// cfgUpdate takes a plain function pointer: values travel through these (UI task only).
-int32_t pend;
 int32_t lastNdim = 50;  // RAM only: restored when the night-dimming switch is turned back on
 
 const ScreenId kScreens[] = {ScreenId::HamClock, ScreenId::DxCluster, ScreenId::SunSpots, ScreenId::BandInfo,
@@ -26,17 +25,14 @@ const Tr kScreenNames[] = {Tr::Clock, Tr::DxCluster, Tr::Propagation, Tr::HfBand
                            Tr::Pota, Tr::HamAlert, Tr::AprsRadar, Tr::Forecast, Tr::Location};
 const int32_t kSwSec[] = {10, 15, 30, 60, 120, 300};
 
-lv_obj_t* row(lv_obj_t* list, const char* text, lv_obj_t** labelOut = nullptr) {
+lv_obj_t* row(lv_obj_t* list, const char* text) {
   lv_obj_t* r = lv_obj_create(list);
   lv_obj_remove_style_all(r);
   lv_obj_set_size(r, lv_pct(100), LV_SIZE_CONTENT);
   lv_obj_set_flex_flow(r, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(r, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   if (!text) return r;
-  lv_obj_t* l = lv_label_create(r);
-  lv_obj_set_style_text_font(l, &font_14, 0);
-  lv_label_set_text(l, text);
-  if (labelOut) *labelOut = l;
+  uiLabel(r, &font_14, COL_TEXT, text);
   return r;
 }
 
@@ -85,8 +81,8 @@ class SettingsScreen : public Screen {
     lv_obj_add_event_cb(s, [](lv_event_t* e) { displaySetBacklight(lv_slider_get_value((lv_obj_t*)lv_event_get_target(e))); },
                         LV_EVENT_VALUE_CHANGED, nullptr);
     lv_obj_add_event_cb(s, [](lv_event_t* e) {
-      pend = lv_slider_get_value((lv_obj_t*)lv_event_get_target(e));
-      cfgUpdate([](Config& c) { c.tft_backlight = pend; });
+      int32_t v = lv_slider_get_value((lv_obj_t*)lv_event_get_target(e));
+      cfgUpdate([v](Config& c) { c.tft_backlight = v; });
     }, LV_EVENT_RELEASED, nullptr);
 
     if (c.tft_ndim > 0) lastNdim = c.tft_ndim;
@@ -96,15 +92,15 @@ class SettingsScreen : public Screen {
     ndSlider_ = slider(row(list, nullptr), 0, 90, c.tft_ndim);
     lv_obj_add_event_cb(nd_, [](lv_event_t* e) {
       bool on = lv_obj_has_state((lv_obj_t*)lv_event_get_target(e), LV_STATE_CHECKED);
-      pend = on ? lastNdim : 0;
-      cfgUpdate([](Config& c) { c.tft_ndim = pend; });
-      lv_slider_set_value((lv_obj_t*)lv_event_get_user_data(e), pend, LV_ANIM_OFF);
+      int32_t v = on ? lastNdim : 0;
+      cfgUpdate([v](Config& c) { c.tft_ndim = v; });
+      lv_slider_set_value((lv_obj_t*)lv_event_get_user_data(e), v, LV_ANIM_OFF);
     }, LV_EVENT_VALUE_CHANGED, ndSlider_);
     lv_obj_add_event_cb(ndSlider_, [](lv_event_t* e) {
-      pend = lv_slider_get_value((lv_obj_t*)lv_event_get_target(e));
-      if (pend > 0) lastNdim = pend;
-      lv_obj_set_state((lv_obj_t*)lv_event_get_user_data(e), LV_STATE_CHECKED, pend > 0);
-      cfgUpdate([](Config& c) { c.tft_ndim = pend; });
+      int32_t v = lv_slider_get_value((lv_obj_t*)lv_event_get_target(e));
+      if (v > 0) lastNdim = v;
+      lv_obj_set_state((lv_obj_t*)lv_event_get_user_data(e), LV_STATE_CHECKED, v > 0);
+      cfgUpdate([v](Config& c) { c.tft_ndim = v; });
     }, LV_EVENT_RELEASED, nd_);
 
     lv_obj_t* b = lv_button_create(list);
@@ -116,19 +112,19 @@ class SettingsScreen : public Screen {
     lv_obj_t* sw = lv_switch_create(row(list, tr(Tr::InvertColors)));
     if (c.tft_inv) lv_obj_add_state(sw, LV_STATE_CHECKED);
     lv_obj_add_event_cb(sw, [](lv_event_t* e) {
-      pend = lv_obj_has_state((lv_obj_t*)lv_event_get_target(e), LV_STATE_CHECKED);
-      displaySetInvert(pend);
-      cfgUpdate([](Config& c) { c.tft_inv = pend; });
+      bool on = lv_obj_has_state((lv_obj_t*)lv_event_get_target(e), LV_STATE_CHECKED);
+      displaySetInvert(on);
+      cfgUpdate([on](Config& c) { c.tft_inv = on; });
     }, LV_EVENT_VALUE_CHANGED, nullptr);
 
     // rotation applies via main.cpp applyCfgToHal on ConfigChanged
     dd_[0] = dropdown(list, tr(Tr::Rotation), "0\xC2\xB0\n180\xC2\xB0", c.tft_rot == 3, [](lv_event_t* e) {
-      pend = lv_dropdown_get_selected((lv_obj_t*)lv_event_get_target(e)) ? 3 : 1;
-      cfgUpdate([](Config& c) { c.tft_rot = pend; });
+      int32_t rot = lv_dropdown_get_selected((lv_obj_t*)lv_event_get_target(e)) ? 3 : 1;
+      cfgUpdate([rot](Config& c) { c.tft_rot = rot; });
     });
     dd_[1] = dropdown(list, tr(Tr::Language), "English\nPortugu\xC3\xAAs", c.tft_lang ? 1 : 0, [](lv_event_t* e) {
-      pend = lv_dropdown_get_selected((lv_obj_t*)lv_event_get_target(e));
-      cfgUpdate([](Config& c) { c.tft_lang = (uint8_t)pend; });
+      uint8_t lang = (uint8_t)lv_dropdown_get_selected((lv_obj_t*)lv_event_get_target(e));
+      cfgUpdate([lang](Config& c) { c.tft_lang = lang; });
     });
     uint32_t sel = 0;
     if (c.tft_autosw) {
@@ -141,17 +137,14 @@ class SettingsScreen : public Screen {
     char swOpts[48];
     snprintf(swOpts, sizeof swOpts, "%s\n10 s\n15 s\n30 s\n60 s\n120 s\n300 s", tr(Tr::Off));
     dd_[2] = dropdown(list, tr(Tr::AutoSwitch), swOpts, sel, [](lv_event_t* e) {
-      pend = lv_dropdown_get_selected((lv_obj_t*)lv_event_get_target(e));
-      cfgUpdate([](Config& c) {
-        c.tft_autosw = pend > 0;
-        if (pend > 0) c.tft_sw_sec = kSwSec[pend - 1];
+      uint32_t sel = lv_dropdown_get_selected((lv_obj_t*)lv_event_get_target(e));
+      cfgUpdate([sel](Config& c) {
+        c.tft_autosw = sel > 0;
+        if (sel > 0) c.tft_sw_sec = kSwSec[sel - 1];
       });
     });
 
-    lv_obj_t* h = lv_label_create(list);
-    lv_obj_set_style_text_font(h, &font_14, 0);
-    lv_obj_set_style_text_color(h, COL_ACCENT, 0);
-    lv_label_set_text(h, tr(Tr::EnabledScreens));
+    uiLabel(list, &font_14, COL_ACCENT, tr(Tr::EnabledScreens));
     for (size_t i = 0; i < sizeof kScreens / sizeof *kScreens; i++) {
       lv_obj_t* cb = lv_checkbox_create(list);
       lv_obj_set_style_text_font(cb, &font_14, 0);
@@ -159,11 +152,9 @@ class SettingsScreen : public Screen {
       if (c.scr_en & (1 << (int)kScreens[i])) lv_obj_add_state(cb, LV_STATE_CHECKED);
       lv_obj_add_event_cb(cb, [](lv_event_t* e) {
         lv_obj_t* t = (lv_obj_t*)lv_event_get_target(e);
-        pend = (int32_t)(intptr_t)lv_event_get_user_data(e) | (lv_obj_has_state(t, LV_STATE_CHECKED) ? 0x40000000 : 0);
-        cfgUpdate([](Config& c) {
-          int32_t bit = 1 << (pend & 0xFF);
-          c.scr_en = (pend & 0x40000000) ? (c.scr_en | bit) : (c.scr_en & ~bit);
-        });
+        const int32_t bit = 1 << (int)(intptr_t)lv_event_get_user_data(e);
+        const bool on = lv_obj_has_state(t, LV_STATE_CHECKED);
+        cfgUpdate([bit, on](Config& c) { c.scr_en = on ? (c.scr_en | bit) : (c.scr_en & ~bit); });
       }, LV_EVENT_VALUE_CHANGED, (void*)(intptr_t)(int)kScreens[i]);
     }
 

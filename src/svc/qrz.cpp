@@ -102,7 +102,7 @@ static void applyToStores(const char* call, const QrzInfo& q) {
   applyTo(g_store.pota, call, q, haveUser, ulat, ulon);
 }
 
-void qrzEnqueue(const char* call) {
+static void qrzEnqueue(const char* call) {
   if (!enabled() || !call) return;
   xSemaphoreTake(mu(), portMAX_DELAY);
   s_queue.enqueue(call, millis());
