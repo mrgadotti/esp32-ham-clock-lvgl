@@ -1,7 +1,6 @@
 #include "pota.h"
 
 #include <Arduino.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "app/config_store.h"
@@ -9,10 +8,11 @@
 #include "net/http_fetch.h"
 #include "pota_parse.h"
 #include "svc/qrz.h"
+#include "svc/spot_scratch.h"
 
 namespace {
 constexpr uint32_t kPeriodMs = 180000;
-constexpr size_t kMax = 30;
+constexpr size_t kMax = kSpotScratchN;
 }  // namespace
 
 void potaTick(uint32_t now) {
@@ -24,14 +24,13 @@ void potaTick(uint32_t now) {
   tried = true;
   last = now;
 
-  Config c;
-  cfgGet(c);
+  char apiUrl[sizeof(Config::pota_api_url)];
+  cfgRead([&](const Config& c) { strlcpy(apiUrl, c.pota_api_url, sizeof apiUrl); });
   JsonDocument filter;
   for (const char* k : {"activator", "frequency", "mode", "reference", "spotTime", "locationDesc", "comments", "spotter"})
     filter[k] = true;  // per-element filter: the array is streamed item by item
-  const char* url = c.pota_api_url[0] ? c.pota_api_url : "https://api.pota.app/v1/spots";
-  Spot* spots = (Spot*)malloc(sizeof(Spot) * kMax);  // heap: static would not fit in DRAM, the stack is too small
-  if (!spots) return;
+  const char* url = apiUrl[0] ? apiUrl : "https://api.pota.app/v1/spots";
+  Spot* spots = spotScratch();
   size_t n = 0;
   struct Ctx { Spot* spots; size_t* n; } ctx{spots, &n};
   bool ok = httpGetJsonArray(url, filter, [](JsonObjectConst o, void* p) {
@@ -45,12 +44,10 @@ void potaTick(uint32_t now) {
   }, &ctx);
   if (!ok) {
     Serial.println("[POTA] fetch failed, keeping old list");
-    free(spots);
     return;
   }
   if (n == 0) {
     Serial.println("[POTA] no spots parsed, keeping old list");
-    free(spots);
     return;
   }
   potaSortByTimeDesc(spots, n);
@@ -59,6 +56,5 @@ void potaTick(uint32_t now) {
     r.clear();
     for (size_t i = n; i-- > 0;) r.pushFront(spots[i]);
   });
-  free(spots);
   Serial.printf("[POTA] %u spots\n", (unsigned)n);
 }

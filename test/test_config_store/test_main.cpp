@@ -76,6 +76,26 @@ void test_apply_json_version_only_on_success() {
   cfgRead([](const Config& c) { TEST_ASSERT_EQUAL_STRING("PY2XX", c.user_callsign); });
 }
 
+// QRZ login copies user+pass with one cfgRead. A Settings write (whose NVS puts run after the RAM update, outside the
+// mutex) must never be observed half-applied: the pair read mid-save is the new one, whole.
+static char g_midUser[32], g_midPass[32];
+static void readCredsDuringPut() {
+  cfgRead([](const Config& c) {
+    strlcpy(g_midUser, c.qrz_user, sizeof g_midUser);
+    strlcpy(g_midPass, c.qrz_pass, sizeof g_midPass);
+  });
+}
+
+void test_credentials_pair_consistent_during_save() {
+  cfgUpdate([](Config& c) { strcpy(c.qrz_user, "OLD"); strcpy(c.qrz_pass, "oldpw"); });
+  g_stubOnPut = readCredsDuringPut;
+  cfgUpdate([](Config& c) { strcpy(c.qrz_user, "NEWUSER"); strcpy(c.qrz_pass, "newpw"); });
+  g_stubOnPut = nullptr;
+  TEST_ASSERT_EQUAL_STRING("NEWUSER", g_midUser);
+  TEST_ASSERT_EQUAL_STRING("newpw", g_midPass);
+  TEST_ASSERT_EQUAL_INT(0, g_stubDeadlocks);
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_update_bumps_version_and_persists);
@@ -83,5 +103,6 @@ int main() {
   RUN_TEST(test_mutex_free_while_saving);
   RUN_TEST(test_save_failure_keeps_ram_change);
   RUN_TEST(test_apply_json_version_only_on_success);
+  RUN_TEST(test_credentials_pair_consistent_during_save);
   return UNITY_END();
 }

@@ -23,11 +23,15 @@ static SemaphoreHandle_t s_mu;  // guards cache+queue: spots may be enqueued fro
 static char s_key[40];
 static uint32_t s_keyAt;
 static char s_status[40] = "disabled";
-static char s_body[4096];  // static: keeps 4 KB off the 10 KB net task stack
 
 static void setStatus(const char* s) { strlcpy(s_status, s, sizeof s_status); }
 
-static bool enabled() { return cfg().qrz_user[0] && cfg().qrz_pass[0]; }
+// Net/other tasks must not touch cfg() (UI-only snapshot): read the credentials under the config mutex.
+static bool enabled() {
+  bool on = false;
+  cfgRead([&](const Config& c) { on = c.qrz_user[0] && c.qrz_pass[0]; });
+  return on;
+}
 
 static SemaphoreHandle_t mu() { return s_mu; }
 
@@ -48,11 +52,13 @@ static void urlEncode(const char* in, char* out, size_t cap) {
 
 static bool login(uint32_t now) {
   char u[100], p[100], url[256];
-  urlEncode(cfg().qrz_user, u, sizeof u);
-  urlEncode(cfg().qrz_pass, p, sizeof p);
+  cfgRead([&](const Config& c) {  // one consistent user/pass pair even while Settings writes
+    urlEncode(c.qrz_user, u, sizeof u);
+    urlEncode(c.qrz_pass, p, sizeof p);
+  });
   snprintf(url, sizeof url, "https://xmldata.qrz.com/xml/current/?username=%s;password=%s", u, p);
-  if (!httpGet(url, s_body, sizeof s_body, QRZ_HTTP_TIMEOUT_MS)) { setStatus("error: login http"); s_loginFailed = true; s_loginFailAt = now; return false; }
-  if (!qrzParseSessionKey(s_body, s_key, sizeof s_key)) {
+  if (!httpGet(url, httpBody, kHttpBodySize, QRZ_HTTP_TIMEOUT_MS)) { setStatus("error: login http"); s_loginFailed = true; s_loginFailAt = now; return false; }
+  if (!qrzParseSessionKey(httpBody, s_key, sizeof s_key)) {
     s_key[0] = 0;
     s_loginFailed = true;
     s_loginFailAt = now;
@@ -136,14 +142,14 @@ void qrzTick(uint32_t now) {
     }
     char url[128];
     snprintf(url, sizeof url, "https://xmldata.qrz.com/xml/current/?s=%s;callsign=%s", s_key, call);
-    if (!httpGet(url, s_body, sizeof s_body, QRZ_HTTP_TIMEOUT_MS)) { setStatus("error: lookup http"); break; }
-    if (strstr(s_body, "Session Timeout") || strstr(s_body, "Invalid session")) {
+    if (!httpGet(url, httpBody, kHttpBodySize, QRZ_HTTP_TIMEOUT_MS)) { setStatus("error: lookup http"); break; }
+    if (strstr(httpBody, "Session Timeout") || strstr(httpBody, "Invalid session")) {
       s_key[0] = 0;  // re-login once
       if (attempt == 1) setStatus("error: session");
       continue;
     }
-    ok = qrzParseXml(s_body, info);
-    notFound = !ok && strstr(s_body, "<Error>Not found");  // other errors are retried, not cached
+    ok = qrzParseXml(httpBody, info);
+    notFound = !ok && strstr(httpBody, "<Error>Not found");  // other errors are retried, not cached
     setStatus(ok ? "ok" : "error: not found");
     break;
   }

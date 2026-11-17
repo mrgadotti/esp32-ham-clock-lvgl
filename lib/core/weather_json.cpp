@@ -6,7 +6,11 @@ static void copyText(char* dst, size_t cap, const char* src) {
   size_t n = 0;
   for (const unsigned char* p = (const unsigned char*)(src ? src : ""); *p && n + 1 < cap; p++) {
     if (*p >= 0x20 && *p < 0x7F) dst[n++] = (char)*p;
-    else if ((*p == 0xC2 || *p == 0xC3) && (p[1] & 0xC0) == 0x80 && !(*p == 0xC2 && p[1] < 0xA0)) {
+    else if ((*p == 0xC2 || *p == 0xC3) && (p[1] & 0xC0) == 0x80) {
+      // Keep only what the trimmed fonts carry: U+00B0 and U+00C0..U+00FF without U+00F7 (drops C1 controls and
+      // U+00A0..U+00BF symbols).
+      unsigned cp = ((*p & 0x1Fu) << 6) | (p[1] & 0x3Fu);
+      if (cp != 0xB0 && (cp < 0xC0 || cp == 0xF7)) continue;
       if (n + 2 >= cap) break;
       dst[n++] = (char)*p; dst[n++] = (char)p[1]; p++;
     }  // else dropped (other lead bytes are dropped; their continuation bytes fail the test above)
@@ -21,24 +25,25 @@ bool isNightFromIcon(const char* c) {
 
 bool weatherParseCurrent(JsonDocument& doc, WeatherData& out) {
   if (!doc.is<JsonObject>()) return false;
-  if (!doc["cod"].isNull() && doc["cod"].as<int>() != 200) return false;
-  if (!doc["main"]["temp"].is<float>() || doc["weather"][0].isNull()) return false;
-  JsonObject w = doc["weather"][0];
+  JsonVariantConst root = doc;  // const variant: one shared operator| per type instead of one per proxy chain
+  if (!root["cod"].isNull() && root["cod"].as<int>() != 200) return false;
+  JsonVariantConst m = root["main"], w = root["weather"][0];
+  if (!m["temp"].is<float>() || w.isNull()) return false;
   copyText(out.description, sizeof out.description, w["description"] | "");
   if (!out.description[0]) strcpy(out.description, "--");
-  copyText(out.cityName, sizeof out.cityName, doc["name"] | "");
+  copyText(out.cityName, sizeof out.cityName, root["name"] | "");
   copyText(out.iconCode, sizeof out.iconCode, w["icon"] | "");
   out.weatherId = w["id"] | 800;
-  out.tempC = doc["main"]["temp"] | 0.0f;
-  out.humidity = doc["main"]["humidity"] | 0;
-  out.pressure = doc["main"]["pressure"] | 0;
-  out.windMs = doc["wind"]["speed"] | 0.0f;
+  out.tempC = m["temp"] | 0.0f;
+  out.humidity = m["humidity"] | 0;
+  out.pressure = m["pressure"] | 0;
+  out.windMs = root["wind"]["speed"] | 0.0f;
   out.valid = true;
   return true;
 }
 
 bool weatherParseAir(JsonDocument& doc, WeatherData& out) {
-  JsonObject c = doc["list"][0]["components"];
+  JsonVariantConst c = JsonVariantConst(doc)["list"][0]["components"];
   if (c.isNull() || (c["pm2_5"].isNull() && c["pm10"].isNull())) return false;
   out.pm25 = c["pm2_5"] | 0.0f;
   out.pm10 = c["pm10"] | 0.0f;
@@ -47,23 +52,25 @@ bool weatherParseAir(JsonDocument& doc, WeatherData& out) {
 
 bool weatherParseForecast(JsonDocument& doc, WeatherData& out, long nowUnix, long tz) {
   if (!doc.is<JsonObject>()) return false;
-  if (!doc["cod"].isNull() && doc["cod"].as<int>() != 200) return false;
-  JsonArray list = doc["list"].as<JsonArray>();
+  JsonVariantConst root = doc;
+  if (!root["cod"].isNull() && root["cod"].as<int>() != 200) return false;
+  JsonArrayConst list = root["list"].as<JsonArrayConst>();
   if (list.isNull() || list.size() == 0) return false;
   // Only object entries with a positive "dt" count; vi maps compact index -> list index.
   int vi[64], n = 0;
   for (size_t k = 0; k < list.size() && n < 64; k++)
-    if (list[k].is<JsonObject>() && (list[k]["dt"] | 0L) > 0) vi[n++] = (int)k;
+    if (list[k].is<JsonObjectConst>() && (list[k]["dt"] | 0L) > 0) vi[n++] = (int)k;
   if (n == 0) return false;
   const bool haveClock = nowUnix > 100000L;
 
   // Next-6h storm / wind scan (feeds the alert scheduler).
   int stormEta = 0; float maxWind = 0, maxGust = 0;
   if (haveClock) {
-    for (JsonObject e : list) {
+    for (JsonVariantConst e : list) {
       long dt = e["dt"] | 0L, delta = dt - nowUnix;
       if (dt <= 0 || delta < 0 || delta > 6L * 3600L) continue;
-      float ws = e["wind"]["speed"] | 0.0f, g = e["wind"]["gust"] | 0.0f;
+      JsonVariantConst wind = e["wind"];
+      float ws = wind["speed"] | 0.0f, g = wind["gust"] | 0.0f;
       if (ws > maxWind) maxWind = ws;
       if (g > maxGust) maxGust = g;
       int id = e["weather"][0]["id"] | 800;
@@ -108,12 +115,12 @@ bool weatherParseForecast(JsonDocument& doc, WeatherData& out, long nowUnix, lon
       }
     }
     if (idx < 0) idx = fallbackIdx[s] < n ? fallbackIdx[s] : n - 1;
-    JsonObject e = list[vi[idx]];
-    t.detailTempC[s] = e["main"]["temp"] | 0.0f;
-    t.detailHumidity[s] = e["main"]["humidity"] | 0;
+    JsonVariantConst e = list[vi[idx]], em = e["main"], ew = e["weather"][0];
+    t.detailTempC[s] = em["temp"] | 0.0f;
+    t.detailHumidity[s] = em["humidity"] | 0;
     t.detailWindMs[s] = e["wind"]["speed"] | 0.0f;
-    t.detailWeatherId[s] = e["weather"][0]["id"] | 800;
-    copyText(t.detailIconCode[s], sizeof t.detailIconCode[s], e["weather"][0]["icon"] | "");
+    t.detailWeatherId[s] = ew["id"] | 800;
+    copyText(t.detailIconCode[s], sizeof t.detailIconCode[s], ew["icon"] | "");
     t.detailValid[s] = true;
   }
 
@@ -139,7 +146,7 @@ bool weatherParseForecast(JsonDocument& doc, WeatherData& out, long nowUnix, lon
     if (pick >= 0) { t.nightTempC[d] = list[vi[pick]]["main"]["temp"] | 0.0f; t.nightTempValid[d] = true; }
   }
 
-  if (!t.cityName[0]) copyText(t.cityName, sizeof t.cityName, doc["city"]["name"] | "");
+  if (!t.cityName[0]) copyText(t.cityName, sizeof t.cityName, root["city"]["name"] | "");
   t.stormEtaMin = stormEta; t.fcWindMaxMs = maxWind; t.fcWindGustMs = maxGust;
   out = t;
   return true;

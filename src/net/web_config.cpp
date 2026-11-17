@@ -7,6 +7,7 @@
 
 #include "app/config_store.h"
 #include "app/data_store.h"
+#include "net/http_fetch.h"
 #include "svc/qrz.h"
 #include "svc/uart2.h"
 #include "app/events.h"
@@ -19,13 +20,20 @@
 
 namespace {
 const size_t kMaxBody = 6 * 1024;
-const size_t kCfgBuf = 6 * 1024;
 
 WebServer server(80);
 bool started = false;
 uint32_t restartAt = 0;  // millis() deadline, 0 = none
 
-void sendJson(int code, const String& s) { server.send(code, "application/json", s); }
+void sendJson(int code, const char* s) { server.send(code, "application/json", s); }
+
+// Serializes into the shared net-task body buffer (handlers run one at a time in the net task, between fetches) and
+// sends it: no String, no per-request malloc, and the same char* serializer configToJson already links.
+void sendDoc(int code, const JsonDocument& d) {
+  size_t n = serializeJson(d, httpBody, kHttpBodySize);
+  if (n == 0 || n >= kHttpBodySize - 1) return sendJson(500, "{\"error\":\"json_too_large\"}");
+  sendJson(code, httpBody);
+}
 
 void handleRoot() {
   server.sendHeader("Content-Encoding", "gzip");
@@ -33,13 +41,10 @@ void handleRoot() {
 }
 
 void handleConfig() {
-  char* buf = (char*)malloc(kCfgBuf);
-  if (!buf) return sendJson(503, "{\"error\":\"no_memory\"}");
   Config c;
   cfgGet(c);
-  if (configToJson(c, buf, kCfgBuf)) sendJson(200, buf);
+  if (configToJson(c, httpBody, kHttpBodySize)) sendJson(200, httpBody);
   else sendJson(500, "{\"error\":\"config_too_large\"}");
-  free(buf);
 }
 
 void handleSave() {
@@ -50,12 +55,10 @@ void handleSave() {
   if (!r.ok) {
     JsonDocument d;
     d["error"] = r.error;
-    String s;
-    serializeJson(d, s);
-    return sendJson(400, s);
+    return sendDoc(400, d);
   }
   if (r.needsRestart) restartAt = (millis() + 1500) | 1;  // |1 keeps it nonzero
-  sendJson(200, String("{\"status\":\"ok\",\"restart\":") + (r.needsRestart ? "true}" : "false}"));
+  sendJson(200, r.needsRestart ? "{\"status\":\"ok\",\"restart\":true}" : "{\"status\":\"ok\",\"restart\":false}");
 }
 
 void handleResetTouch() {
@@ -84,9 +87,7 @@ void handleStatus() {
   d["qrz_status"] = qrzStatusStr();
   d["uart2_rx_pin"] = PIN_UART2_RX;
   d["uart2_tx_pin"] = PIN_UART2_TX;
-  String s;
-  serializeJson(d, s);
-  sendJson(200, s);
+  sendDoc(200, d);
 }
 
 void handleUartStatus() {
@@ -100,17 +101,13 @@ void handleUartStatus() {
   d["gps_fix"] = g.fix;
   d["bt_active"] = uart2BridgeEnabled();
   d["aprs_uart_active"] = !strncmp(c.uart2_cmod, "aprs_tnc", 8);
-  String s;
-  serializeJson(d, s);
-  sendJson(200, s);
+  sendDoc(200, d);
 }
 
 void handleBridgeStatus() {
   JsonDocument d;
   uart2BridgeStatus(d);
-  String s;
-  serializeJson(d, s);
-  sendJson(200, s);
+  sendDoc(200, d);
 }
 
 void handleBridgeScan() {
@@ -122,7 +119,7 @@ void handleBridgeScan() {
 void handleBridgePair() {
   if (!uart2BridgeEnabled()) return sendJson(400, "{\"status\":\"error\",\"message\":\"bridge_mode_required\"}");
   JsonDocument d;
-  if (deserializeJson(d, server.arg("plain"))) return sendJson(400, "{\"status\":\"error\",\"message\":\"json_parse\"}");
+  if (deserializeJson(d, server.arg("plain").c_str())) return sendJson(400, "{\"status\":\"error\",\"message\":\"json_parse\"}");
   const char* pw = d["password"] | "";
   if (strlen(pw) > 16) return sendJson(400, "{\"status\":\"error\",\"message\":\"password_too_long\"}");
   if (!uart2BridgePair(d["name"] | "", d["address"] | "", pw))
