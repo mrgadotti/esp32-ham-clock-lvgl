@@ -122,10 +122,11 @@ class AprsRadarScreen : public Screen {
     lv_draw_arc(l, &d);
   }
   // Range ring. lv_draw_arc builds circle masks of ~22 B per pixel of radius in LV_MEM and a failed allocation halts
-  // (LV_ASSERT_MALLOC): at 8x the rings are 800 px, so big rings are drawn as short line segments (only where they
-  // cross the screen) and rings that miss the screen are skipped.
+  // (LV_ASSERT_MALLOC): at 8x the rings are 800 px, so big rings are drawn as chords (sagitta <= 0.5 px) and only
+  // those that touch the layer's current clip area become draw tasks (onDraw runs once per render chunk).
+  // Rings that miss the screen are skipped; the angle advances by a rotation, no trig per segment.
   static void ring(lv_layer_t* l, int cx, int cy, int r, lv_color_t c) {
-    constexpr int kArcMax = 128, kTop = HEADER_H, kSeg = 12;
+    constexpr int kArcMax = 128, kTop = HEADER_H;
     int dx = cx < 0 ? -cx : cx > 319 ? cx - 319 : 0, dy = cy < kTop ? kTop - cy : cy > 239 ? cy - 239 : 0;
     int fx = cx > 160 ? cx : 319 - cx, fy = cy > (kTop + 239) / 2 ? cy - kTop : 239 - cy;  // farthest corner
     if (r + 1 < (int)hypotf((float)dx, (float)dy) || r - 1 > (int)hypotf((float)fx, (float)fy)) return;
@@ -133,18 +134,19 @@ class AprsRadarScreen : public Screen {
     lv_draw_line_dsc_t d;
     lv_draw_line_dsc_init(&d);
     d.color = c; d.width = 1;
-    const int n = (int)(6.2832f * r / kSeg) + 1;
-    const float da = 6.2832f / n;
-    float px = cx + r, py = cy;
-    for (int i = 1; i <= n; i++) {
-      float qx = cx + r * cosf(da * i), qy = cy + r * sinf(da * i);
-      bool in = (px > -kSeg && px < 320 + kSeg && py > kTop - kSeg && py < 240 + kSeg) ||
-                (qx > -kSeg && qx < 320 + kSeg && qy > kTop - kSeg && qy < 240 + kSeg);
-      if (in) {
-        d.p1.x = px; d.p1.y = py; d.p2.x = qx; d.p2.y = qy;
+    const float chord = 2.0f * sqrtf((float)r);  // sagitta chord^2 / (8 r) = 0.5 px
+    const int n = (int)(6.2832f * r / chord) + 1;
+    const float da = 6.2832f / n, co = cosf(da), si = sinf(da);
+    const lv_area_t& k = l->_clip_area;
+    float vx = (float)r, vy = 0;  // vector from the centre
+    for (int i = 0; i < n; i++) {
+      float wx = vx * co - vy * si, wy = vx * si + vy * co;
+      float x1 = cx + vx, y1 = cy + vy, x2 = cx + wx, y2 = cy + wy;
+      if (fmaxf(x1, x2) >= k.x1 - 1 && fminf(x1, x2) <= k.x2 + 1 && fmaxf(y1, y2) >= k.y1 - 1 && fminf(y1, y2) <= k.y2 + 1) {
+        d.p1.x = x1; d.p1.y = y1; d.p2.x = x2; d.p2.y = y2;
         lv_draw_line(l, &d);
       }
-      px = qx; py = qy;
+      vx = wx; vy = wy;
     }
   }
   // Draws s at (x, y) (centred on x when `center`) and records its box in `used`. Optional labels
