@@ -13,7 +13,7 @@ lv_obj_t* uiTile(lv_obj_t* parent, const char* text, int x, int y, int w, int h,
 // Selected (accent) / unselected (grey) look of a uiTile.
 void uiTilePaint(lv_obj_t* tile, bool on);
 
-// Adds a 40 px clickable three-bar button at the left of a headerCreate() bar and moves the title right of it.
+// Adds a 50x26 clickable three-bar button (bars are not clickable) at the left of a headerCreate() bar and moves the title right of it.
 lv_obj_t* uiHamburger(lv_obj_t* header, lv_event_cb_t cb);
 
 // Opaque full-screen panel on lv_layer_top that swallows touches (menus). Delete it with lv_obj_delete_async.

@@ -39,13 +39,14 @@ lv_obj_t* uiHamburger(lv_obj_t* header, lv_event_cb_t cb) {
   lv_obj_align(lv_obj_get_child(header, 0), LV_ALIGN_LEFT_MID, 46, 0);  // headerCreate adds the title first
   lv_obj_t* btn = lv_obj_create(header);
   lv_obj_remove_style_all(btn);
-  lv_obj_set_size(btn, 40, HEADER_H);
+  lv_obj_set_size(btn, 50, HEADER_H);
   lv_obj_set_pos(btn, 0, 0);
   lv_obj_add_flag(btn, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_remove_flag(btn, LV_OBJ_FLAG_SCROLLABLE);
   for (int i = 0; i < 3; i++) {
     lv_obj_t* bar = lv_obj_create(btn);
     lv_obj_remove_style_all(bar);
+    lv_obj_remove_flag(bar, LV_OBJ_FLAG_CLICKABLE);  // else the bars swallow taps on the icon itself
     lv_obj_set_size(bar, 20, 3);
     lv_obj_set_pos(bar, 10, 6 + i * 6);
     lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, 0);
