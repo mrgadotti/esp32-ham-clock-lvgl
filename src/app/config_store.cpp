@@ -14,8 +14,6 @@
 static Config g_cfg, g_cfgUi;
 static SemaphoreHandle_t g_mutex;
 
-__attribute__((weak)) void onConfigChanged() {}
-
 void configStoreLoad(Config& c) {
   if (!g_mutex) g_mutex = xSemaphoreCreateMutex();
   configDefaults(c);

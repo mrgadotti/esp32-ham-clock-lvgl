@@ -8,10 +8,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   /* shared */ \
   X(Utc, "UTC", "UTC") \
   X(LocalTime, "Local Time", "Hora Local") \
-  X(Local, "LOCAL", "LOCAL") \
-  X(Close, "CLOSE", "FECHAR") \
   X(Save, "SAVE", "SALVAR") \
-  X(Default, "DEFAULT", "PADRÃO") \
   X(Ok, "OK", "OK") \
   X(Cancel, "CANCEL", "CANCELAR") \
   X(Yes, "YES", "SIM") \
@@ -21,9 +18,6 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(Band, "BAND", "BANDA") \
   X(NoData, "No data", "Sem dados") \
   X(NoApiKey, "OpenWeather API key not set", "Chave da OpenWeather não configurada") \
-  X(ErrorPrefix, "ERROR: ", "ERRO: ") \
-  X(Page, "Page", "Página") \
-  X(SwitchScreen, "SWITCH SCREEN", "TROCAR TELA") \
   X(WaitingForData, "WAITING FOR DATA...", "AGUARDANDO DADOS...") \
   X(UpdatedUtc, "UPDATED UTC", "ATUALIZADO UTC") \
   X(UpdatedMinAgo, "updated %d min ago", "atualizado há %d min") \
@@ -31,7 +25,6 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   /* clock */ \
   X(Clock, "HAM CLOCK", "RELÓGIO HAM") \
   X(OperatorStation, "OPERATOR STATION", "ESTAÇÃO DO OPERADOR") \
-  X(TimeMode, "TIME MODE", "MODO DE HORA") \
   X(Gps, "GPS", "GPS") \
   /* table columns */ \
   X(ColCall, "CALL", "CALL") \
@@ -50,8 +43,6 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(WaitingForSpots, "WAITING FOR SPOTS...", "AGUARDANDO SPOTS...") \
   X(HamAlertNoLogin, "HAMALERT LOGIN NOT SET", "LOGIN HAMALERT NÃO DEFINIDO") \
   X(Filters, "FILTERS", "FILTROS") \
-  X(PotaFilters, "POTA FILTERS", "FILTROS POTA") \
-  X(HamAlertFilters, "HAMALERT FILTERS", "FILTROS HAMALERT") \
   X(FilterCw, "CW", "CW") \
   X(FilterSsb, "SSB", "SSB") \
   X(FilterDigi, "DIGI", "DIGI") \
@@ -70,11 +61,6 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(AprsAlert, "APRS Alert", "Alerta APRS") \
   X(RangeAlert, "Range Alert", "Alerta de alcance") \
   X(LedBuzzer, "LED / Buzzer", "LED / Buzzer") \
-  X(ZoomIn, "ZOOM +", "ZOOM +") \
-  X(ZoomOut, "ZOOM -", "ZOOM -") \
-  X(Zoom, "ZOOM:", "ZOOM:") \
-  X(RadarRmax, "Rmax:", "Rmáx:") \
-  X(RadarAlert, "ALERT:", "ALERTA:") \
   /* propagation / HF bands */ \
   X(Propagation, "PROPAGATION", "PROPAGAÇÃO") \
   X(HfBands, "HF BAND INFO", "BANDAS HF") \
@@ -92,8 +78,6 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(Humidity, "HUMIDITY", "UMIDADE") \
   X(Pressure, "PRESSURE", "PRESSÃO") \
   X(Wind, "WIND", "VENTO") \
-  X(Forecast3h, "Forecast 3h", "Previsão 3h") \
-  X(ForecastTomorrow, "Forecast tomorrow", "Previsão amanhã") \
   X(NoForecast, "No forecast", "Sem previsão") \
   X(ForecastNoData, "Forecast: no data from API", "Previsão: sem dados da API") \
   X(WeatherForLocation, "Weather for location: ", "Clima para localização: ") \
@@ -112,15 +96,8 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(NoFix, "NO FIX", "SEM FIX") \
   /* settings */ \
   X(Settings, "SETTINGS", "CONFIGURAÇÕES") \
-  X(DisplaySettings, "DISPLAY SETTINGS", "AJUSTES DE TELA") \
   X(Brightness, "BRIGHTNESS", "BRILHO") \
-  X(ThemeColor, "THEME COLOR", "COR DO TEMA") \
   X(Language, "LANGUAGE", "IDIOMA") \
-  X(Dark, "DARK", "ESCURO") \
-  X(Light, "LIGHT", "CLARO") \
-  X(Calibrate, "CALIBRATE", "CALIBRAR") \
-  X(Rot90Right, "Rotate 90 right", "Girar 90 à direita") \
-  X(Rot90Left, "Rotate 90 left", "Girar 90 à esquerda") \
   X(NightDim, "Night dimming", "Escurecer à noite") \
   X(CalibrateTouch, "Calibrate touch", "Calibrar toque") \
   X(InvertColors, "Invert colors", "Inverter cores") \
@@ -138,12 +115,9 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(StormNow, "STORM NOW", "TEMPESTADE AGORA") \
   X(StrongWind, "STRONG WIND", "VENTO FORTE") \
   X(Repeat, "Repeat:", "Repetir:") \
-  X(Path, "PATH:", "CAMINHO:") \
-  X(Frame, "Frame:", "Quadro:") \
   X(Mhz, "MHz", "MHz") \
   X(Km, "km", "km") \
   X(KmH, "km/h", "km/h") \
-  X(Bearing, "Bearing", "Rumo") \
   X(WxTemp, "TEMP:", "TEMP:") \
   X(WxWind, "WIND:", "VENTO:") \
   /* forecast, units, dates (day/month blocks must stay contiguous, Sunday/January first) */ \
@@ -179,13 +153,8 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(MonthNovember, "November", "novembro") \
   X(MonthDecember, "December", "dezembro") \
   /* alert overlay labels */ \
-  X(Comment, "Comment:", "Comentário:") \
-  X(WeatherLabel, "Weather:", "Clima:") \
   X(Gust, "Gust:", "Rajada:") \
   X(WindLabel, "Wind:", "Vento:") \
-  X(Eta, "ETA", "ETA") \
-  X(Forecast6h, "Forecast <= 6h", "Previsão <= 6h") \
-  X(BasedOnOwm, "Based on OpenWeather forecast", "Baseado na previsão do OpenWeather") \
   X(HumidityLabel, "HUMIDITY:", "UMIDADE:") \
   X(PressureLabel, "PRESSURE:", "PRESSÃO:") \
   /* APRS symbol short names (table order) */ \
@@ -217,11 +186,8 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(SymGrid, "GRID", "GRID") \
   X(SymLora, "LORA", "LORA") \
   /* APRS alert symbol descriptions */ \
-  X(DescHouse, "Home station", "Estação fixa") \
-  X(DescCar, "Mobile station", "Estação móvel") \
   X(DescDigi, "Digipeater", "Digipeater") \
   X(DescRepeater, "Repeater", "Repetidora") \
-  X(DescHuman, "Pedestrian", "Pedestre") \
   X(DescLaptop, "Laptop", "Laptop") \
   X(DescWx, "Weather station", "Estação meteo.") \
   X(DescShip, "Ship", "Navio") \
@@ -238,14 +204,12 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(DescLora, "LoRa station", "Estação LoRa") \
   X(DescOther, "Station", "Estação") \
   /* touch calibration */ \
-  X(CalTarget, "Calibrate: touch target %d/4", "Calibrar: toque no alvo %d/4") \
-  X(CalTouch, "Touch the target", "Toque no alvo") \
-  X(CalSaved, "Calibration saved", "Calibração salva") \
-  X(CalFailed, "Verify failed, retry", "Verificação falhou, tente de novo") \
+  X(CalTouch, "Touch the cross", "Toque na cruz") \
+  X(CalVerify, "Verify: touch the cross", "Verificar: toque na cruz") \
+  X(CalBad, "Bad points, retry", "Pontos ruins, tente de novo") \
+  X(CalFailed, "Too inaccurate, retry", "Impreciso, tente de novo") \
   /* boot */ \
-  X(Booting, "System starting...", "Iniciando o sistema...") \
-  X(Ready, "System ready!", "Sistema pronto!") \
-  X(FollowPropagation, "FOLLOW THE PROPAGATION...", "ACOMPANHE A PROPAGAÇÃO...")
+  X(Booting, "System starting...", "Iniciando o sistema...")
 
 enum class Tr : uint16_t {
 #define X(k, en, pt) k,

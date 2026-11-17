@@ -5,6 +5,8 @@
 #include <string.h>
 
 #include "app/config_store.h"
+#include "i18n.h"
+#include "ui/fonts/fonts.h"
 #include "touch.h"
 
 static_assert(sizeof(TouchCal) == sizeof(Config::tcal), "tcal blob layout");
@@ -46,8 +48,8 @@ static void showTarget(int16_t x, int16_t y, const char* text) {
 }
 
 static void showStep() {
-  if (S.step < 3) showTarget(TARGETS[S.step][0], TARGETS[S.step][1], "Touch the cross");
-  else showTarget(VERIFY[0], VERIFY[1], "Verify: touch the cross");
+  if (S.step < 3) showTarget(TARGETS[S.step][0], TARGETS[S.step][1], tr(Tr::CalTouch));
+  else showTarget(VERIFY[0], VERIFY[1], tr(Tr::CalVerify));
 }
 
 static void showMsg(const char* text) {
@@ -82,7 +84,7 @@ static void onTap() {
     S.raw[S.step][1] = S.sample[1];
     S.step++;
     if (S.step == 3) {
-      if (!touchCalSolve(S.raw, TARGETS, S.cal)) { S.step = 0; showMsg("Bad points, retry"); return; }
+      if (!touchCalSolve(S.raw, TARGETS, S.cal)) { S.step = 0; showMsg(tr(Tr::CalBad)); return; }
       touchSetCal(S.cal);
     }
     showStep();
@@ -90,7 +92,7 @@ static void onTap() {
   }
   int16_t x, y;
   touchCalApply(S.cal, S.sample[0], S.sample[1], x, y);
-  if (hypotf(x - VERIFY[0], y - VERIFY[1]) > 8) { S.step = 0; showMsg("Too inaccurate, retry"); return; }
+  if (hypotf(x - VERIFY[0], y - VERIFY[1]) > 8) { S.step = 0; showMsg(tr(Tr::CalFailed)); return; }
   static TouchCal toSave;
   toSave = S.cal;
   finish(cfgUpdate([](Config& cf) { memcpy(cf.tcal, &toSave, sizeof toSave); }));
@@ -128,6 +130,7 @@ void touchCalRun(void (*onDone)(bool saved)) {
   S.cross[0] = bar(21, 3);
   S.cross[1] = bar(3, 21);
   S.msg = lv_label_create(S.scrn);
+  lv_obj_set_style_text_font(S.msg, &font_14, 0);
   lv_obj_set_style_text_color(S.msg, lv_color_white(), 0);
   lv_obj_align(S.msg, LV_ALIGN_CENTER, 0, -40);
   showStep();

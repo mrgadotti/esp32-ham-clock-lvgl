@@ -59,7 +59,7 @@ const S=[
 ["Weather",[["weather_key","p","OpenWeather API key"],["weather_alert_storm_enabled","b","Storm alert"],["weather_alert_wind_enabled","b","Wind alert"],["weather_alert_wind_threshold_ms","f","Wind threshold (m/s)"]]],
 ["LED and QRZ",[["enable_led_alert","b","LED alerts"],["led_alert_duration_ms","i","LED duration (ms)"],["led_alert_blink_ms","i","LED blink (ms)"],["qrz_user","s","QRZ user"],["qrz_pass","p","QRZ password"]]],
 ["UART2 / GPS / bridge",[["uart2_connected_module","o","Connected module",[["none","None"],["gps","GPS"],["aprs_tnc","APRS TNC"],["aprs_tnc_kiss","APRS TNC KISS"],["esp32_bridge","ESP32 bridge"]]],["uart2_baud","i","Baud"],["uart2_data_bits","o","Data bits",[[7,"7"],[8,"8"]]],["uart2_parity","o","Parity",[["none","none"],["even","even"],["odd","odd"]]],["uart2_stop_bits","o","Stop bits",[[1,"1"],[2,"2"]]]],"br"],
-["Display",[["tft_backlight","i","Backlight (%)"],["tft_night_dimming","i","Night dimming (%)"],["tft_invert","b","Invert colors"],["tft_lang","o","Language",[["en","English"],["pt-br","Português"]]],["tft_rotation","o","Rotation",[[1,"Normal"],[3,"Flipped"]]],["touch_rotation","o","Touch rotation",[[0,"0"],[1,"1"],[2,"2"],[3,"3"]]],["tft_auto_switch","b","Auto switch screens"],["tft_switch_time_sec","i","Switch time (s)"]],"scr"]
+["Display",[["tft_backlight","i","Backlight (%)"],["tft_night_dimming","i","Night dimming (%)"],["tft_invert","b","Invert colors"],["tft_lang","o","Language",[["en","English"],["pt-br","Português"]]],["tft_rotation","o","Rotation",[[1,"Normal"],[3,"Flipped"]]],["tft_auto_switch","b","Auto switch screens"],["tft_switch_time_sec","i","Switch time (s)"]],"scr"]
 ];
 let cfg={};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>"&#"+c.charCodeAt(0)+";");

@@ -138,7 +138,9 @@ class SettingsScreen : public Screen {
         if (d < best) { best = d; sel = i + 1; }
       }
     }
-    dd_[2] = dropdown(list, tr(Tr::AutoSwitch), "Off\n10 s\n15 s\n30 s\n60 s\n120 s\n300 s", sel, [](lv_event_t* e) {
+    char swOpts[48];
+    snprintf(swOpts, sizeof swOpts, "%s\n10 s\n15 s\n30 s\n60 s\n120 s\n300 s", tr(Tr::Off));
+    dd_[2] = dropdown(list, tr(Tr::AutoSwitch), swOpts, sel, [](lv_event_t* e) {
       pend = lv_dropdown_get_selected((lv_obj_t*)lv_event_get_target(e));
       cfgUpdate([](Config& c) {
         c.tft_autosw = pend > 0;

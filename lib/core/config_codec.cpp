@@ -84,7 +84,6 @@ const ConfigField kFields[] = {
     F(FT_BOOL, "tft_invert", tft_inv, 0, 0, false, false),
     F(FT_LANG, "tft_lang", tft_lang, 0, 0, false, false),
     F(FT_INT, "tft_rotation", tft_rot, 1, 3, false, false),
-    F(FT_INT, "touch_rotation", touch_rot, 0, 3, false, false),
     F(FT_BOOL, "tft_auto_switch", tft_autosw, 0, 0, false, false),
     F(FT_INT, "tft_switch_time_sec", tft_sw_sec, 1, 3600, false, false),
     F(FT_BYTES, "screen_order", screen_order, 0, 13, false, false),
@@ -140,7 +139,6 @@ void configDefaults(Config& c) {
   c.uart2_stop = 1;
   c.tft_backlight = 100;
   c.tft_rot = 1;
-  c.touch_rot = 1;
   c.tft_lang = 0;  // EN
   c.tft_sw_sec = 30;
   c.scr_en = kScrEnMask;
