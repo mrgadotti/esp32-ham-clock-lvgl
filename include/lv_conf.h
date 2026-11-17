@@ -20,9 +20,7 @@
 #define LV_DEF_REFR_PERIOD 16 /*[ms]*/
 #define LV_DPI_DEF 130        /*[px/inch]*/
 
-/*--- Software renderer: only RGB565 (display, icons) and RGB565A8. ARGB8888 is the layer format for opacity/transform
- *    layers; nothing in src/ uses those, but F-04 NEEDS HARDWARE VALIDATION (shadows, dropdown, overlays).
- *    If anything misrenders, set LV_DRAW_SW_SUPPORT_ARGB8888 (and _PREMULTIPLIED) back to 1: about +26 KB. ---*/
+/*--- Software renderer: only the formats this build actually uses (RGB565 display, RGB565/ARGB8888 images) ---*/
 #define LV_DRAW_BUF_STRIDE_ALIGN 1
 #define LV_DRAW_BUF_ALIGN 4
 /* Layered draws (opacity, transform, some shadows) borrow this from LV_MEM; keep it small. */
@@ -31,9 +29,7 @@
 #define LV_DRAW_SW_SUPPORT_RGB565A8 1
 #define LV_DRAW_SW_SUPPORT_RGB888 0
 #define LV_DRAW_SW_SUPPORT_XRGB8888 0
-#define LV_DRAW_SW_SUPPORT_ARGB8888 0
-#define LV_DRAW_SW_SUPPORT_ARGB8888_PREMULTIPLIED 0
-#define LV_DRAW_SW_SUPPORT_RGB565_SWAPPED 0
+#define LV_DRAW_SW_SUPPORT_ARGB8888 1
 #define LV_DRAW_SW_SUPPORT_L8 0
 #define LV_DRAW_SW_SUPPORT_AL88 0
 #define LV_DRAW_SW_SUPPORT_A8 0
