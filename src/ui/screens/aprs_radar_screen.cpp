@@ -121,6 +121,32 @@ class AprsRadarScreen : public Screen {
     d.start_angle = 0; d.end_angle = 360;
     lv_draw_arc(l, &d);
   }
+  // Range ring. lv_draw_arc builds circle masks of ~22 B per pixel of radius in LV_MEM and a failed allocation halts
+  // (LV_ASSERT_MALLOC): at 8x the rings are 800 px, so big rings are drawn as short line segments (only where they
+  // cross the screen) and rings that miss the screen are skipped.
+  static void ring(lv_layer_t* l, int cx, int cy, int r, lv_color_t c) {
+    constexpr int kArcMax = 128, kTop = HEADER_H, kSeg = 12;
+    int dx = cx < 0 ? -cx : cx > 319 ? cx - 319 : 0, dy = cy < kTop ? kTop - cy : cy > 239 ? cy - 239 : 0;
+    int fx = cx > 160 ? cx : 319 - cx, fy = cy > (kTop + 239) / 2 ? cy - kTop : 239 - cy;  // farthest corner
+    if (r + 1 < (int)hypotf((float)dx, (float)dy) || r - 1 > (int)hypotf((float)fx, (float)fy)) return;
+    if (r <= kArcMax) { arc(l, cx, cy, r, 1, c); return; }
+    lv_draw_line_dsc_t d;
+    lv_draw_line_dsc_init(&d);
+    d.color = c; d.width = 1;
+    const int n = (int)(6.2832f * r / kSeg) + 1;
+    const float da = 6.2832f / n;
+    float px = cx + r, py = cy;
+    for (int i = 1; i <= n; i++) {
+      float qx = cx + r * cosf(da * i), qy = cy + r * sinf(da * i);
+      bool in = (px > -kSeg && px < 320 + kSeg && py > kTop - kSeg && py < 240 + kSeg) ||
+                (qx > -kSeg && qx < 320 + kSeg && qy > kTop - kSeg && qy < 240 + kSeg);
+      if (in) {
+        d.p1.x = px; d.p1.y = py; d.p2.x = qx; d.p2.y = qy;
+        lv_draw_line(l, &d);
+      }
+      px = qx; py = qy;
+    }
+  }
   // Draws s at (x, y) (centred on x when `center`) and records its box in `used`. Optional labels
   // (`optional`) are skipped when they would overlap an earlier one, so text never overprints.
   static void text(lv_layer_t* l, const char* s, int x, int y, lv_color_t c, bool center, lv_area_t* used, int& nu,
@@ -159,9 +185,9 @@ class AprsRadarScreen : public Screen {
     const int rOut = (int)(R_PX * v.zoom), rAlert = (int)lroundf(cfg().alrt_dst_km * sc);
     const lv_color_t grey = lv_color_hex(0x808080), txt = lv_color_hex(0xD3D3D3);
 
-    arc(l, qx, qy, rOut / 2, 1, grey);
-    arc(l, qx, qy, rOut, 1, grey);
-    if (rAlert >= 1 && rAlert <= 2000) arc(l, qx, qy, rAlert, 1, lv_color_make(70, 130, 190));
+    ring(l, qx, qy, rOut / 2, grey);
+    ring(l, qx, qy, rOut, grey);
+    if (rAlert >= 1 && rAlert <= 2000) ring(l, qx, qy, rAlert, lv_color_make(70, 130, 190));
     char b[16];
     lv_area_t used[MAXN + 8];
     int nu = 0;
@@ -170,7 +196,7 @@ class AprsRadarScreen : public Screen {
     if (qy - rOut + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut + 2, txt, false, used, nu);
     km(b, sizeof b, range / 2);
     if (qy - rOut / 2 + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut / 2 + 2, txt, false, used, nu);
-    text(l, tr(Tr::RadarNorth), OX - 4, HEADER_H + 1, txt, false, used, nu);
+    text(l, tr(Tr::RadarNorth), OX - 16, HEADER_H + 1, txt, false, used, nu, true);  // left of the km labels (at qx + 4)
     if (qx >= 0 && qx < 320 && qy >= HEADER_H && qy < 240) arc(l, qx, qy, 4, 4, lv_color_hex(0xFF8C00));
 
     const bool labels = v.zoom >= 2 || s->n_ <= 11;
