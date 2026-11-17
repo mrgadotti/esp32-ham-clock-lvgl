@@ -1,4 +1,5 @@
 #include "dx_cluster.h"
+#include "app/boot_log.h"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -113,6 +114,8 @@ void connectNow(uint32_t now) {
 
 void onConnected(uint32_t now) {
   MEM_DIAG_ONCE("dx: after connect");
+  static bool logged;
+  if (!logged) { logged = true; bootLog("DX connected %s:%d", curHost, (int)curPort); }
   up = true; gotData = false; loginSent = false;
   reader.reset();
   queue[0] = 0;

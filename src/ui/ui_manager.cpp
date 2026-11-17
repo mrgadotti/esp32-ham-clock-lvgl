@@ -141,7 +141,7 @@ void uiTick(uint32_t now) {
   if (booting) {
     NetStatus n;
     g_store.net.read([&](const NetStatus& s) { n = s; });
-    bootScreenUpdate(n.sta);
+    bootScreenUpdate();
     uint32_t el = now - bootStart;
     // Screen 1 shrinks the largest heap block below what a TLS handshake needs (M-06): hold it until the first HTTPS
     // round is over. No WiFi or a dead network: the caps (10 s / 20 s) release it anyway.
