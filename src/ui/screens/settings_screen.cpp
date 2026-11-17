@@ -81,8 +81,7 @@ class SettingsScreen : public Screen {
 
   void create(lv_obj_t* p) override {
     lv_obj_t* hdr = headerCreate(p, Tr::Settings);
-    lv_obj_align(lv_obj_get_child(hdr, 0), LV_ALIGN_LEFT_MID, 80, 0);  // title right of the Back tile
-    uiTilePaint(uiTile(hdr, tr(Tr::Back), 4, 1, 70, 24, [](lv_event_t*) { uiRequest(ScreenId::HamClock); }, 0), false);
+    lv_obj_align(lv_obj_get_child(hdr, 0), LV_ALIGN_LEFT_MID, 44, 0);  // title right of the back arrow
     lv_obj_t* list = lv_obj_create(p);
     lv_obj_remove_style_all(list);
     lv_obj_set_pos(list, 0, HEADER_H);
@@ -92,6 +91,18 @@ class SettingsScreen : public Screen {
     lv_obj_set_style_pad_row(list, 8, 0);
     lv_obj_set_scroll_dir(list, LV_DIR_VER);
     lv_obj_add_flag(list, LV_OBJ_FLAG_SCROLLABLE);
+    // Back arrow: 40x32 target centred on the 26 px header, created after the list so it stays on top.
+    lv_obj_t* back = lv_obj_create(p);
+    lv_obj_remove_style_all(back);
+    lv_obj_set_size(back, 40, 32);
+    lv_obj_set_pos(back, 0, (HEADER_H - 32) / 2);
+    lv_obj_add_flag(back, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(back, [](lv_event_t*) { uiRequest(ScreenId::HamClock); }, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t* arrow = lv_label_create(back);
+    lv_obj_set_style_text_font(arrow, &font_24, 0);
+    lv_obj_set_style_text_color(arrow, lv_color_hex(0xE0E0E0), 0);
+    lv_label_set_text(arrow, LV_SYMBOL_LEFT);
+    lv_obj_center(arrow);
     const Config& c = cfg();
 
     lv_obj_t* s = slider(row(list, tr(Tr::Brightness)), 5, 100, c.tft_backlight);

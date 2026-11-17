@@ -19,9 +19,9 @@ gen() { # name size extra-args...
 }
 
 gen font_14 14 --font "$TTF" --range $RANGE --font "$FA" --range 0xF00C,0xF078
-for s in 18 24; do
-  gen font_$s $s --font "$TTF" --range $RANGE
-done
+gen font_18 18 --font "$TTF" --range $RANGE
+# font_24 also carries the gear (Clock) and left-arrow (Settings header) symbols
+gen font_24 24 --font "$TTF" --range $RANGE --font "$FA" --range 0xF013,0xF053
 gen font_clock_48 48 --font "$TTF" --symbols "0123456789:-"
 # tabular numerals: equal advance for 0-9 so clocks/values do not jitter (asserts equality)
 python3 tools/tabular_digits.py "$OUT"/font_14.c "$OUT"/font_18.c "$OUT"/font_24.c "$OUT"/font_clock_48.c
