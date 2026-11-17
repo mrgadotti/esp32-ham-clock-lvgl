@@ -105,4 +105,16 @@
 
 #define LV_USE_OBSERVER 0
 
+#ifdef PERF_PROF
+#define LV_USE_PROFILER 1
+#define LV_PROFILER_INCLUDE "perf_prof.h"
+#define LV_PROFILER_BEGIN perfProfBegin(__func__)
+#define LV_PROFILER_END perfProfEnd(__func__)
+#define LV_PROFILER_BEGIN_TAG(tag) perfProfBegin(tag)
+#define LV_PROFILER_END_TAG(tag) perfProfEnd(tag)
+#define LV_PROFILER_FS 0
+#define LV_PROFILER_CACHE 0
+#define LV_PROFILER_DECODER 0
+#endif
+
 #endif /*LV_CONF_H*/
