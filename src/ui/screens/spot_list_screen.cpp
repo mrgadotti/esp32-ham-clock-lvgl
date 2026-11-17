@@ -41,9 +41,12 @@ class SpotListScreen : public Screen {
 
   void tick(uint32_t) override {
     bool noLogin = d_.id == ScreenId::HamAlert && (!cfg().hama_user[0] || !cfg().hama_pass[0]);
-    if (noLogin != noLogin_) {
+    bool failed = false;
+    if (d_.failKey && n_ == 0) g_store.net.read([&](const NetStatus& s) { failed = s.*d_.failKey; });
+    if (noLogin != noLogin_ || failed != failed_) {
       noLogin_ = noLogin;
-      lv_label_set_text(ui_.wait, tr(noLogin ? Tr::HamAlertNoLogin : Tr::WaitingForSpots));
+      failed_ = failed;
+      lv_label_set_text(ui_.wait, tr(noLogin ? Tr::HamAlertNoLogin : failed ? Tr::FetchFailedRetrying : Tr::WaitingForSpots));
     }
     uint32_t now = lv_tick_get();
     if (force_ || (ver_ != d_.src.version(d_.src.store) && now - lastMs_ >= kRefreshMs)) refresh(now);
@@ -58,7 +61,7 @@ class SpotListScreen : public Screen {
   uint8_t mode_;
   uint16_t band_;
   uint32_t ver_ = 0, lastMs_ = 0;
-  bool force_ = false, noLogin_ = false;
+  bool force_ = false, noLogin_ = false, failed_ = false;
   uint8_t idx_[SPOT_LIST_MAX];  // filtered position -> store index
   size_t n_ = 0;
   size_t cachedRow_ = (size_t)-1;

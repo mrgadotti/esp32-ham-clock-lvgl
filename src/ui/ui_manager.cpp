@@ -13,7 +13,8 @@
 #include "overlays/alert_overlay.h"
 #include "screens/boot_screen.h"
 
-static constexpr uint32_t TOUCH_PAUSE_MS = 10000, BOOT_MIN_MS = 3000, BOOT_MAX_MS = 10000;
+static constexpr uint32_t TOUCH_PAUSE_MS = 10000, BOOT_MIN_MS = 3000, BOOT_MAX_MS = 10000,
+                              BOOT_ROUND_MAX_MS = 20000;  // with WiFi up: wait for the first HTTPS round (heap still large)
 
 static Screen* cur;
 static lv_obj_t* curObj;
@@ -132,7 +133,9 @@ void uiTick(uint32_t now) {
     g_store.net.read([&](const NetStatus& s) { n = s; });
     bootScreenUpdate(n.sta);
     uint32_t el = now - bootStart;
-    if (el < BOOT_MAX_MS && (el < BOOT_MIN_MS || !n.sta)) return;
+    // Screen 1 shrinks the largest heap block below what a TLS handshake needs (M-06): hold it until the first HTTPS
+    // round is over. No WiFi or a dead network: the caps (10 s / 20 s) release it anyway.
+    if (el < (n.sta ? BOOT_ROUND_MAX_MS : BOOT_MAX_MS) && (el < BOOT_MIN_MS || !(n.sta && n.roundDone))) return;
     booting = false;
     pendingDir = 0;
     pendingTarget = 0;

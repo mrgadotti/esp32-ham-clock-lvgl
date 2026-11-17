@@ -53,4 +53,9 @@ void test_gate_window_across_the_wrap() {
   TEST_ASSERT_TRUE(tlsGateStep(g, t + 1999, 40000) == TlsAction::Wait);  // wraps to 0x3CF
   TEST_ASSERT_TRUE(tlsGateStep(g, t + 2000, 40000) == TlsAction::Go);
 }
-int main() { UNITY_BEGIN(); RUN_TEST(test_go_when_block_is_big_enough); RUN_TEST(test_defers_then_goes_anyway); RUN_TEST(test_quick_retry_only_for_alloc_failure_once); RUN_TEST(test_gate_worst_case_goes_after_ten_seconds); RUN_TEST(test_gate_go_immediately_with_a_big_block); RUN_TEST(test_gate_survives_millis_crossing_2_pow_31_and_2_pow_32); RUN_TEST(test_gate_window_across_the_wrap); return UNITY_END(); }
+void test_boot_blocks_go_and_transient_holders_defer() {
+  TEST_ASSERT_TRUE(tlsDecide(61 * 1024, 0) == TlsDecision::Go);  // first round runs before screen 1 on a 35-61 KB block
+  TEST_ASSERT_TRUE(tlsDecide(35 * 1024, 0) == TlsDecision::Go);
+  TEST_ASSERT_TRUE(tlsDecide(20 * 1024, 0) == TlsDecision::Defer);
+}
+int main() { UNITY_BEGIN(); RUN_TEST(test_boot_blocks_go_and_transient_holders_defer); RUN_TEST(test_go_when_block_is_big_enough); RUN_TEST(test_defers_then_goes_anyway); RUN_TEST(test_quick_retry_only_for_alloc_failure_once); RUN_TEST(test_gate_worst_case_goes_after_ten_seconds); RUN_TEST(test_gate_go_immediately_with_a_big_block); RUN_TEST(test_gate_survives_millis_crossing_2_pow_31_and_2_pow_32); RUN_TEST(test_gate_window_across_the_wrap); return UNITY_END(); }

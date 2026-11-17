@@ -172,7 +172,10 @@ static void netTask(void*) {
     propTick(now);
     // The tick that sees a valid clock also ran the first propagation fetch, so the round is over at the end of it.
     now = millis();  // the HTTPS fetches above can take seconds
-    if (sta && !roundAt && (timeValid() || now - staAt >= kRoundFallbackMs)) roundAt = now | 1;
+    if (sta && !roundAt && (timeValid() || now - staAt >= kRoundFallbackMs)) {
+      roundAt = now | 1;
+      g_store.net.write([](NetStatus& s) { s.roundDone = true; });  // releases the boot screen (ui_manager)
+    }
     if (!sta || (roundAt && now - roundAt >= kSocketDelayMs)) {  // !sta: let the services close their sockets
       dxTick(now);
       aprsIsTick(now);

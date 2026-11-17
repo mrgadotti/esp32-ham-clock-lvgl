@@ -46,5 +46,6 @@ struct SpotListDef {
   uint8_t nBands;
   int32_t Config::*modeKey;  // saved filter masks
   int32_t Config::*bandKey;
+  bool NetStatus::*failKey = nullptr;  // set while the last fetch failed: an empty list says so instead of "waiting"
 };
 Screen* createSpotListScreen(const SpotListDef& def);

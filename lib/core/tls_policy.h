@@ -1,8 +1,10 @@
 #pragma once
 #include <stdint.h>
 
-// TLS heap policy (M-06). A handshake needs ~2 x 16.6 KB I/O buffers plus state; idle largest block on the device is
-// ~34 KB and fetches work there, so the threshold only avoids starting while something transient holds the heap.
+// TLS heap policy (M-06). A handshake needs ~2 x 16.6 KB I/O buffers plus state. Measured on the board: the largest
+// block is 61 KB then 35 KB while booting, but only ~32.7 KB once screen 1 exists, and that is too fragmented for a
+// handshake (-32512). The real fix is ordering (the first HTTPS round runs before screen 1, see ui_manager), so the
+// threshold stays a transient-holder guard only; raising it would just burn the deferrals after the UI is up.
 // It never blocks for good: after kTlsMaxDeferrals deferrals the poll goes anyway.
 constexpr uint32_t kTlsMinBlock = 28u * 1024;
 constexpr uint8_t kTlsMaxDeferrals = 5;

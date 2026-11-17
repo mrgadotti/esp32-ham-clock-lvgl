@@ -4,3 +4,4 @@ uint32_t backoffMs(uint8_t failures) {
   uint32_t v = 5000u << failures;
   return v > 300000 ? 300000 : v;
 }
+uint32_t listRetryMs(uint8_t failures) { return failures >= 2 ? 120000 : 30000u << failures; }

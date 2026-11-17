@@ -6,6 +6,7 @@
 #include "app/config_store.h"
 #include "app/data_store.h"
 #include "net/http_fetch.h"
+#include "backoff.h"
 #include "pota_parse.h"
 #include "svc/qrz.h"
 #include "svc/spot_scratch.h"
@@ -18,6 +19,7 @@ constexpr size_t kMax = kSpotScratchN;
 void potaTick(uint32_t now) {
   static uint32_t last;
   static bool tried;
+  static uint8_t fails;
   bool sta = false;
   g_store.net.read([&](const NetStatus& n) { sta = n.sta; });
   if (!sta || (tried && now - last < kPeriodMs) || !httpPollGate(now)) return;
@@ -44,10 +46,19 @@ void potaTick(uint32_t now) {
   }, &ctx);
   if (!ok) {
     Serial.println("[POTA] fetch failed, keeping old list");
-    uint32_t q = httpQuickRetryMs();
-    if (q) last = now + q - kPeriodMs;  // one quick retry after an SSL allocation failure
+    g_store.net.write([](NetStatus& s) { s.potaFail = true; });
+    bool empty = true;
+    g_store.pota.read([&](const RingBuffer<Spot, 30>& r) { empty = r.size() == 0; });
+    uint32_t q = httpQuickRetryMs();  // one quick retry after an SSL allocation failure
+    uint32_t wait = q ? q : empty ? listRetryMs(fails) : kPeriodMs;  // empty list: retry sooner than the normal period
+    if (fails < 255) fails++;
+    last = now + wait - kPeriodMs;
     return;
   }
+  fails = 0;
+  bool wasFail = false;
+  g_store.net.read([&](const NetStatus& s) { wasFail = s.potaFail; });
+  if (wasFail) g_store.net.write([](NetStatus& s) { s.potaFail = false; });
   if (n == 0) {
     Serial.println("[POTA] no spots parsed, keeping old list");
     return;

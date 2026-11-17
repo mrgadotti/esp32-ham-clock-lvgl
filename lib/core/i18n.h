@@ -41,6 +41,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(Pota, "POTA.app", "POTA.app") \
   X(HamAlert, "HAMALERT.org", "HAMALERT.org") \
   X(WaitingForSpots, "WAITING FOR SPOTS...", "AGUARDANDO SPOTS...") \
+  X(FetchFailedRetrying, "FETCH FAILED, RETRYING...", "FALHA NA BUSCA, TENTANDO DE NOVO...") \
   X(HamAlertNoLogin, "HAMALERT LOGIN NOT SET", "LOGIN HAMALERT NÃO DEFINIDO") \
   X(Filters, "FILTERS", "FILTROS") \
   X(FilterCw, "CW", "CW") \

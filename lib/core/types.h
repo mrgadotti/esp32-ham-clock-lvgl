@@ -55,7 +55,8 @@ struct GpsState {
   uint32_t date;  // ddmmyy, 0 = unknown (clock sync)
 };
 
-struct NetStatus { bool sta; bool ap; char ip[16]; char ssid[33]; int8_t rssi; };
+// potaFail: the last POTA fetch failed (cleared by the next success); roundDone: the first boot HTTPS round is over.
+struct NetStatus { bool sta; bool ap; char ip[16]; char ssid[33]; int8_t rssi; bool potaFail; bool roundDone; };
 
 struct BeaconInfo { char call[12]; char position[24]; char path[32]; };
 
