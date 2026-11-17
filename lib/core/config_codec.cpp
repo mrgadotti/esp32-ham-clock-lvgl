@@ -217,9 +217,6 @@ static ApplyResult fail(const char* what, const char* key) {
   return r;
 }
 
-// Widest field (cluster_filters, aprs_alert): fields are parsed into this scratch, never into a second Config.
-static const size_t kMaxFieldSize = 128;
-
 // Parses v into p, a scratch copy of the field's current bytes. Returns the error kind, or nullptr on success.
 static const char* parseField(const ConfigField& f, JsonVariantConst v, uint8_t* p) {
   switch (f.type) {
@@ -281,11 +278,25 @@ static const char* parseField(const ConfigField& f, JsonVariantConst v, uint8_t*
 
 // In place and all-or-nothing without a second Config: pass 0 only validates (parses each field into scratch and
 // discards it), pass 1 commits the same parses, which cannot fail any more.
-ApplyResult configApplyJson(Config& cfg, const char* json) {
+struct ConfigPatch::Impl {
   JsonDocument doc;
-  if (deserializeJson(doc, json)) return fail("json_parse", nullptr);
-  if (!doc.is<JsonObject>()) return fail("json_parse", nullptr);
+  ApplyResult parsed;
+};
 
+ConfigPatch::ConfigPatch(const char* json) : p_(new Impl) {
+  p_->parsed = {true, false, {}};
+  if (deserializeJson(p_->doc, json) || !p_->doc.is<JsonObject>()) p_->parsed = fail("json_parse", nullptr);
+}
+ConfigPatch::~ConfigPatch() { delete p_; }
+ApplyResult ConfigPatch::parsed() const { return p_->parsed; }
+
+ApplyResult configApplyJson(Config& cfg, const char* json) {
+  ConfigPatch patch(json);
+  return patch.parsed().ok ? patch.apply(cfg) : patch.parsed();
+}
+
+ApplyResult ConfigPatch::apply(Config& cfg) const {
+  const JsonDocument& doc = p_->doc;
   uint8_t tmp[kMaxFieldSize];
   uint8_t* base = (uint8_t*)&cfg;
   ApplyResult r = {true, false, {}};

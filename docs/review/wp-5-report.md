@@ -23,3 +23,11 @@ Flash 1786889 -> 1787349 B (+460), static RAM 118260 -> 118316 B (+56). esp32-38
 ## Hardware checks still needed
 - `[CFG]` hold time < 1 ms with `-DCFG_LOG_HOLD` on Settings slider release.
 - Net-task stack watermark >= 3.5 KB free after a web Settings save (expected +1.3 KB from the in-place apply; further gain needs the service migrations).
+
+## Follow-ups (review)
+- `persistLatest` now uses a `static Config s_persist` guarded by `g_saveMutex` instead of 1.3 KB on the caller's stack. Static RAM cyd: 118316 -> 119652 B (+1336); esp32-38pin 119628 B. Flash cyd 1787641 B, esp32-38pin 1787117 B.
+- `cfgApplyJson` parses before taking `g_mutex`: new `ConfigPatch` class in config_codec (constructor parses, `apply()` validates and commits); `configApplyJson(Config&, json)` is kept as a wrapper. The class is opaque (pimpl) because including ArduinoJson.h in the header pulls `<cmath>` and breaks boot_screen.cpp (`static lv_obj_t* log`).
+- `serviceCoords` zero-initialises its local `Fixed f{}`.
+- `kMaxFieldSize` moved to config_codec.h; `test_json_fields_fit_scratch` asserts every field with a jsonKey fits it.
+- Comment in `persistLatest` documents "A failed, B succeeded": A reports failure although its state reached flash through B.
+- Limitation: the serialisation done by `g_saveMutex` cannot be tested with the single-threaded stub (test_config_store only proves the config mutex is free during puts); it needs a hardware or multi-threaded check.

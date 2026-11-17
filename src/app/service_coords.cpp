@@ -18,7 +18,7 @@ portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;  // spans a 24-byte copy: cal
 
 bool serviceCoords(double& lat, double& lon) {
   uint32_t ver = cfgVersion();  // read before the config: a racing update only costs one extra refresh
-  Fixed f;
+  Fixed f{};
   portENTER_CRITICAL(&s_mux);
   bool hit = s_ver == ver;
   if (hit) f = s_fixed;

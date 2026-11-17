@@ -110,13 +110,14 @@ void cfgReadImpl(void (*fn)(const Config&, void*), void* ctx) {
   xSemaphoreGive(g_mutex);
 }
 
-// Saves the latest published config, so concurrent updates cannot leave an older snapshot in NVS. The one Config copy
-// here lives only while the mutex is free of NVS work.
+// Saves the latest published config, so concurrent updates cannot leave an older snapshot in NVS. The save buffer is
+// static (guarded by g_saveMutex) to keep 1.3 KB off the caller's stack. If A's save fails and B's (later, newer)
+// succeeds, A reports failure although its state did reach flash through B: harmless, the caller only warns.
+static Config s_persist;
 static bool persistLatest() {
-  Config c;
   xSemaphoreTake(g_saveMutex, portMAX_DELAY);
-  cfgGet(c);
-  bool ok = configStoreSave(c);
+  cfgGet(s_persist);
+  bool ok = configStoreSave(s_persist);
   xSemaphoreGive(g_saveMutex);
   return ok;
 }
@@ -136,9 +137,12 @@ bool cfgUpdateImpl(void (*fn)(Config&, void*), void* ctx) {
 
 // On an NVS save failure the new values stay applied in RAM, but out.ok is false (error "nvs_save").
 bool cfgApplyJson(const char* json, ApplyResult& out) {
+  ConfigPatch patch(json);  // parsed before the lock: only validate+commit run under it
+  out = patch.parsed();
+  if (!out.ok) return false;
   HOLD_T0();
   xSemaphoreTake(g_mutex, portMAX_DELAY);
-  out = configApplyJson(g_cfg, json);  // all-or-nothing: g_cfg is untouched on error
+  out = patch.apply(g_cfg);  // all-or-nothing: g_cfg is untouched on error
   if (out.ok) g_ver++;
   xSemaphoreGive(g_mutex);
   HOLD_LOG("cfgApplyJson");

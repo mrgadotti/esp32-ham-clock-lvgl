@@ -174,6 +174,11 @@ void test_in_place_apply() {
   TEST_ASSERT_EQUAL_INT(before.cluster_port, c.cluster_port);
 }
 
+void test_json_fields_fit_scratch() {
+  for (size_t i = 0; i < kFieldCount; i++)
+    if (kFields[i].jsonKey) TEST_ASSERT_TRUE_MESSAGE(kFields[i].size <= kMaxFieldSize, kFields[i].jsonKey);
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_defaults_match_original);
@@ -191,5 +196,6 @@ int main() {
   RUN_TEST(test_ssid_keeps_utf8);
   RUN_TEST(test_nvs_keys_fit);
   RUN_TEST(test_in_place_apply);
+  RUN_TEST(test_json_fields_fit_scratch);
   return UNITY_END();
 }
