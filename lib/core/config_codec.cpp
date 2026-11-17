@@ -109,7 +109,7 @@ static void setStr(char* dst, size_t size, const char* src) {
 
 void configDefaults(Config& c) {
   memset(&c, 0, sizeof c);
-  setStr(c.cluster_host, sizeof c.cluster_host, "dxspots.com");
+  setStr(c.cluster_host, sizeof c.cluster_host, "dxcluster.iu1bow.it");
   c.cluster_port = 7300;
   c.cluster_noann = c.cluster_nowwv = c.cluster_nowcy = c.cluster_usefl = true;
   setStr(c.cluster_filters, sizeof c.cluster_filters, "set/ft8");

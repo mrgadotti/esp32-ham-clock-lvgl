@@ -15,7 +15,7 @@ static Config defaults() {
 
 void test_defaults_match_original() {
   Config c = defaults();
-  TEST_ASSERT_EQUAL_STRING("dxspots.com", c.cluster_host);
+  TEST_ASSERT_EQUAL_STRING("dxcluster.iu1bow.it", c.cluster_host);
   TEST_ASSERT_EQUAL_INT(7300, c.cluster_port);
   TEST_ASSERT_EQUAL_STRING("rotate.aprs2.net", c.aprs_host);
   TEST_ASSERT_EQUAL_INT(14580, c.aprs_port);
