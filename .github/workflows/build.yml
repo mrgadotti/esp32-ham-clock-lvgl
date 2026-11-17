@@ -40,6 +40,13 @@ jobs:
             .pio
           key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
       - run: pio run -e ${{ matrix.env }}
+      - name: Size gate
+        env:
+          FLASH_BUDGET: 1550000 # bytes of firmware.bin; ~1.50 MB today, keep a little headroom
+        run: |
+          size=$(stat -c %s .pio/build/${{ matrix.env }}/firmware.bin)
+          echo "firmware.bin: $size bytes (budget $FLASH_BUDGET)"
+          test "$size" -le "$FLASH_BUDGET"
       - uses: actions/upload-artifact@v4
         with:
           name: firmware-${{ matrix.env }}
