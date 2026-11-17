@@ -65,10 +65,12 @@ lv_obj_t* slider(lv_obj_t* parent, int32_t lo, int32_t hi, int32_t v) {
   return s;
 }
 
-// Small dark tile fitted to its label (8 px pad each side, max 150 px), left-aligned in the column list.
+// Small accent-orange tile (uiTilePaint on) fitted to its label (8 px pad each side, max 150 px), left-aligned in the column list.
 void button(lv_obj_t* list, Tr t, lv_event_cb_t cb) {
   lv_obj_t* b = uiTile(list, tr(t), 0, 0, 0, 28, cb, 0);
-  uiTilePaint(b, false);
+  uiTilePaint(b, true);  // fill = COL_ACCENT, the theme primary that also colours checked checkboxes
+  lv_obj_set_style_text_color(b, lv_color_white(), 0);
+  lv_obj_set_style_opa(b, LV_OPA_60, LV_STATE_PRESSED);  // visible press feedback
   lv_obj_set_width(b, LV_SIZE_CONTENT);
   lv_obj_set_style_max_width(b, 150, 0);
   lv_obj_set_style_pad_hor(b, 8, 0);
@@ -99,7 +101,7 @@ class SettingsScreen : public Screen {
     lv_obj_add_event_cb(back, [](lv_event_t*) { uiRequest(ScreenId::HamClock); }, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* arrow = lv_label_create(back);
     lv_obj_set_style_text_font(arrow, &font_24, 0);
-    lv_obj_set_style_text_color(arrow, lv_color_hex(0xE0E0E0), 0);
+    lv_obj_set_style_text_color(arrow, COL_BG, 0);  // same as the header title
     lv_label_set_text(arrow, LV_SYMBOL_LEFT);
     lv_obj_center(arrow);
     const Config& c = cfg();
