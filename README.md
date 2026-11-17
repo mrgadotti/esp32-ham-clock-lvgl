@@ -22,9 +22,9 @@ Screens, in swipe order:
 - Weather
 - Forecast
 - Location
-- Settings
 
 - Swipe left or right to change screen (wraps around).
+- Settings opens from the gear icon at the bottom right of the Clock screen; BACK returns.
 - Lists scroll by dragging vertically.
 - Touch calibration is stored on the device.
 - The UI is available in English and Brazilian Portuguese (PT-BR). English is the default.
