@@ -57,9 +57,10 @@
 #define LV_USE_FLOAT 1 /* lv_label_set_text_fmt %f needs it; 0 misaligns varargs */
 #define LV_USE_MATRIX 0
 
-/*--- Fonts: the app ships its own (src/ui/fonts); only Montserrat 14 is the built-in fallback/default ---*/
-#define LV_FONT_MONTSERRAT_14 1
-#define LV_FONT_DEFAULT &lv_font_montserrat_14
+/*--- Fonts: the app ships its own (src/ui/fonts); font_14 is the LVGL default and carries the LV_SYMBOL glyphs, so no built-in Montserrat ---*/
+#define LV_FONT_MONTSERRAT_14 0
+#define LV_FONT_CUSTOM_DECLARE LV_FONT_DECLARE(font_14)
+#define LV_FONT_DEFAULT &font_14
 
 /*--- Widgets in use: obj, label, button, image, checkbox, dropdown, slider (needs bar), switch, table ---*/
 #define LV_USE_ANIMIMG 0
