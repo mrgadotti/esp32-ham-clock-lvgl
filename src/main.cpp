@@ -58,10 +58,19 @@ static bool perfCell(size_t r, uint8_t c, char* out, size_t cap, void*) {
   else snprintf(out, cap, "%s", k[c]);
   return true;
 }
+static void perfInject() {  // fake rows into the spot table; real list refreshes (empty store) hide it again, so repeat
+  for (uint32_t i = 0; i < lv_obj_get_child_count(lv_screen_active()); i++) {
+    lv_obj_t* c = lv_obj_get_child(lv_screen_active(), i);
+    if (lv_obj_get_user_data(c) && lv_obj_has_flag(c, LV_OBJ_FLAG_SCROLLABLE)) {
+      lv_obj_remove_flag(c, LV_OBJ_FLAG_HIDDEN);
+      spotTableSet(c, 100, perfCell, nullptr);
+    }
+  }
+}
 static void perfScrollCb(lv_timer_t*) {
   static int dir = 1;
   lv_obj_t* l = perfFind();
-  if (!l) return;
+  if (!l) { perfInject(); return; }
   if (dir > 0 && lv_obj_get_scroll_bottom(l) <= 0) dir = -1;
   if (dir < 0 && lv_obj_get_scroll_top(l) <= 0) dir = 1;
   lv_obj_scroll_by(l, 0, -dir * 6, LV_ANIM_OFF);
@@ -119,10 +128,7 @@ static void uiTask(void*) {
       perfPhase = 2; perfStart = pn; lv_timer_delete(perfTimer); perfTimer = nullptr; uiRequest(ScreenId::DxCluster);
     }
     if (perfPhase == 2 && pn - perfStart >= 1500) {  // screen built and its empty first refresh done: inject fake rows
-      for (uint32_t i = 0; i < lv_obj_get_child_count(lv_screen_active()); i++) {
-        lv_obj_t* c = lv_obj_get_child(lv_screen_active(), i);
-        if (lv_obj_check_type(c, &lv_table_class)) { lv_obj_remove_flag(c, LV_OBJ_FLAG_HIDDEN); spotTableSet(c, 100, perfCell, nullptr); }
-      }
+      perfInject();
       perfPhase = 3; perfStart = perfLast = pn; perfReport(); perfTimer = lv_timer_create(perfScrollCb, 16, nullptr); Serial.println("PERF dx table");
     }
     if (perfPhase == 1 || perfPhase == 3) {

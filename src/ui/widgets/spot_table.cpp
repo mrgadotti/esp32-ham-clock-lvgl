@@ -1,5 +1,6 @@
 #include "spot_table.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "../fonts/fonts.h"
@@ -8,52 +9,88 @@
 #include "ui_kit.h"
 
 namespace {
+// Not an lv_table: its draw loop creates a fill and a measured label per cell and every chunk of every scroll frame
+// pays for it. This widget draws one stripe per odd row and one unmeasured label per cell, straight from a string pool.
 struct State {
   SpotTableCols cols;
+  lv_obj_t* spacer;  // invisible child that gives the scroll range its height
+  char* pool = nullptr;
+  uint16_t* off = nullptr;  // pool offset of each cell, row-major
+  uint32_t poolLen = 0, rows = 0;
+  int32_t rowH, width;
 };
 
-// Zebra stripe: odd rows get a gray fill (original 0x0841 is ~#080808, invisible on the panel).
-void stripeRow(lv_draw_task_t* t, const lv_draw_dsc_base_t* base) {
-  lv_draw_fill_dsc_t* fd = lv_draw_task_get_fill_dsc(t);
-  if (!fd) return;
-  fd->opa = (base->id1 & 1) ? LV_OPA_COVER : LV_OPA_TRANSP;
-  fd->color = lv_color_hex(0x2A2A2A);
+bool intersect(lv_area_t* r, const lv_area_t* a, const lv_area_t* b) {  // lv_area_intersect is private API
+  r->x1 = LV_MAX(a->x1, b->x1);
+  r->y1 = LV_MAX(a->y1, b->y1);
+  r->x2 = LV_MIN(a->x2, b->x2);
+  r->y2 = LV_MIN(a->y2, b->y2);
+  return r->x1 <= r->x2 && r->y1 <= r->y2;
 }
 
 void onDraw(lv_event_t* e) {
-  lv_draw_task_t* t = lv_event_get_draw_task(e);
-  auto* base = static_cast<lv_draw_dsc_base_t*>(lv_draw_task_get_draw_dsc(t));
-  if (base->part != LV_PART_ITEMS) return;
-  stripeRow(t, base);
-  lv_draw_label_dsc_t* ld = lv_draw_task_get_label_dsc(t);
-  if (!ld) return;
-  auto* st = static_cast<State*>(lv_obj_get_user_data(lv_event_get_target_obj(e)));
-  if (st && base->id2 < st->cols.n) ld->color = st->cols.color[base->id2];
+  lv_obj_t* t = lv_event_get_current_target_obj(e);
+  auto* st = static_cast<State*>(lv_obj_get_user_data(t));
+  if (!st || !st->rows) return;
+  lv_layer_t* layer = lv_event_get_layer(e);
+  lv_area_t o, clip;
+  lv_obj_get_coords(t, &o);
+  if (!intersect(&clip, &o, &layer->_clip_area)) return;
+  const lv_area_t clipOri = layer->_clip_area;
+  int32_t y0 = o.y1 - lv_obj_get_scroll_y(t);
+  uint32_t first = clip.y1 > y0 ? (uint32_t)((clip.y1 - y0) / st->rowH) : 0;
+  lv_draw_fill_dsc_t fd;
+  lv_draw_fill_dsc_init(&fd);
+  fd.base.layer = layer;
+  fd.color = lv_color_hex(0x2A2A2A);  // zebra: the original 0x0841 is ~#080808, invisible on the panel
+  lv_draw_label_dsc_t ld;
+  lv_draw_label_dsc_init(&ld);
+  ld.base.layer = layer;
+  ld.font = &font_14;
+  ld.flag = LV_TEXT_FLAG_EXPAND;  // no wrapping; the cell clip crops the text
+  for (uint32_t r = first; r < st->rows; r++) {
+    lv_area_t cell = {o.x1, y0 + (int32_t)r * st->rowH, o.x1, 0};
+    cell.y2 = cell.y1 + st->rowH - 1;
+    if (cell.y1 > clip.y2) break;
+    if (r & 1) {
+      lv_area_t row = {o.x1, cell.y1, o.x1 + st->width - 1, cell.y2};
+      lv_draw_fill(layer, &fd, &row);
+    }
+    for (uint8_t c = 0; c < st->cols.n; c++) {
+      cell.x2 = cell.x1 + st->cols.width[c] - 1;
+      const char* txt = st->pool + st->off[r * st->cols.n + c];
+      if (*txt && intersect(&layer->_clip_area, &clip, &cell)) {
+        ld.text = txt;
+        ld.color = st->cols.color[c];
+        lv_area_t ta = {cell.x1 + SPOT_TABLE_PAD_L, cell.y1, cell.x2, cell.y2};
+        lv_draw_label(layer, &ld, &ta);
+      }
+      cell.x1 = cell.x2 + 1;
+    }
+  }
+  layer->_clip_area = clipOri;
 }
 
 void onDelete(lv_event_t* e) {
-  delete static_cast<State*>(lv_obj_get_user_data(lv_event_get_target_obj(e)));
+  auto* st = static_cast<State*>(lv_obj_get_user_data(lv_event_get_target_obj(e)));
+  if (st) free(st->pool), free(st->off);
+  delete st;
 }
 }  // namespace
 
 lv_obj_t* spotTableCreate(lv_obj_t* parent, const SpotTableCols& cols) {
-  lv_obj_t* t = lv_table_create(parent);
+  lv_obj_t* t = lv_obj_create(parent);
   lv_obj_remove_style_all(t);
-  lv_obj_set_style_text_font(t, &font_14, LV_PART_ITEMS);
-  lv_obj_set_style_text_color(t, COL_TEXT, LV_PART_ITEMS);
-  lv_obj_set_style_bg_opa(t, LV_OPA_COVER, LV_PART_ITEMS);  // fill task must exist; stripeRow sets real opa
-  lv_obj_set_style_border_width(t, 0, LV_PART_ITEMS);
-  lv_obj_set_style_pad_all(t, 0, LV_PART_ITEMS);
-  lv_obj_set_style_pad_left(t, SPOT_TABLE_PAD_L, LV_PART_ITEMS);
   lv_obj_set_scroll_dir(t, LV_DIR_VER);
-  lv_obj_add_flag(t, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
-  int w = 0;
-  lv_table_set_column_count(t, cols.n);
-  for (uint8_t c = 0; c < cols.n; c++) {
-    lv_table_set_column_width(t, c, cols.width[c]);
-    w += cols.width[c];
-  }
-  lv_obj_set_width(t, w);
+  auto* st = new State{cols};
+  st->rowH = lv_font_get_line_height(&font_14);
+  for (uint8_t c = 0; c < cols.n; c++) st->width += cols.width[c];
+  lv_obj_set_width(t, st->width);
+  st->spacer = lv_obj_create(t);
+  lv_obj_remove_style_all(st->spacer);
+  lv_obj_remove_flag(st->spacer, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_size(st->spacer, 1, 1);
+  lv_obj_set_pos(st->spacer, 0, 0);
   // Header separator (original: 1 px muted gray under the column titles); sits in the 18 px header band above the table.
   lv_obj_t* sep = lv_obj_create(parent);
   lv_obj_remove_style_all(sep);
@@ -61,8 +98,8 @@ lv_obj_t* spotTableCreate(lv_obj_t* parent, const SpotTableCols& cols) {
   lv_obj_set_style_bg_color(sep, lv_color_hex(0xD3D3D3), 0);  // TFT_LIGHTGREY (dark-theme muted)
   lv_obj_set_size(sep, 320, 1);
   lv_obj_set_pos(sep, 0, HEADER_H + 17);
-  lv_obj_set_user_data(t, new State{cols});
-  lv_obj_add_event_cb(t, onDraw, LV_EVENT_DRAW_TASK_ADDED, nullptr);
+  lv_obj_set_user_data(t, st);
+  lv_obj_add_event_cb(t, onDraw, LV_EVENT_DRAW_MAIN, nullptr);
   lv_obj_add_event_cb(t, onDelete, LV_EVENT_DELETE, nullptr);
   return t;
 }
@@ -70,19 +107,39 @@ lv_obj_t* spotTableCreate(lv_obj_t* parent, const SpotTableCols& cols) {
 void spotTableSet(lv_obj_t* t, size_t n, CellFn cell, void* ctx) {
   auto* st = static_cast<State*>(lv_obj_get_user_data(t));
   if (!st) return;
-  int32_t sy = lv_obj_get_scroll_y(t);
-  uint32_t oldRows = lv_table_get_row_count(t);
-  lv_table_set_row_count(t, n);
+  const uint8_t nc = st->cols.n;
+  size_t cap = n * nc * 12 + 16, len = 0;
+  char* pool = static_cast<char*>(malloc(cap));
+  auto* off = static_cast<uint16_t*>(malloc((n * nc + 1) * sizeof(uint16_t)));
+  if (!pool || !off) { free(pool); free(off); return; }  // keep the old rows
   char buf[48];
-  for (size_t r = 0; r < n; r++)
-    for (uint8_t c = 0; c < st->cols.n; c++) {
-      buf[0] = 0;
-      if (!cell(r, c, buf, sizeof buf, ctx)) buf[0] = 0;
-      const char* old = lv_table_get_cell_value(t, r, c);
-      if (!old || strcmp(old, buf) != 0) lv_table_set_cell_value(t, r, c, buf);  // keeps the cell's ctrl bits
-      if (r >= oldRows) lv_table_set_cell_ctrl(t, r, c, LV_TABLE_CELL_CTRL_TEXT_CROP);  // only new cells
+  for (size_t i = 0; i < n * nc; i++) {
+    buf[0] = 0;
+    if (!cell(i / nc, i % nc, buf, sizeof buf, ctx)) buf[0] = 0;
+    size_t l = strlen(buf) + 1;
+    if (len + l > cap) {
+      cap = cap * 2 + l;
+      char* np = static_cast<char*>(realloc(pool, cap));
+      if (!np) { free(pool); free(off); return; }
+      pool = np;
     }
-  lv_obj_scroll_to_y(t, sy, LV_ANIM_OFF);
+    memcpy(pool + len, buf, l);
+    off[i] = (uint16_t)len;
+    len += l;
+  }
+  bool same = n == st->rows && len == st->poolLen && memcmp(pool, st->pool, len) == 0;  // offsets follow from the text
+  if (same) { free(pool); free(off); return; }  // nothing changed: no invalidate, no redraw
+  free(st->pool);
+  free(st->off);
+  st->pool = pool;
+  st->off = off;
+  st->poolLen = len;
+  st->rows = n;
+  lv_obj_set_height(st->spacer, (int32_t)n * st->rowH);
+  lv_obj_update_layout(t);
+  int32_t over = lv_obj_get_scroll_bottom(t);
+  if (over < 0) lv_obj_scroll_by(t, 0, -over, LV_ANIM_OFF);  // the list got shorter than the scroll position
+  lv_obj_invalidate(t);
 }
 
 SpotListUi spotListUiCreate(lv_obj_t* p, Tr title, const SpotTableCols& cols, const Tr* colTitles, Tr waitText,
