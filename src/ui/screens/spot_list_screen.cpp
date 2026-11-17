@@ -5,6 +5,7 @@
 
 #include "band_mode.h"
 #include "i18n.h"
+#include "text_cut.h"
 #include "../../app/config_store.h"
 #include "../theme.h"
 #include "../widgets/filter_menu.h"
@@ -17,16 +18,6 @@ constexpr size_t kTextMax = 15;        // the last column fits ~14 characters; s
 
 int32_t pendMode, pendBand;  // cfgUpdate takes a plain function pointer
 const SpotListDef* pendDef;
-
-// "%.15s" that never leaves half of a UTF-8 sequence at the cut.
-void copyCut(char* out, size_t cap, const char* s) {
-  size_t n = strnlen(s, kTextMax);
-  if (s[n] && n && ((uint8_t)s[n] & 0xC0) == 0x80)  // cut inside a multi-byte character: drop it entirely
-    while (n && ((uint8_t)s[n] & 0xC0) == 0x80) n--;
-  if (n >= cap) n = cap - 1;
-  memcpy(out, s, n);
-  out[n] = 0;
-}
 
 class SpotListScreen : public Screen {
  public:
@@ -107,7 +98,7 @@ class SpotListScreen : public Screen {
       case 3: snprintf(out, cap, "%s", sp.mode == MODE_CW ? "CW" : sp.mode == MODE_SSB ? "SSB" : sp.mode == MODE_DIGI ? "DIGI" : "-"); break;
       default: {
         const char* t = s->d_.comment ? sp.comment : sp.country;
-        copyCut(out, cap, t[0] ? t : "-");
+        textCut(out, cap, t[0] ? t : "-", kTextMax);
         break;
       }
     }

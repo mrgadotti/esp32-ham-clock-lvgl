@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "i18n.h"
+#include "text_cut.h"
 #include "../../app/config_store.h"
 #include "../../app/data_store.h"
 #include "../fonts/fonts.h"
@@ -173,11 +174,7 @@ class AprsListScreen : public Screen {
         break;
       }
       case 3:
-        if (a.hasLatLon && a.distKm >= 0) {  // the KM column fits 4 digits
-          int d = (int)a.distKm;
-          if (d >= 10000) snprintf(out, cap, "%dk", d / 1000);
-          else snprintf(out, cap, "%d", d);
-        }
+        if (a.hasLatLon && a.distKm >= 0) formatKmCell(out, cap, (int)a.distKm);
         else snprintf(out, cap, "-");
         break;
       default:
