@@ -222,7 +222,7 @@ static void show(const UiEvent& e) {
     case EventKind::Beaconing:
       title = tr(Tr::AprsBeaconing);
       appendf(body, sizeof body, "%s\n%s\n%s", e.beacon.call, e.beacon.position, e.beacon.path);
-      secs = 2;
+      secs = 30;  // fixed, not configurable
       break;
     case EventKind::WeatherAlert:
       title = tr(Tr::WeatherAlert);

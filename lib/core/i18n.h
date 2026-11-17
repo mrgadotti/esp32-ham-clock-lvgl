@@ -104,6 +104,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(InvertColors, "Invert colors", "Inverter cores") \
   X(Rotation, "Rotation", "Rotação") \
   X(AutoSwitch, "Auto-switch", "Troca automática") \
+  X(AlertTime, "Alert time", "Tempo do alerta") \
   X(Off, "Off", "Desligado") \
   X(EnabledScreens, "Enabled screens", "Telas ativas") \
   X(FreeHeap, "Free heap", "Heap livre") \

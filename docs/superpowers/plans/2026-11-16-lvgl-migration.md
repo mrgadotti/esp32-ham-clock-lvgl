@@ -578,7 +578,7 @@ void cfgUpdate(void (*fn)(Config&));                                  // mutate 
 - `void overlayShow(const UiEvent&)`:
   - a full-screen object on `lv_layer_top` with `LV_OBJ_FLAG_CLICKABLE`, so it swallows touches;
   - a close X button;
-  - timeouts: APRS and weather use `cfg().alrt_scr_s` (1–60 s), beaconing is fixed at 2 s.
+  - timeouts: APRS and weather use `cfg().alrt_scr_s` (1–60 s), beaconing is fixed at 30 s.
 - On `EventKind::StartTouchCal`, it calls `touchCalRun`.
 
 - [ ] **Step 1: Boot screen.** "ESP32-HAM-CLOCK" in font_24, the callsign, and boot log lines in font_14. It shows for 3 s or until WiFi connects.

@@ -189,7 +189,7 @@ add("Location", "toast SAVED/NO FIX (left of button)", "font_18", 202 - 8 - 8, T
 # ---------------- Settings (settings_screen.cpp: row 308 px; dropdown/slider widgets 120+) ----------------
 add("Settings", "label beside slider (308-152)", "font_14", 308 - 152 - 4, T("Brightness"))
 add("Settings", "label beside switch (308-60)", "font_14", 308 - 60 - 4, T("NightDim", "InvertColors"))
-add("Settings", "label beside dropdown (308-120)", "font_14", 308 - 120 - 4, T("Rotation", "Language", "AutoSwitch"))
+add("Settings", "label beside dropdown (308-120)", "font_14", 308 - 120 - 4, T("Rotation", "Language", "AutoSwitch", "AlertTime"))
 add("Settings", "dropdown option text (120 px - arrow)", "font_14", 120 - 40, ["Português", "300 s", "English"])
 add("Settings", "calibrate button / heading", "font_14", 300, T("CalibrateTouch", "EnabledScreens"))
 add("Settings", "screen checkbox names", "font_14", 300 - 30, T("Clock", "DxCluster", "Propagation", "HfBands", "Weather", "AprsIs", "Pota", "HamAlert", "AprsRadar", "Forecast", "Location"))

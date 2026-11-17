@@ -26,6 +26,7 @@ const Tr kScreenNames[] = {Tr::Clock, Tr::DxCluster, Tr::Propagation, Tr::HfBand
 static_assert(sizeof kScreens / sizeof *kScreens == sizeof kScreenNames / sizeof *kScreenNames,
               "kScreens and kScreenNames must list the same screens");
 const int32_t kSwSec[] = {10, 15, 30, 60, 120, 300};
+const int32_t kAlertSec[] = {5, 10, 15, 30, 45, 60};  // alrt_scr_s presets (config range 1..60)
 
 lv_obj_t* row(lv_obj_t* list, const char* text) {
   lv_obj_t* r = lv_obj_create(list);
@@ -146,6 +147,14 @@ class SettingsScreen : public Screen {
       });
     });
 
+    uint32_t asel = 0;
+    for (uint32_t i = 1; i < sizeof kAlertSec / sizeof *kAlertSec; i++)
+      if (abs(kAlertSec[i] - c.alrt_scr_s) < abs(kAlertSec[asel] - c.alrt_scr_s)) asel = i;
+    dd_[3] = dropdown(list, tr(Tr::AlertTime), "5 s\n10 s\n15 s\n30 s\n45 s\n60 s", asel, [](lv_event_t* e) {
+      int32_t v = kAlertSec[lv_dropdown_get_selected((lv_obj_t*)lv_event_get_target(e))];
+      cfgUpdate([v](Config& c) { c.alrt_scr_s = v; });
+    });
+
     uiLabel(list, &font_14, COL_ACCENT, tr(Tr::EnabledScreens));
     for (size_t i = 0; i < sizeof kScreens / sizeof *kScreens; i++) {
       lv_obj_t* cb = lv_checkbox_create(list);
@@ -197,7 +206,7 @@ class SettingsScreen : public Screen {
     lv_label_set_text(info_[i], t);
   }
 
-  lv_obj_t *nd_ = nullptr, *ndSlider_ = nullptr, *dd_[3] = {}, *info_[5] = {};
+  lv_obj_t *nd_ = nullptr, *ndSlider_ = nullptr, *dd_[4] = {}, *info_[5] = {};
   char cache_[4][48] = {};
   uint32_t lastInfo_ = 0;
 };
