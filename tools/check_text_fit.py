@@ -92,8 +92,8 @@ add("Spot list", "col COUNTRY cell (cut at 15 chars)", "font_14", SPOT_W[4] - PA
 for i, k in enumerate(["Utc", "ColCall", "Mhz", "ColMod"]):
     add("Spot list", f"col header {k}", "font_14", SPOT_W[i] - PAD, T(k))
 add("Spot list", "col header COUNTRY / MSG", "font_14", SPOT_W[4] - PAD, T("ColCountry", "ColMsg"))
-add("Spot list", "waiting label (font_18, centred)", "font_18", 300, T("WaitingForSpots"))
-add("Spot list", "HamAlert no-login label (font_18, centred)", "font_18", 300, T("HamAlertNoLogin"))
+# the waiting label is 300 px wide and wraps (spot_table.cpp), so two lines are available
+add("Spot list", "waiting / no-login labels (font_18, wrapped, 2 lines)", "font_18", 600, T("WaitingForSpots", "HamAlertNoLogin", "WaitingForAprs"))
 
 # ---------------- APRS list (aprs_list_screen.cpp: table cols, same cell padding) ----------------
 APRS_W = [37, 94, 85, 46, 58]  # UTC CALL SYM KM FREQ (must sum to 320)

@@ -99,6 +99,8 @@ SpotListUi spotListUiCreate(lv_obj_t* p, Tr title, const SpotTableCols& cols, co
   lv_obj_set_pos(ui.table, 0, HEADER_H + 18);
   lv_obj_set_height(ui.table, 240 - HEADER_H - 18);
   ui.wait = uiLabel(p, &font_18, COL_ERROR, tr(waitText));
+  lv_obj_set_width(ui.wait, 300);  // long texts (PT) wrap onto a second line instead of being clipped
+  lv_obj_set_style_text_align(ui.wait, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_center(ui.wait);
   return ui;
 }
