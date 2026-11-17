@@ -1,27 +1,26 @@
 #pragma once
 #include <stddef.h>
 
-// Newest-first, fixed storage. at(0) is the newest element.
+// Newest-first, fixed storage (no heap). at(0) is the newest element. Circular: pushFront is O(1).
 template <typename T, size_t N>
 class RingBuffer {
  public:
   void pushFront(const T& v) {
-    size_t last = (n_ < N ? n_ : N - 1);
-    for (size_t i = last; i > 0; --i) a_[i] = a_[i - 1];
-    a_[0] = v;
+    head_ = (head_ + N - 1) % N;  // when full this slot held the oldest element
+    a_[head_] = v;
     if (n_ < N) ++n_;
   }
-  T& at(size_t i) { return a_[i]; }
+  T& at(size_t i) { return a_[(head_ + i) % N]; }
+  const T& at(size_t i) const { return a_[(head_ + i) % N]; }
   size_t size() const { return n_; }
-  const T& at(size_t i) const { return a_[i]; }
-  void clear() { n_ = 0; }
+  void clear() { n_ = 0; head_ = 0; }
   // Replace the first match with `replacement` and move it to the front. False if none matched.
   template <class Pred>
   bool moveToFrontIf(Pred p, const T& replacement) {
     for (size_t i = 0; i < n_; ++i) {
-      if (p(a_[i])) {
-        for (size_t j = i; j > 0; --j) a_[j] = a_[j - 1];
-        a_[0] = replacement;
+      if (p(at(i))) {
+        for (size_t j = i; j > 0; --j) at(j) = at(j - 1);
+        at(0) = replacement;
         return true;
       }
     }
@@ -29,5 +28,6 @@ class RingBuffer {
   }
  private:
   T a_[N];
+  size_t head_ = 0;
   size_t n_ = 0;
 };

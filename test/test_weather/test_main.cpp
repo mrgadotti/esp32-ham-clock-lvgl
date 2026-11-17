@@ -46,7 +46,6 @@ void test_forecast_fixture() {
   TEST_ASSERT_EQUAL_FLOAT(7.0f, w.detailTempC[3]);                       // day after
   TEST_ASSERT_TRUE(w.nightTempValid[0]); TEST_ASSERT_EQUAL_FLOAT(6.0f, w.nightTempC[0]);
   TEST_ASSERT_TRUE(w.nightTempValid[1]); TEST_ASSERT_EQUAL_FLOAT(2.0f, w.nightTempC[1]);
-  TEST_ASSERT_TRUE(w.forecast3hValid); TEST_ASSERT_TRUE(w.forecastNextDayValid);
   TEST_ASSERT_EQUAL_STRING("Lisboa", w.cityName);
   TEST_ASSERT_EQUAL_INT(180, w.stormEtaMin);                             // storm in +3h
   TEST_ASSERT_EQUAL_FLOAT(4.0f, w.fcWindMaxMs); TEST_ASSERT_EQUAL_FLOAT(12.0f, w.fcWindGustMs);

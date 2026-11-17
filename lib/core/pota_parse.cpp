@@ -63,7 +63,6 @@ bool potaFromJson(JsonObjectConst o, Spot& dst) {
   if (!*call || !jsonToDouble(o["frequency"], f) || f <= 0 || f >= 1e7) return false;
   Spot s{};
   copyPrintable(s.call, sizeof(s.call), call);
-  copyPrintable(s.spotter, sizeof(s.spotter), o["spotter"] | "");
   s.khz = (uint32_t)(f + 0.5);
   s.band = bandFromKhz(s.khz);
   const char* loc = o["locationDesc"] | "";

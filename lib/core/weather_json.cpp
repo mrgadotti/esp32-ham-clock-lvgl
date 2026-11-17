@@ -34,7 +34,6 @@ bool weatherParseCurrent(JsonDocument& doc, WeatherData& out) {
   out.pressure = doc["main"]["pressure"] | 0;
   out.windMs = doc["wind"]["speed"] | 0.0f;
   out.valid = true;
-  out.lastError[0] = 0;
   return true;
 }
 
@@ -140,11 +139,6 @@ bool weatherParseForecast(JsonDocument& doc, WeatherData& out, long nowUnix, lon
     if (pick >= 0) { t.nightTempC[d] = list[vi[pick]]["main"]["temp"] | 0.0f; t.nightTempValid[d] = true; }
   }
 
-  t.forecast3hTempC = t.detailTempC[0]; t.forecast3hWindMs = t.detailWindMs[0];
-  strcpy(t.forecast3hDesc, "--"); t.forecast3hValid = true;
-  t.forecastNextDayTempC = t.detailTempC[2]; t.forecastNextDayWindMs = t.detailWindMs[2];
-  strcpy(t.forecastNextDayDesc, "--"); t.forecastNextDayValid = true;
-  t.forecastError[0] = 0;
   if (!t.cityName[0]) copyText(t.cityName, sizeof t.cityName, doc["city"]["name"] | "");
   t.stormEtaMin = stormEta; t.fcWindMaxMs = maxWind; t.fcWindGustMs = maxGust;
   out = t;
