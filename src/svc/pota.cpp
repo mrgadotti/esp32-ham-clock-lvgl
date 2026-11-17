@@ -20,7 +20,7 @@ void potaTick(uint32_t now) {
   static bool tried;
   bool sta = false;
   g_store.net.read([&](const NetStatus& n) { sta = n.sta; });
-  if (!sta || (tried && now - last < kPeriodMs) || spotScratchHeld()) return;
+  if (!sta || (tried && now - last < kPeriodMs) || !httpPollGate(now)) return;
   tried = true;
   last = now;
 
@@ -44,6 +44,8 @@ void potaTick(uint32_t now) {
   }, &ctx);
   if (!ok) {
     Serial.println("[POTA] fetch failed, keeping old list");
+    uint32_t q = httpQuickRetryMs();
+    if (q) last = now + q - kPeriodMs;  // one quick retry after an SSL allocation failure
     return;
   }
   if (n == 0) {

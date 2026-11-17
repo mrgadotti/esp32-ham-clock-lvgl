@@ -122,7 +122,7 @@ void qrzTick(uint32_t now) {
   xSemaphoreTake(mu(), portMAX_DELAY);
   bool due = s_queue.next(now, call);
   xSemaphoreGive(mu());
-  if (!due) return;
+  if (!due || !httpPollGate(now)) return;  // gate after next(): a deferral only costs the 3 s rate slot
 
   QrzInfo info;
   bool ok = false, notFound = false;
