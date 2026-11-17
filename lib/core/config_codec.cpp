@@ -46,7 +46,7 @@ const ConfigField kFields[] = {
     F(FT_STR, "aprs_callsign", aprs_callsign, 0, 0, false, false),
     F(FT_STR, "aprs_passcode", aprs_passcode, 0, 0, true, false),
     F(FT_INT, "aprs_ssid", aprs_ssid, 0, 15, false, false),
-    F(FT_INT, "aprs_radius", aprs_radius, 1, 100, false, false),
+    F(FT_INT, "aprs_radius", aprs_radius, 1, 150, false, false),
     F(FT_BOOL, "aprs_beacon", aprs_beacon, 0, 0, false, false),
     F(FT_STR, "aprs_symbol", aprs_symbol, 0, 0, false, false),
     F(FT_STR, "aprs_comment", aprs_comment, 0, 0, false, false),
