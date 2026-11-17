@@ -14,6 +14,7 @@
 #include "../theme.h"
 #include "../widgets/header.h"
 #include "../widgets/ui_kit.h"
+#include "../ui_manager.h"
 
 namespace {
 int32_t lastNdim = 50;  // RAM only: restored when the night-dimming switch is turned back on
@@ -79,7 +80,9 @@ class SettingsScreen : public Screen {
   ScreenId id() const override { return ScreenId::Settings; }
 
   void create(lv_obj_t* p) override {
-    headerCreate(p, Tr::Settings);
+    lv_obj_t* hdr = headerCreate(p, Tr::Settings);
+    lv_obj_align(lv_obj_get_child(hdr, 0), LV_ALIGN_LEFT_MID, 80, 0);  // title right of the Back tile
+    uiTilePaint(uiTile(hdr, tr(Tr::Back), 4, 1, 70, 24, [](lv_event_t*) { uiRequest(ScreenId::HamClock); }, 0), false);
     lv_obj_t* list = lv_obj_create(p);
     lv_obj_remove_style_all(list);
     lv_obj_set_pos(list, 0, HEADER_H);
@@ -175,6 +178,10 @@ class SettingsScreen : public Screen {
       lv_obj_t* cb = lv_checkbox_create(list);
       lv_obj_set_style_text_font(cb, &font_14, 0);
       lv_checkbox_set_text(cb, tr(kScreenNames[i]));
+      if (kScreens[i] == ScreenId::HamClock) {  // always in the carousel: it hosts the gear that opens Settings
+        lv_obj_add_state(cb, (lv_state_t)(LV_STATE_CHECKED | LV_STATE_DISABLED));
+        continue;
+      }
       if (c.scr_en & (1 << (int)kScreens[i])) lv_obj_add_state(cb, LV_STATE_CHECKED);
       lv_obj_add_event_cb(cb, [](lv_event_t* e) {
         lv_obj_t* t = (lv_obj_t*)lv_event_get_target(e);

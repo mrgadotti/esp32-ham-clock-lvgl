@@ -11,6 +11,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(Save, "SAVE", "SALVAR") \
   X(Ok, "OK", "OK") \
   X(Cancel, "CANCEL", "CANCELAR") \
+  X(Back, "BACK", "VOLTAR") \
   X(Yes, "YES", "SIM") \
   X(No, "NO", "NÃO") \
   X(All, "ALL", "TODOS") \
