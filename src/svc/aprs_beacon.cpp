@@ -9,9 +9,7 @@
 #include "app/events.h"
 #include "app/service_coords.h"
 #include "svc/aprs_is.h"
-
-// Task 17 provides the real UART2 KISS writer; the weak default means "no TNC".
-__attribute__((weak)) bool uart2SendKiss(const uint8_t*, size_t) { return false; }
+#include "svc/uart2.h"
 
 namespace {
 constexpr uint32_t kFirstDelayMs = 60000;

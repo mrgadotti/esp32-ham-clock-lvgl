@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 48 px
  * Bpp: 4
- * Opts: --no-compress --font tools/fonts/Montserrat-Medium.ttf --bpp 4 --format lvgl --size 48 --lv-font-name font_clock_48 --symbols 0123456789:- -o src/ui/fonts/font_clock_48.c
+ * Opts: --no-compress --no-kerning --bpp 4 --format lvgl --size 48 --lv-font-name font_clock_48 --font tools/fonts/Montserrat-Medium.ttf --symbols 0123456789:- -o src/ui/fonts/font_clock_48.c
  ******************************************************************************/
 
 #include "lvgl.h"
@@ -651,53 +651,7 @@ static const lv_font_fmt_txt_cmap_t cmaps[] =
     }
 };
 
-/*-----------------
- *    KERNING
- *----------------*/
 
-
-/*Map glyph_ids to kern left classes*/
-static const uint8_t kern_left_class_mapping[] =
-{
-    0, 1, 2, 0, 3, 4, 5, 6,
-    7, 8, 0, 2, 9
-};
-
-/*Map glyph_ids to kern right classes*/
-static const uint8_t kern_right_class_mapping[] =
-{
-    0, 1, 2, 3, 4, 5, 6, 7,
-    2, 8, 9, 10, 11
-};
-
-/*Kern values between classes*/
-static const int8_t kern_class_values[] =
-{
-    0, 5, -14, -10, -15, 5, 0, -8,
-    0, 0, 0, 5, 0, 0, 0, -8,
-    0, 0, -5, 0, 0, 0, -5, -1,
-    0, 0, 0, -15, 0, -1, 0, 0,
-    0, 0, 0, 0, -4, -4, 0, -8,
-    -9, 0, 0, 0, 8, 0, -19, -1,
-    -9, 0, -1, -36, 8, -5, 5, 0,
-    0, 0, -4, -4, 0, -4, -10, 0,
-    0, 0, 4, 0, 0, 0, 0, 0,
-    0, -5, 0, 0, 0, -38, -15, 8,
-    0, -6, -50, -14, 0, -14, 0, -15,
-    0, 0, 0, 0, 0, 0, 0, 5,
-    0, 0, 0
-};
-
-
-/*Collect the kern class' data in one place*/
-static const lv_font_fmt_txt_kern_classes_t kern_classes =
-{
-    .class_pair_values   = kern_class_values,
-    .left_class_mapping  = kern_left_class_mapping,
-    .right_class_mapping = kern_right_class_mapping,
-    .left_class_cnt      = 9,
-    .right_class_cnt     = 11,
-};
 
 /*--------------------
  *  ALL CUSTOM DATA
@@ -716,11 +670,11 @@ static lv_font_fmt_txt_dsc_t font_dsc = {
     .glyph_bitmap = glyph_bitmap,
     .glyph_dsc = glyph_dsc,
     .cmaps = cmaps,
-    .kern_dsc = &kern_classes,
-    .kern_scale = 16,
+    .kern_dsc = NULL,
+    .kern_scale = 0,
     .cmap_num = 1,
     .bpp = 4,
-    .kern_classes = 1,
+    .kern_classes = 0,
     .bitmap_format = 0,
 #if LVGL_VERSION_MAJOR == 8
     .cache = &cache
@@ -752,7 +706,7 @@ lv_font_t font_clock_48 = {
 #endif
     .dsc = &font_dsc,          /*The custom font data. Will be accessed by `get_glyph_bitmap/dsc` */
 #if LV_VERSION_CHECK(8, 2, 0) || LVGL_VERSION_MAJOR >= 9
-    .fallback = &lv_font_montserrat_14,
+    .fallback = NULL,
 #endif
     .user_data = NULL,
 };

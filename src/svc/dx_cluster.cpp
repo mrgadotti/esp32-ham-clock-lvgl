@@ -13,8 +13,6 @@
 #include "geo.h"
 #include "net/time_service.h"
 
-__attribute__((weak)) void qrzOnNewSpot(const Spot&) {}
-
 namespace {
 const uint32_t kLoginDelayMs = 1000, kCmdGapMs = 50, kKeepAliveMs = 30000, kSilenceMs = 5UL * 60 * 1000;
 const int32_t kConnectTimeoutMs = 4000;  // blocks the net task while connecting (same as the original)

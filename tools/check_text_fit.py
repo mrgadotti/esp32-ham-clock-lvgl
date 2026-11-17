@@ -99,7 +99,7 @@ add("APRS list", "menu checkbox labels", "font_14", 320 - 24 - 28, T("Beaconing"
 add("APRS list", "waiting label (font_18, centred)", "font_18", 320, T("WaitingForAprs"))
 
 # ---------------- filter menu (filter_menu.cpp) ----------------
-add("Filter menu", "title font_18", "font_18", 304, T("Filters", "PotaFilters", "HamAlertFilters"))
+add("Filter menu", "title font_18", "font_18", 304, T("Filters"))
 add("Filter menu", "section labels", "font_14", 304, T("Mode", "Band"))
 add("Filter menu", "mode tile (70 px)", "font_14", 70 - 6, T("All", "FilterCw", "FilterSsb", "FilterDigi"))
 add("Filter menu", "band tile (72 px)", "font_14", 72 - 6, ["160m", "Other", "UHF", "ALL", "TODOS"])
@@ -187,6 +187,9 @@ add("Settings", "info rows (300 px DOT)", "font_14", 300, ["SSID: " + "x" * 12, 
 add("Boot", "title font_24", "font_24", 320, ["ESP32-HAM-CLOCK"])
 add("Boot", "callsign font_24", "font_24", 320, ["PY2XXX-15/QRP"])
 add("Boot", "log lines (x=10)", "font_14", 300, T("Booting") + ["NTP: OK", "WiFi: ..."])
+
+# ---------------- Touch calibration (touch_cal_ui.cpp, centred label) ----------------
+add("Touch cal", "prompts (320 px)", "font_14", 320, T("CalTouch", "CalVerify", "CalBad", "CalFailed"))
 
 # ---------------- Overlays (alert_overlay.cpp) ----------------
 add("Alert overlay", "APRS title y=8 (X button x>=272, centred)", "font_24", 320 - 2 * 48, T("AprsAlertTitle"))

@@ -35,7 +35,7 @@ struct Config {
   // tft_rot is 1 or 3 only. scr_en: bit index = ScreenId (bit 1 = HamClock ... bit 13 = Location);
   // bits 0, 10 (Matrix) and 11 (Game) are always cleared, default 0x33FE. screen_order slots hold a ScreenId or 0 (off);
   // invalid or duplicate ids are reset to 0.
-  int32_t tft_backlight, tft_ndim, tft_rot, touch_rot, tft_sw_sec, scr_en;
+  int32_t tft_backlight, tft_ndim, tft_rot, tft_sw_sec, scr_en;
   int32_t screen1_time, s2_mode, s2_band, s7_mode, s7_band, s8_mode, s8_band, aprs_sort;
   bool tft_inv, tft_autosw;
   uint8_t tft_lang;  // 0 = EN, 1 = PT_BR (i18n Lang values)

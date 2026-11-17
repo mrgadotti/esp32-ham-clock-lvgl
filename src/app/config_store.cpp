@@ -28,8 +28,6 @@ static SemaphoreHandle_t g_mutex;      // guards g_cfg; never held across NVS wr
 static SemaphoreHandle_t g_saveMutex;  // serialises NVS saves (leaf lock; g_mutex may be taken inside it, not the reverse)
 static std::atomic<uint32_t> g_ver{0};
 
-__attribute__((weak)) void onConfigChanged() {}
-
 void configStoreLoad(Config& c) {
   if (!g_mutex) g_mutex = xSemaphoreCreateMutex();
   if (!g_saveMutex) g_saveMutex = xSemaphoreCreateMutex();
