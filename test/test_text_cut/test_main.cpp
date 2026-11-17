@@ -42,6 +42,9 @@ void test_hm_cell() {
   formatHmCell(b, sizeof b, 0); TEST_ASSERT_EQUAL_STRING("--", b);
   formatHmCell(b, sizeof b, 86400 + 3600 * 7 + 60 * 5 + 59); TEST_ASSERT_EQUAL_STRING("07:05", b);
   formatHmCell(b, sizeof b, 3600 * 23 + 60 * 59); TEST_ASSERT_EQUAL_STRING("23:59", b);
+  formatHmCell(b, sizeof b, 86400 + 3600 * 1 + 60 * 30, -3 * 3600); TEST_ASSERT_EQUAL_STRING("22:30", b);  // wraps back past midnight
+  formatHmCell(b, sizeof b, 3600 * 23 + 60 * 45, 5 * 3600 + 1800); TEST_ASSERT_EQUAL_STRING("05:15", b);  // wraps forward, half-hour zone
+  formatHmCell(b, sizeof b, 0, 3600); TEST_ASSERT_EQUAL_STRING("--", b);
 }
 
 int main() {

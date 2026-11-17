@@ -22,7 +22,9 @@ void formatKmCell(char* out, size_t cap, int km) {
   else snprintf(out, cap, "%d", km);
 }
 
-void formatHmCell(char* out, size_t cap, uint32_t utc) {
-  if (!utc) snprintf(out, cap, "--");
-  else snprintf(out, cap, "%02u:%02u", (unsigned)(utc % 86400 / 3600), (unsigned)(utc % 3600 / 60));
+void formatHmCell(char* out, size_t cap, uint32_t utc, int32_t offsetSec) {
+  if (!utc) { snprintf(out, cap, "--"); return; }
+  int64_t t = ((int64_t)utc + offsetSec) % 86400;
+  if (t < 0) t += 86400;
+  snprintf(out, cap, "%02u:%02u", (unsigned)(t / 3600), (unsigned)(t % 3600 / 60));
 }

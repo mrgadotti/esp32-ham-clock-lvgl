@@ -10,6 +10,7 @@
 #include "../../net/time_service.h"
 #include "../fonts/fonts.h"
 #include "../theme.h"
+#include "../widgets/header.h"
 #include "../widgets/ui_kit.h"
 
 namespace {
@@ -22,7 +23,7 @@ class ClockScreen : public Screen {
   void create(lv_obj_t* p) override {
     lv_obj_t* frame = lv_obj_create(p);
     lv_obj_remove_style_all(frame);
-    lv_obj_set_size(frame, 300, 155);
+    lv_obj_set_size(frame, 300, 172);  // bottom edge at y=182: >= 6 px below the date text (ends ~y=164), clear of the IP line (y=200)
     lv_obj_set_pos(frame, 10, 10);
     lv_obj_set_style_radius(frame, 8, 0);
     lv_obj_set_style_border_width(frame, 2, 0);
@@ -86,7 +87,7 @@ class ClockScreen : public Screen {
     if (timeValid()) {
       time_t now = time(nullptr);
       struct tm tm;
-      if (local) now += (time_t)(cfg().timezone * 3600.0f);  // UI snapshot of the timezone
+      now += uiTimeOffsetSec();
       gmtime_r(&now, &tm);
       bool localChg = lastLocal_ != local;
       if (tm.tm_sec != lastSec_ || localChg) {

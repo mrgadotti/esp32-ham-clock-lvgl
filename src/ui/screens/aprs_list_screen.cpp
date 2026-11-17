@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "aprs_symbol.h"
 #include "i18n.h"
 #include "text_cut.h"
 #include "../../app/config_store.h"
@@ -47,12 +46,12 @@ class AprsListScreen : public Screen {
     sort_ = (int)cfg().aprs_sort;
     if (sort_ < 0 || sort_ > SORT_DIST) sort_ = SORT_TIME;
     cols_.n = 5;
-    const int16_t w[] = {40, 94, 85, 43, 58};  // UTC CALL SYM KM FREQ, sized by tools/check_text_fit.py
-    const lv_color_t c[] = {lv_color_hex(0xC0C0C0), COL_TEXT, lv_color_hex(0x00FFFF), COL_ACCENT, COL_FREQ};
+    const int16_t w[] = {41, 93, 43, 58, 85};  // UTC CALL KM FREQ MSG, sized by tools/check_text_fit.py
+    const lv_color_t c[] = {lv_color_hex(0xC0C0C0), COL_TEXT, COL_ACCENT, COL_FREQ, lv_color_hex(0x00FFFF)};
     for (int i = 0; i < 5; i++) { cols_.width[i] = w[i]; cols_.color[i] = c[i]; }
     const char* cm = cfg().uart2_cmod;
     Tr title = !strcmp(cm, "aprs_tnc_kiss") ? Tr::AprsKiss : !strcmp(cm, "aprs_tnc") ? Tr::AprsTnc2 : Tr::AprsIs;
-    const Tr hd[] = {Tr::Utc, Tr::ColCall, Tr::ColSymbol, Tr::ColKm, Tr::ColFreq};
+    const Tr hd[] = {Tr::Utc, Tr::ColCall, Tr::ColKm, Tr::ColFreq, Tr::ColMsg};
     ui_ = spotListUiCreate(p, title, cols_, hd, Tr::WaitingForAprs, onMenu);
     force_ = true;
   }
@@ -61,6 +60,7 @@ class AprsListScreen : public Screen {
     uint32_t now = lv_tick_get();
     if (force_ || (ver_ != g_store.aprs.version() && now - lastMs_ >= 1000)) refresh(now);  // table rebuild: <= 1 Hz
     headerTickUtc(ui_.hdr);
+    if (spotListUiTimeSync(ui_)) force_ = true;
   }
 
  private:
@@ -138,6 +138,24 @@ class AprsListScreen : public Screen {
     refreshMenu();
   }
 
+  // Copies s to out, dropping whole characters and appending "..." until the text fits maxW px.
+  static void ellipsize(char* out, size_t cap, const char* s, int maxW) {
+    if (!s[0]) { snprintf(out, cap, "-"); return; }
+    textCut(out, cap, s, cap - 4);  // room for the "..."
+    lv_point_t sz;
+    lv_text_get_size(&sz, out, &font_14, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+    if (sz.x <= maxW && !s[strlen(out)]) return;
+    size_t n = strlen(out);
+    while (n) {
+      do n--; while (n && ((uint8_t)out[n] & 0xC0) == 0x80);  // back to a character boundary
+      out[n] = 0;
+      strcat(out, "...");
+      lv_text_get_size(&sz, out, &font_14, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+      if (sz.x <= maxW) return;
+      out[n] = 0;
+    }
+  }
+
   static bool cell(size_t row, uint8_t col, char* out, size_t cap, void* ctx) {
     auto* s = static_cast<AprsListScreen*>(ctx);
     if (row != s->cachedRow_) {
@@ -147,24 +165,18 @@ class AprsListScreen : public Screen {
     const AprsStation& a = s->cached_;
     switch (col) {
       case 0:
-        if (!a.utc) snprintf(out, cap, "--");
-        else snprintf(out, cap, "%02u%02u", (unsigned)(a.utc % 86400 / 3600), (unsigned)(a.utc % 3600 / 60));
+        formatHmCell(out, cap, a.utc, uiTimeOffsetSec());
         break;
       case 1: snprintf(out, cap, "%s", a.call); break;
-      case 2: {
-        Tr n;
-        if (aprsSymbolName(a.sym, n)) snprintf(out, cap, "%s", tr(n));
-        else snprintf(out, cap, "%c%c", a.sym[0] ? a.sym[0] : '-', a.sym[1] ? a.sym[1] : ' ');
-        break;
-      }
-      case 3:
+      case 2:
         if (a.hasLatLon && a.distKm >= 0) formatKmCell(out, cap, (int)a.distKm);
         else snprintf(out, cap, "-");
         break;
-      default:
+      case 3:
         if (a.freqMhz > 0) snprintf(out, cap, "%.3f", (double)a.freqMhz);
         else snprintf(out, cap, "-");
         break;
+      default: ellipsize(out, cap, a.comment, s->cols_.width[4] - SPOT_TABLE_PAD_L - 1); break;
     }
     return true;
   }

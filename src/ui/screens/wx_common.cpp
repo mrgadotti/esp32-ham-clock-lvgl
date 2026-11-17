@@ -1,4 +1,5 @@
 #include "wx_common.h"
+#include "../widgets/header.h"
 
 #include <Arduino.h>
 #include <stdio.h>
@@ -55,7 +56,7 @@ void wxLocalClock(char* out, size_t n, struct tm* tmOut) {
     if (tmOut) memset(tmOut, 0, sizeof *tmOut);
     return;
   }
-  time_t t = time(nullptr) + (time_t)(cfg().timezone * 3600.0f);
+  time_t t = time(nullptr) + uiTimeOffsetSec();
   struct tm tm;
   gmtime_r(&t, &tm);
   snprintf(out, n, "%02d:%02d", tm.tm_hour, tm.tm_min);
