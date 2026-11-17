@@ -33,7 +33,7 @@ ul{padding-left:18px}
 const $=id=>document.getElementById(id);
 // The device only accepts POSTs with this content type: a cross-site page cannot send it without a preflight.
 const post=(u,b)=>fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:b||"{}"});
-const PT={"Save":"Salvar","Saved":"Salvo","Saved, restarting...":"Salvo, reiniciando...","Export backup":"Exportar backup","Import backup":"Importar backup","Recalibrate touch":"Recalibrar toque","Off":"Desligado","Error":"Erro","(set)":"(definido)","Imported: press Save":"Importado: pressione Salvar",
+const PT={"Save":"Salvar","Saved":"Salvo","Saved, restarting...":"Salvo, reiniciando...","Export backup":"Exportar backup","Import backup":"Importar backup","Recalibrate touch":"Recalibrar toque","Show/hide":"Mostrar/ocultar","Off":"Desligado","Error":"Erro","(set)":"(definido)","Imported: press Save":"Importado: pressione Salvar",
 "WiFi":"WiFi","SSID 1":"SSID 1","Password 1":"Senha 1","SSID 2":"SSID 2","Password 2":"Senha 2","AP password (min 8 chars)":"Senha do AP (mín. 8 caracteres)",
 "Station":"Estação","Callsign":"Indicativo","Locator":"Locator","Latitude":"Latitude","Longitude":"Longitude","Valid lat/lon":"Lat/lon válidos","Timezone (hours)":"Fuso horário (horas)","Use GPS position when active":"Usar posição do GPS quando ativo",
 "Host":"Servidor","Port":"Porta","No announcements":"Sem anúncios","No WWV":"Sem WWV","No WCY":"Sem WCY","Use filters":"Usar filtros","Filters (one per line)":"Filtros (um por linha)",
@@ -77,7 +77,7 @@ function render(){
       if(t=="b"){l.className="c";h='<input type="checkbox" id="'+id+'"><div>'+T(lb)+"</div>";}
       else if(t=="o")h="<span>"+T(lb)+'</span><select id="'+id+'">'+op.map(o=>'<option value="'+o[0]+'">'+T(o[1])+"</option>").join("")+"</select>";
       else if(t=="a")h="<span>"+T(lb)+'</span><textarea id="'+id+'" rows="3"></textarea>';
-      else h="<span>"+T(lb)+'</span><input id="'+id+'" '+(t=="p"?'type="password" autocomplete="new-password"':t=="s"?"":'type="number" step="'+(t=="f"?"any":"1")+'"')+">";
+      else h="<span>"+T(lb)+'</span><input id="'+id+'" '+(t=="p"?'type="password" autocomplete="new-password"':t=="s"?"":'type="number" step="'+(t=="f"?"any":"1")+'"')+">"+(t=="p"?'<button type="button" class="g" onclick="const i=this.previousSibling;i.type=i.type==\'password\'?\'text\':\'password\'">'+T("Show/hide")+"</button>":"");
       l.innerHTML=h;d.appendChild(l);
     });
     if(extra=="scr"){
