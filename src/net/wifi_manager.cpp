@@ -13,6 +13,8 @@
 namespace {
 const char* kApSsid = "ESP32-HAM-CLOCK";
 const uint32_t kConnectTimeoutMs = 40000;  // real board sometimes needs >15 s to join
+// A join attempt that gets no answer (e.g. a dropped auth frame) is not retried by the driver: redo it every 10 s.
+const uint32_t kJoinRetryMs = 10000;
 const uint32_t kApRetryMs = 2UL * 60 * 1000;
 
 enum class St { Init, Connecting, Connected, Backoff, Ap };
@@ -22,6 +24,7 @@ uint8_t failures = 0;     // failed attempts in the current round (2 -> AP)
 uint8_t staFailures = 0;  // failed rounds since the last successful connect; drives backoffMs
 bool wasConnected = false;
 uint32_t stamp = 0;
+uint32_t tryStamp = 0;  // start of the current WiFi.begin
 bool apUp = false;
 bool retryFromAp = false;
 Config c;
@@ -90,7 +93,7 @@ bool beginSta(uint32_t now) {
     WiFi.begin(s, p);
     Serial.printf("[WIFI] connecting to %s\n", s);
     bootLog("WiFi connecting to %s", s);
-    stamp = now;
+    stamp = tryStamp = now;
     return true;
   }
   return false;
@@ -102,6 +105,9 @@ void wifiTick(uint32_t now) {
     case St::Init:
       cfgGet(c);
       WiFi.persistent(false);
+      WiFi.onEvent([](arduino_event_id_t, arduino_event_info_t i) {
+        Serial.printf("[WIFI] disconnected, reason %d\n", i.wifi_sta_disconnected.reason);
+      }, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
       failures = 0;
       if (beginSta(now)) {
         st = St::Connecting;
@@ -131,6 +137,13 @@ void wifiTick(uint32_t now) {
           bootLog("DNS fallback 1.1.1.1 / 8.8.8.8");
         }
         st = St::Connected;
+      } else if (now - stamp <= kConnectTimeoutMs && now - tryStamp >= kJoinRetryMs) {
+        Serial.println("[WIFI] no answer, retrying");
+        WiFi.disconnect();
+        delay(200);  // let the driver leave the 'connecting' state, or begin() fails
+        const uint32_t t0 = stamp;
+        beginSta(now);
+        stamp = t0;
       } else if (now - stamp > kConnectTimeoutMs) {
         WiFi.disconnect();
         failures++;
