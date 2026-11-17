@@ -43,7 +43,7 @@ class SpotListScreen : public Screen {
     mode_ = (uint8_t)(cfg().*d_.modeKey);
     band_ = (uint16_t)(cfg().*d_.bandKey);
     cols_.n = 5;
-    const int16_t w[] = {38, 76, 60, 42, 104};
+    const int16_t w[] = {40, 76, 60, 42, 102};
     const lv_color_t c[] = {lv_color_hex(0xC0C0C0), COL_TEXT, COL_FREQ, COL_MODE, COL_ACCENT};
     for (int i = 0; i < 5; i++) { cols_.width[i] = w[i]; cols_.color[i] = c[i]; }
     const Tr hdr[] = {Tr::Utc, Tr::ColCall, Tr::Mhz, Tr::ColMod, d_.comment ? Tr::ColMsg : Tr::ColCountry};

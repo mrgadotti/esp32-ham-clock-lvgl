@@ -62,7 +62,7 @@ class AprsListScreen : public Screen {
     sort_ = (int)cfg().aprs_sort;
     if (sort_ < 0 || sort_ > SORT_DIST) sort_ = SORT_TIME;
     cols_.n = 5;
-    const int16_t w[] = {37, 94, 85, 46, 58};  // UTC CALL SYM KM FREQ, sized by tools/check_text_fit.py
+    const int16_t w[] = {40, 94, 85, 43, 58};  // UTC CALL SYM KM FREQ, sized by tools/check_text_fit.py
     const lv_color_t c[] = {lv_color_hex(0xC0C0C0), COL_TEXT, lv_color_hex(0x00FFFF), COL_ACCENT, COL_FREQ};
     for (int i = 0; i < 5; i++) { cols_.width[i] = w[i]; cols_.color[i] = c[i]; }
     const char* cm = cfg().uart2_cmod;
@@ -173,7 +173,11 @@ class AprsListScreen : public Screen {
         break;
       }
       case 3:
-        if (a.hasLatLon && a.distKm >= 0) snprintf(out, cap, "%d", (int)a.distKm);
+        if (a.hasLatLon && a.distKm >= 0) {  // the KM column fits 4 digits
+          int d = (int)a.distKm;
+          if (d >= 10000) snprintf(out, cap, "%dk", d / 1000);
+          else snprintf(out, cap, "%d", d);
+        }
         else snprintf(out, cap, "-");
         break;
       default:

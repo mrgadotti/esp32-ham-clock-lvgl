@@ -82,7 +82,7 @@ add("Header", "radar title vs 'x16' zoom", "font_18", HDR_FREE - width("font_18"
 
 # ---------------- spot tables (spot_table.cpp: cell pad_left SPOT_TABLE_PAD_L = 1, pad_right 0, font_14) ----------------
 PAD = 1
-SPOT_W = [38, 76, 60, 42, 104]  # spot_list_screen.cpp: UTC CALL MHz MOD COUNTRY|MSG (must sum to 320)
+SPOT_W = [40, 76, 60, 42, 102]  # spot_list_screen.cpp: UTC CALL MHz MOD COUNTRY|MSG (must sum to 320)
 assert sum(SPOT_W) == 320
 add("Spot list", "col UTC cell '2359'", "font_14", SPOT_W[0] - PAD, ["2359", "--"])
 add("Spot list", "col CALL cell (8 chars; longer portable calls are cropped by design)", "font_14", SPOT_W[1] - PAD, ["PY2XXX/P", "9A1ABC/P"])
@@ -96,13 +96,13 @@ add("Spot list", "col header COUNTRY / MSG", "font_14", SPOT_W[4] - PAD, T("ColC
 add("Spot list", "waiting / no-login labels (font_18, wrapped, 2 lines)", "font_18", 600, T("WaitingForSpots", "HamAlertNoLogin", "WaitingForAprs"))
 
 # ---------------- APRS list (aprs_list_screen.cpp: table cols, same cell padding) ----------------
-APRS_W = [37, 94, 85, 46, 58]  # UTC CALL SYM KM FREQ (must sum to 320)
+APRS_W = [40, 94, 85, 43, 58]  # UTC CALL SYM KM FREQ (must sum to 320)
 assert sum(APRS_W) == 320
 syms = [TR[k][i] for k in TR if k.startswith("Sym") for i in (0, 1)]
 add("APRS list", "col UTC cell '2359'", "font_14", APRS_W[0] - PAD, ["2359", "--"])
 add("APRS list", "col CALL cell 'PY2XXX-15'", "font_14", APRS_W[1] - PAD, ["PY2XXX-15", "WA1ABC-15", "PU2MMM-10"])
 add("APRS list", "col SYM cell (all symbol names)", "font_14", APRS_W[2] - PAD, syms)
-add("APRS list", "col KM cell '99999'", "font_14", APRS_W[3] - PAD, ["99999", "-"])
+add("APRS list", "col KM cell '9999' (>= 10000 km shows '12k')", "font_14", APRS_W[3] - PAD, ["9999", "12k", "-"])
 add("APRS list", "col FREQ cell '144.800'", "font_14", APRS_W[4] - PAD, ["144.800", "430.000"])
 for i, k in enumerate(["Utc", "ColCall", "ColSymbol", "ColKm", "ColFreq"]):
     add("APRS list", f"col header {k}", "font_14", APRS_W[i] - PAD, T(k))
