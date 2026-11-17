@@ -156,7 +156,7 @@ add("Weather", "footer (320 px)", "font_14", 320 - 4, FOOT + T("NoApiKey", "Wait
 # ---------------- Forecast (forecast_screen.cpp: 4 columns of 79 px) ----------------
 add("Forecast", "col head font_18 (79 px)", "font_18", 79 - 2, T("Plus3h", "Plus6h", "DaySun", "DayMon", "DayTue", "DayWed", "DayThu", "DayFri", "DaySat") + ["D+3"])
 add("Forecast", "col temp font_18", "font_18", 79 - 2, ["-12°", "--"])
-add("Forecast", "col night 'NIGHT -12 deg'", "font_14", 79 - 2, both("%s -12°", "ColNight"))
+add("Forecast", "col night 'NIGHT -88' (no degree sign: the temp row above has it)", "font_14", 79 - 2, both("%s -88", "ColNight"))
 add("Forecast", "col humidity font_18", "font_18", 79 - 2, ["100%"])
 add("Forecast", "col wind '12.5m/s'", "font_14", 79 - 2, ["99.9m/s"])
 add("Forecast", "message (296 px, wraps to 2 lines)", "font_18", 296 * 2, T("NoApiKey", "ForecastNoData", "NoData", "NoForecast"))
@@ -164,15 +164,12 @@ add("Forecast", "message (296 px, wraps to 2 lines)", "font_18", 296 * 2, T("NoA
 # ---------------- Clock (clock_screen.cpp: frame 300 px, labels 320 px centred) ----------------
 add("Clock", "callsign font_24", "font_24", 296, ["PY2XXX-15/QRP"])
 add("Clock", "OPERATOR STATION", "font_14", 296, T("OperatorStation"))
-add("Clock", "time font_clock_48", "font_clock_48", 296, ["00:00:00", "88:88:88"])
+add("Clock", "time font_clock_48 (224 px label, per-second redraw)", "font_clock_48", 224, ["00:00:00", "88:88:88"])
 add("Clock", "mode LOCAL TIME / UTC", "font_14", 296, T("LocalTime", "Utc"))
-months = [TR[k][1] for k in TR if k.startswith("MonthD") or k.startswith("Month")]
-wdays = [TR[k][1] for k in TR if k.startswith("Weekday")]
-months_en = [TR[k][0] for k in TR if k.startswith("Month")]
-wdays_en = [TR[k][0] for k in TR if k.startswith("Weekday")]
-add("Clock", "date 'Weekday, 30 Month 2026' font_18", "font_18", 296,
-    ["%s, 30 %s 2026" % (max(wdays, key=lambda s: width("font_18", s)), max(months, key=lambda s: width("font_18", s))),
-     "%s, 30 %s 2026" % (max(wdays_en, key=lambda s: width("font_18", s)), max(months_en, key=lambda s: width("font_18", s)))])
+add("Clock", "date 'Weekday, 30 Month 2026' font_18 (3-letter weekday when the full text is wider than 296 px)", "font_18", 296,
+    [(lambda full, abbr: full if width("font_18", full) <= 296 else abbr)(
+        "%s, 30 %s 2026" % (TR[w][i], TR[m][i]), "%s, 30 %s 2026" % (TR["Day" + w[7:10]][i], TR[m][i]))
+     for i in (0, 1) for w in TR if w.startswith("Weekday") for m in TR if m.startswith("Month")])
 # ip row: dot x=15..25, GPS label x=30; centred text must stay right of the GPS label (ends ~ x=30+GPS)
 GPS_END = 30 + width("font_14", "GPS") + 6
 add("Clock", "IP / NO CONNECTION (centred, clear of GPS tag)", "font_18", 320 - 2 * GPS_END, ["255.255.255.255"] + T("NoConnection"))
@@ -201,7 +198,7 @@ add("Settings", "info rows (300 px DOT)", "font_14", 300, ["SSID: " + "x" * 12, 
 # ---------------- Boot (boot_screen.cpp) ----------------
 add("Boot", "title font_24", "font_24", 320, ["ESP32-HAM-CLOCK"])
 add("Boot", "callsign font_24", "font_24", 320, ["PY2XXX-15/QRP"])
-add("Boot", "log lines (x=10)", "font_14", 300, T("Booting") + ["NTP: OK", "WiFi: ..."])
+add("Boot", "log lines (x=10)", "font_14", 300, T("Booting") + both("WiFi: %s", "Ok") + both("NTP: %s", "Ok") + ["NTP: ..."])
 
 # ---------------- Touch calibration (touch_cal_ui.cpp, centred label) ----------------
 add("Touch cal", "prompts (320 px)", "font_14", 320, T("CalTouch", "CalVerify", "CalBad", "CalFailed"))
@@ -224,7 +221,10 @@ add("Alert overlay", "APRS comment (284 px, 2 lines)", "font_14", 284 * 2, ["Lor
 add("Alert overlay", "weather alert body (226 px beside icon)", "font_18", 226,
     T("PossibleStorm", "StormNow", "StrongWind") + both("%s 99.9 m/s", "WindLabel") + both("%s 99.9 m/s", "Gust")
     + [s + " 999 min" for s in T("Repeat")])
-add("Alert overlay", "beacon body (290 px)", "font_18", 290, ["PY2XXX-15", "-23.12345,-046.12345", "WIDE1-1,WIDE2-1"])
+add("Alert overlay", "beacon body (290 px; call[12], '%.4f %.4f' position, path of aprs_beacon.cpp)", "font_18", 290,
+    ["PY2XXX-15/QRP", "-90.0000 -180.0000", "APRS,WIDE1-1,WIDE2-1", "APRS,TCPIP*"])
+add("Alert overlay", "APRS bearing box (60 px)", "font_14", 60, ["359°", "---"])
+add("Alert overlay", "APRS dist box 'N km' (80 px)", "font_14", 80, both("99999 %s", "Km"))
 
 # ---------------- report ----------------
 bad = warn = 0  # WARN: fits, but within 1 px of the limit (kerning is ignored, so the real width may differ by ~1 px)

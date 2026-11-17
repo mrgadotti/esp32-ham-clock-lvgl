@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "aprs_symbol.h"
 #include "i18n.h"
 #include "text_cut.h"
 #include "../../app/config_store.h"
@@ -25,22 +26,6 @@ struct Menu {
 };
 Menu* menu = nullptr;
 Menu pend;  // cfgUpdate takes a plain function pointer
-
-// Short names in the original's table order; sym = {table, code}.
-bool symName(const char* s, const char*& out) {
-  struct E { char t, c; Tr n; };
-  static const E k[] = {{'/', '-', Tr::SymHouse}, {'/', '>', Tr::SymCar}, {'/', '#', Tr::SymDigi}, {'/', 'r', Tr::SymRepeater},
-                        {'/', '[', Tr::SymHuman}, {'/', 'l', Tr::SymLaptop}, {'/', 'L', Tr::SymLogin}, {'/', '_', Tr::SymWx},
-                        {'/', 's', Tr::SymShip}, {'/', 'a', Tr::SymAmbulance}, {'/', 'b', Tr::SymBike}, {'/', 'c', Tr::SymIcp},
-                        {'/', 'd', Tr::SymFire}, {'/', 'f', Tr::SymFiretruck}, {'/', 'h', Tr::SymHospital}, {'/', 'y', Tr::SymYagi},
-                        {'/', 'g', Tr::SymGlider}, {'/', 'k', Tr::SymTruck}, {'/', 'u', Tr::SymTruck}, {'/', 'v', Tr::SymVan},
-                        {'/', 'V', Tr::SymHamClock}, {'/', 'p', Tr::SymRover}, {'/', 'o', Tr::SymEoc}, {'/', 't', Tr::SymTruckStop},
-                        {'/', 'm', Tr::SymMicERepeater}, {'/', 'n', Tr::SymNode}, {'/', 'q', Tr::SymGrid},
-                        {'L', 'a', Tr::SymLora}, {'L', '_', Tr::SymLora}, {'L', '#', Tr::SymLora}, {'L', '&', Tr::SymLora}};
-  for (const E& e : k)
-    if (e.t == s[0] && e.c == s[1]) { out = tr(e.n); return true; }
-  return false;
-}
 
 void closeMenu() {
   if (!menu) return;
@@ -168,8 +153,8 @@ class AprsListScreen : public Screen {
         break;
       case 1: snprintf(out, cap, "%s", a.call); break;
       case 2: {
-        const char* n;
-        if (symName(a.sym, n)) snprintf(out, cap, "%s", n);
+        Tr n;
+        if (aprsSymbolName(a.sym, n)) snprintf(out, cap, "%s", tr(n));
         else snprintf(out, cap, "%c%c", a.sym[0] ? a.sym[0] : '-', a.sym[1] ? a.sym[1] : ' ');
         break;
       }

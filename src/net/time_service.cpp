@@ -4,7 +4,6 @@
 #include <WiFi.h>
 #include <esp_sntp.h>
 
-#include "app/config_store.h"
 #include "svc/uart2.h"
 
 bool timeValid() {
@@ -12,13 +11,6 @@ bool timeValid() {
   struct tm tm;
   gmtime_r(&t, &tm);
   return tm.tm_year + 1900 >= 2024;
-}
-
-void localTimeOf(time_t utc, struct tm& out) {
-  float tz = 0;
-  cfgRead([&](const Config& c) { tz = c.timezone; });  // not cfgGet: a 1.3 KB Config on the caller's stack
-  utc += (time_t)(tz * 3600.0f);
-  gmtime_r(&utc, &out);
 }
 
 static volatile uint32_t g_ntpSyncMs;  // millis() of the last SNTP sync, 0 = never

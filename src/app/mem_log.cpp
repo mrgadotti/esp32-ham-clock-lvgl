@@ -11,7 +11,6 @@ uint32_t memLargest8() { return (uint32_t)heap_caps_get_largest_free_block(MALLO
 static std::atomic<uint32_t> lvFree{0};
 
 void memLogSetLvFree(uint32_t b) { lvFree = b; }
-uint32_t memLogLvFree() { return lvFree; }
 
 void memLogTick(uint32_t now) {
   static uint32_t last = 0;

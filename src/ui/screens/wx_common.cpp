@@ -5,22 +5,12 @@
 #include <string.h>
 
 #include "i18n.h"
+#include "wx_map.h"
 #include "../../app/config_store.h"
 #include "../../net/time_service.h"
 #include "../fonts/fonts.h"
 #include "../icons/weather_icons.h"
 #include "../theme.h"
-
-lv_obj_t* wxLabel(lv_obj_t* p, const lv_font_t* f, lv_color_t col, int x, int y, int w, lv_text_align_t al) {
-  lv_obj_t* l = lv_label_create(p);
-  lv_obj_set_style_text_font(l, f, 0);
-  lv_obj_set_style_text_color(l, col, 0);
-  lv_obj_set_style_text_align(l, al, 0);
-  if (w) lv_obj_set_width(l, w);
-  lv_obj_set_pos(l, x, y);
-  lv_label_set_text(l, "");
-  return l;
-}
 
 lv_obj_t* wxIconCreate(lv_obj_t* p, int x, int y) {
   lv_obj_t* s = lv_obj_create(p);
@@ -52,12 +42,12 @@ void wxIconSet(lv_obj_t* s, int id, bool night) {
   lv_obj_set_flag(lv_obj_get_child(s, 0), LV_OBJ_FLAG_HIDDEN, d != nullptr);
 }
 
-lv_color_t wxWindColor(float ms) {
-  if (ms < 5) return COL_MODE;
-  if (ms < 10) return COL_FREQ;
-  if (ms < 15) return lv_color_hex(0xFF7F00);
-  return COL_ERROR;
+lv_color_t wxLevelColor(int level) {
+  const lv_color_t c[] = {COL_MODE, COL_FREQ, lv_color_hex(0xFF7F00), COL_ERROR, lv_color_hex(0xF80000)};
+  return c[level];
 }
+
+lv_color_t wxWindColor(float ms) { return wxLevelColor(wxWindLevel(ms)); }
 
 void wxLocalClock(char* out, size_t n, struct tm* tmOut) {
   if (!timeValid()) {
