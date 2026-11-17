@@ -41,8 +41,12 @@ void publish() {
              (unsigned)(addr >> 16 & 255), (unsigned)(addr >> 24));
     if (!addr) ip[0] = 0;
     wifi_config_t wc;
-    if (sta && esp_wifi_get_config(WIFI_IF_STA, &wc) == ESP_OK) strlcpy(ssid, (const char*)wc.sta.ssid, sizeof ssid);
-    else strlcpy(ssid, apUp && !sta ? kApSsid : "", sizeof ssid);
+    if (sta && esp_wifi_get_config(WIFI_IF_STA, &wc) == ESP_OK) {
+      memcpy(ssid, wc.sta.ssid, 32);  // sta.ssid has no NUL for a 32-char SSID
+      ssid[32] = 0;
+    } else {
+      strlcpy(ssid, apUp && !sta ? kApSsid : "", sizeof ssid);
+    }
   }
   int8_t rssi = sta ? WiFi.RSSI() : 0;
   g_store.net.write([&](NetStatus& n) {

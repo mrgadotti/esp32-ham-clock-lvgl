@@ -32,12 +32,17 @@ void sendJson(int code, const char* s) { server.send_P(code, "application/json",
 // preflight, which this server never answers, so requiring application/json blocks it. The Origin check (sent by
 // browsers on cross-origin and same-origin POSTs) is a second layer; curl and other non-browser clients omit it.
 bool postAllowed() {
-  if (!server.header("Content-Type").startsWith("application/json")) {
+  String type = server.header("Content-Type");
+  type.toLowerCase();  // media types are case-insensitive
+  if (!type.startsWith("application/json")) {
     sendJson(415, "{\"error\":\"content_type_must_be_json\"}");
     return false;
   }
+  // The Host must be an IP literal (starts with a digit): blocks DNS-rebinding names. The AP (192.168.4.1) and STA
+  // addresses pass. If mDNS is added later, also allow ".local".
+  String host = server.hostHeader();
   String origin = server.header("Origin");
-  if (origin.length() && origin != "http://" + server.hostHeader()) {
+  if (!isdigit((unsigned char)host.charAt(0)) || (origin.length() && origin != "http://" + host)) {
     sendJson(403, "{\"error\":\"bad_origin\"}");
     return false;
   }
