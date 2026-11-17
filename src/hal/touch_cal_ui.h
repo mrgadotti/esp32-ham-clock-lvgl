@@ -6,3 +6,4 @@ bool touchCalLoadSaved();  // applies the NVS "tcal" blob if present and valid; 
 // (plus verify step), saves NVS "tcal", restores the previous screen and calls onDone(saved).
 // Must be called from the UI task (the LVGL thread); lv_timer_handler() must keep running.
 void touchCalRun(void (*onDone)(bool saved));
+bool touchCalActive();  // true while the calibration screen is up (it is modal)

@@ -121,6 +121,7 @@ void uiHandleEvent(const UiEvent& e) {
 void uiTick(uint32_t now) {
   if (now - lastTick < 100) return;
   lastTick = now;
+  if (touchCalActive()) return;  // calibration is modal: no screen switch, overlay or boot hand-over may cover it
 
   overlayTick(now);
   if (memShowAt && (int32_t)(now - memShowAt) >= 0) {

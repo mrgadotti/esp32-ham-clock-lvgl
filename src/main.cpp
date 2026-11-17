@@ -91,8 +91,9 @@ static void uiTask(void*) {
   applyCfgToHal();
   bool calOk = touchCalLoadSaved();
   bootLog(calOk ? "Touch calibration loaded" : "Touch calibration needed");
-  if (!calOk || touchHeldAtBoot(2000)) touchCalRun(nullptr);
-  uiInit();
+  bool recal = !calOk || touchHeldAtBoot(2000);
+  uiInit();  // before the calibration: uiInit loads the boot screen and would hide the calibration screen
+  if (recal) touchCalRun(nullptr);
   uint32_t lastMem = 0;
 #ifdef PERF_TEST
   uiRequest(ScreenId::Settings);
