@@ -43,7 +43,7 @@ class Board:
                 continue
             self.log.write(f"{time.time() - self.t0:8.1f} {ln}\n")
             self.lines.append(ln)
-            if ln.startswith("[ST] ready"):
+            if "[ST] ready" in ln:
                 self.ready += 1
                 if self.ready > 1:
                     self.fails.append("reboot detected: " + ln)
@@ -207,15 +207,26 @@ def main():
     ap.add_argument("script", nargs="?")
     ap.add_argument("-c", nargs="+")
     ap.add_argument("--all-screens", action="store_true")
+    ap.add_argument("--sheet", action="store_true", help="rebuild contact_sheet.png from the saved <screen>_<lang>.png files, no board")
     ap.add_argument("--port", default="/dev/ttyUSB0")
     ap.add_argument("--baud", type=int, default=921600)
     ap.add_argument("--out", default="docs/review/screens")
     ap.add_argument("--log", default="docs/review/serial.log")
     ap.add_argument("--restore-lang", type=int, default=None, help="firmware lang to restore at the end (0 en, 1 pt)")
     a = ap.parse_args()
+    if a.sheet:
+        b = Board.__new__(Board)
+        b.out, b.imgs = Path(a.out), []
+        for lang in ("en", "pt"):
+            for name, _ in SCREENS:
+                b.imgs.append((f"{name}_{lang}", Image.open(b.out / f"{name}_{lang}.png").convert("RGB")))
+        b.contact("contact_sheet")
+        return
     lines = all_screens() if a.all_screens else (a.c or (Path(a.script).read_text().splitlines() if a.script else []))
     b = Board(a.port, a.baud, a.out, a.log)
-    b.pump(1.0)
+    b.pump(2.0)
+    if b.ready:  # opening the port resets the board: let the boot screen finish
+        b.pump(14.0)
     b.send("ping")
     orig = None
     for ln in lines:
