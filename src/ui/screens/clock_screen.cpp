@@ -36,7 +36,7 @@ class ClockScreen : public Screen {
     uiLabel(p, &font_24, COL_TEXT, up, 0, 18, 320, LV_TEXT_ALIGN_CENTER);
     uiLabel(p, &font_14, COL_ACCENT, tr(Tr::OperatorStation), 0, 48, 320, LV_TEXT_ALIGN_CENTER);
     // N-05: the per-second label is only as wide as its text (214 px + slack) so each tick invalidates less
-    time_ = uiLabel(p, &font_clock_48, COL_TEXT, "", 48, 68, 224, LV_TEXT_ALIGN_CENTER);
+    time_ = uiLabel(p, &font_clock_48, COL_TEXT, "", 48, 76, 224, LV_TEXT_ALIGN_CENTER);
     lv_label_set_long_mode(time_, LV_LABEL_LONG_CLIP);
     mode_ = uiLabel(p, &font_14, COL_FREQ, "", 0, 124, 320, LV_TEXT_ALIGN_CENTER);
     lv_obj_add_flag(mode_, LV_OBJ_FLAG_CLICKABLE);
