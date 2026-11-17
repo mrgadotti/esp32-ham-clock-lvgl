@@ -9,6 +9,9 @@
 #include "hal/rgb_led.h"
 #include "hal/touch.h"
 #include "hal/touch_cal_ui.h"
+#ifdef SCREEN_TEST
+#include "debug/screen_test.h"
+#endif
 #include "net/time_service.h"
 #include "net/web_config.h"
 #include "net/wifi_manager.h"
@@ -65,6 +68,9 @@ static void uiTask(void*) {
   bool perfDone = false;
 #endif
   for (;;) {
+#ifdef SCREEN_TEST
+    screenTestPoll();
+#endif
     UiEvent e;
     while (popUiEvent(e)) {
       uiHandleEvent(e);
@@ -149,7 +155,12 @@ static void netTask(void*) {
 
 void setup() {
   dataStoreInit();
+#ifdef SCREEN_TEST
+  Serial.begin(SCREEN_TEST_BAUD);
+  screenTestInit();
+#else
   Serial.begin(115200);
+#endif
   Serial.printf("[MEM] boot largest=%u free=%u\n", (unsigned)memLargest8(), (unsigned)ESP.getFreeHeap());
   Config boot;
   configStoreLoad(boot);
