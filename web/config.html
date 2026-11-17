@@ -33,7 +33,7 @@ ul{padding-left:18px}
 const $=id=>document.getElementById(id);
 // The device only accepts POSTs with this content type: a cross-site page cannot send it without a preflight.
 const post=(u,b)=>fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:b||"{}"});
-const PT={"Save":"Salvar","Saved":"Salvo","Saved, restarting...":"Salvo, reiniciando...","Export backup":"Exportar backup","Backup saved. It contains passwords and API keys in plain text: store it safely":"Backup salvo. Contém senhas e chaves de API em texto puro: guarde com segurança","Import backup":"Importar backup","Recalibrate touch":"Recalibrar toque","Show/hide":"Mostrar/ocultar","Look at the device screen and touch the targets":"Olhe a tela do dispositivo e toque nos alvos","Touch recalibration failed":"Falha ao recalibrar o toque","Off":"Desligado","Error":"Erro","(set)":"(definido)","Imported: press Save":"Importado: pressione Salvar",
+const PT={"Save":"Salvar","Saved":"Salvo","Saved, restarting...":"Salvo, reiniciando...","Export backup":"Exportar backup","Backup saved. It contains passwords and API keys in plain text, plus the touch calibration of THIS panel (per device: if touch is off on the new board, hold the clock screen for 15 s or use Settings to recalibrate): store it safely":"Backup salvo. Contém senhas e chaves de API em texto puro, e a calibração de toque DESTE painel (por dispositivo: se o toque ficar desalinhado na nova placa, segure a tela do relógio por 15 s ou use Ajustes para recalibrar): guarde com segurança","Import backup":"Importar backup","Recalibrate touch":"Recalibrar toque","Show/hide":"Mostrar/ocultar","Look at the device screen and touch the targets":"Olhe a tela do dispositivo e toque nos alvos","Touch recalibration failed":"Falha ao recalibrar o toque","Off":"Desligado","Error":"Erro","(set)":"(definido)","Imported: press Save":"Importado: pressione Salvar",
 "WiFi":"WiFi","SSID 1":"SSID 1","Password 1":"Senha 1","SSID 2":"SSID 2","Password 2":"Senha 2","AP password (min 8 chars)":"Senha do AP (mín. 8 caracteres)",
 "Station":"Estação","Callsign":"Indicativo","Locator":"Locator","Latitude":"Latitude","Longitude":"Longitude","Valid lat/lon":"Lat/lon válidos","Timezone (hours)":"Fuso horário (horas)","Use GPS position when active":"Usar posição do GPS quando ativo",
 "Host":"Servidor","Port":"Porta","No announcements":"Sem anúncios","No WWV":"Sem WWV","No WCY":"Sem WCY","Use filters":"Usar filtros","Filters (one per line)":"Filtros (um por linha)",
@@ -116,6 +116,7 @@ function fill(c){
   }));
   for(let i=0;i<12;i++)$("so"+i).value=(c.screen_order||[])[i]||0;
 }
+let extra={};  // imported keys without a form field
 function collect(){
   const o={};
   S.forEach(([,fl])=>fl.forEach(([k,t])=>{
@@ -131,7 +132,7 @@ function collect(){
   }));
   const so=[];for(let i=0;i<12;i++)so.push(+$("so"+i).value);
   if(JSON.stringify(so)!=JSON.stringify(cfg.screen_order))o.screen_order=so;
-  return o;
+  return Object.assign(o,extra);
 }
 function msg(t,e){const m=$("msg");m.textContent=t;m.className=e?"e":"";}
 async function load(){cfg=await (await fetch("/api/config")).json();render();}
@@ -147,6 +148,7 @@ $("save").onclick=async()=>{
     const r=await post("/api/save",JSON.stringify(o));
     const j=await r.json();
     if(!r.ok){msg(T("Error")+": "+(j.error||r.status),1);return;}
+    extra={};
     msg(T(j.restart?"Saved, restarting...":"Saved"));
     if(j.restart)setTimeout(()=>location.reload(),8000);else load();
   }catch(e){msg(T("Error"),1);}
@@ -156,14 +158,14 @@ $("exp").onclick=async()=>{
     const r=await fetch("/api/backup");if(!r.ok)throw 0;
     const a=document.createElement("a");a.href=URL.createObjectURL(await r.blob());
     a.download="esp32-ham-clock-backup.json";a.click();
-    msg(T("Backup saved. It contains passwords and API keys in plain text: store it safely"));
+    msg(T("Backup saved. It contains passwords and API keys in plain text, plus the touch calibration of THIS panel (per device: if touch is off on the new board, hold the clock screen for 15 s or use Settings to recalibrate): store it safely"));
   }catch(x){msg(T("Error"),1);}
 };
 $("imp").onclick=()=>$("file").click();
 $("file").onchange=async e=>{
   try{
     const o=JSON.parse(await e.target.files[0].text()),c2=Object.assign({},cfg);
-    for(const k in o)if(!/_set$/.test(k))c2[k]=o[k];
+    for(const k in o)if(!/_set$/.test(k)){c2[k]=o[k];if(!$("k_"+k)&&k!="screen_order")extra[k]=o[k];}  // no form field (tcal, last_scr, screen state): sent as is on Save
     fill(c2);msg(T("Imported: press Save"));  // Save sends only what differs from the device
   }catch(x){msg(T("Error"),1);}
   e.target.value="";

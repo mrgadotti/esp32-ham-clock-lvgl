@@ -31,3 +31,10 @@ TouchCal touchCalDefault() {
   const float sx = 319.0f / 3600.0f, sy = 239.0f / 3600.0f;
   return {sx, 0, -200 * sx, 0, sy, -200 * sy};
 }
+
+bool touchCalValid(const float t[6]) {
+  for (int i = 0; i < 6; i++) if (!isfinite(t[i])) return false;
+  if (fabs(t[0]) > 1 || fabs(t[1]) > 1 || fabs(t[3]) > 1 || fabs(t[4]) > 1) return false;
+  if (fabs(t[2]) > 4096 || fabs(t[5]) > 4096) return false;
+  return fabs(t[0] * t[4] - t[1] * t[3]) > 1e-6f;  // also rejects all zero
+}

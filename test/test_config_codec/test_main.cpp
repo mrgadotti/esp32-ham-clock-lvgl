@@ -222,6 +222,104 @@ void test_json_fields_fit_scratch() {
     if (kFields[i].jsonKey) TEST_ASSERT_TRUE_MESSAGE(kFields[i].size <= kMaxFieldSize, kFields[i].jsonKey);
 }
 
+// Every field set to a non-default, in-range value (config clamped so it is canonical), valid tcal.
+static Config fullConfig() {
+  Config a = defaults();
+  uint8_t* base = (uint8_t*)&a;
+  for (size_t i = 0; i < kFieldCount; i++) {
+    const ConfigField& f = kFields[i];
+    uint8_t* p = base + f.offset;
+    switch (f.type) {
+      case FT_STR: snprintf((char*)p, f.size, "v%u", (unsigned)i); break;
+      case FT_INT: *(int32_t*)p = (int32_t)f.min + 1; break;
+      case FT_FLT: *(float*)p = f.min + 1.25f; break;
+      case FT_BOOL: *p = !*p; break;
+      case FT_LANG: *p = 1; break;
+      case FT_BYTES: break;
+      case FT_BLOB: break;
+    }
+  }
+  a.user_ll_ok = false;  // read-only on import
+  a.tft_rot = 3;
+  a.screen_order[0] = 9;
+  a.screen_order[1] = 1;
+  const float t[6] = {0.0888f, 0.001f, -17.5f, -0.002f, 0.0664f, -13.25f};
+  memcpy(a.tcal, t, sizeof t);
+  configClamp(a);
+  return a;
+}
+
+void test_backup_has_every_key_tcal_and_last_scr() {
+  Config a = fullConfig();
+  char buf[6144];
+  TEST_ASSERT_TRUE(configToBackupJson(a, buf, sizeof buf, 7));
+  for (size_t i = 0; i < kFieldCount; i++) {
+    TEST_ASSERT_NOT_NULL_MESSAGE(kFields[i].jsonKey, kFields[i].nvsKey);  // nothing may be left out of the backup
+    std::string k = std::string("\"") + kFields[i].jsonKey + "\":";
+    TEST_ASSERT_NOT_NULL_MESSAGE(strstr(buf, k.c_str()), kFields[i].jsonKey);
+  }
+  TEST_ASSERT_NOT_NULL(strstr(buf, "\"tcal\":[0.0888"));
+  TEST_ASSERT_NOT_NULL(strstr(buf, "\"last_scr\":7"));
+  char plain[6144];
+  TEST_ASSERT_TRUE(configToJson(a, plain, sizeof plain));
+  TEST_ASSERT_NULL(strstr(plain, "last_scr"));  // GET /api/config: no last_scr, secrets stay masked
+  TEST_ASSERT_NULL(strstr(plain, "\"wifi_pass\":"));
+}
+
+void test_backup_roundtrip_reproduces_every_field() {
+  Config a = fullConfig();
+  char buf[6144];
+  TEST_ASSERT_TRUE(configToBackupJson(a, buf, sizeof buf, 7));
+  Config b = defaults();
+  ApplyResult r = configApplyJson(b, buf);
+  TEST_ASSERT_TRUE_MESSAGE(r.ok, r.error);
+  TEST_ASSERT_TRUE(r.hasLastScr);
+  TEST_ASSERT_EQUAL_UINT8(7, r.lastScr);
+  TEST_ASSERT_TRUE(r.tcalSet);
+  for (size_t i = 0; i < kFieldCount; i++) {
+    const ConfigField& f = kFields[i];
+    TEST_ASSERT_EQUAL_MEMORY_MESSAGE((uint8_t*)&a + f.offset, (uint8_t*)&b + f.offset, f.size, f.nvsKey);
+  }
+}
+
+void test_last_scr_normalised_and_validated() {
+  Config a = defaults();
+  char buf[6144];
+  TEST_ASSERT_TRUE(configToBackupJson(a, buf, sizeof buf, 0));  // never stored
+  TEST_ASSERT_NOT_NULL(strstr(buf, "\"last_scr\":1"));
+  for (const char* bad : {"{\"last_scr\":0}", "{\"last_scr\":14}", "{\"last_scr\":300}", "{\"last_scr\":\"3\"}",
+                          "{\"last_scr\":2.5}", "{\"last_scr\":-1}"}) {
+    Config c = defaults();
+    TEST_ASSERT_FALSE_MESSAGE(configApplyJson(c, bad).ok, bad);
+  }
+}
+
+void test_invalid_tcal_rejected_untouched() {
+  const char* bad[] = {
+      "{\"tcal\":[1,2,3]}", "{\"tcal\":[0,0,0,0,0,0]}", "{\"tcal\":\"x\"}", "{\"tcal\":[1,0,0,0,\"a\",0]}",
+      "{\"tcal\":[50,0,0,0,50,0]}", "{\"tcal\":[0.1,0.1,0,0.2,0.2,0]}", "{\"tcal\":[0.1,0,1e9,0,0.1,0]}",
+      "{\"user_callsign\":\"AA1BB\",\"tcal\":[0.1,0,0,0,0,0]}",
+  };
+  for (const char* j : bad) {
+    Config c = fullConfig(), before = c;
+    ApplyResult r = configApplyJson(c, j);
+    TEST_ASSERT_FALSE_MESSAGE(r.ok, j);
+    TEST_ASSERT_FALSE(r.tcalSet);
+    TEST_ASSERT_EQUAL_MEMORY_MESSAGE(&before, &c, sizeof c, j);  // all-or-nothing, calibration kept
+  }
+}
+
+void test_old_backup_and_unknown_keys() {
+  Config c = defaults();
+  c.tcal[0] = 0.5f;
+  ApplyResult r = configApplyJson(c, "{\"user_callsign\":\"PY2XX\",\"future_key\":[1,2],\"another\":{\"x\":1}}");
+  TEST_ASSERT_TRUE_MESSAGE(r.ok, r.error);
+  TEST_ASSERT_FALSE(r.hasLastScr);
+  TEST_ASSERT_FALSE(r.tcalSet);
+  TEST_ASSERT_EQUAL_STRING("PY2XX", c.user_callsign);
+  TEST_ASSERT_EQUAL_FLOAT(0.5f, c.tcal[0]);  // absent tcal keeps the stored one
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_defaults_match_original);
@@ -242,5 +340,10 @@ int main() {
   RUN_TEST(test_nvs_keys_fit);
   RUN_TEST(test_in_place_apply);
   RUN_TEST(test_json_fields_fit_scratch);
+  RUN_TEST(test_backup_has_every_key_tcal_and_last_scr);
+  RUN_TEST(test_backup_roundtrip_reproduces_every_field);
+  RUN_TEST(test_last_scr_normalised_and_validated);
+  RUN_TEST(test_invalid_tcal_rejected_untouched);
+  RUN_TEST(test_old_backup_and_unknown_keys);
   return UNITY_END();
 }

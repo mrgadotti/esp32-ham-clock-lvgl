@@ -13,6 +13,7 @@
 #include "svc/uart2.h"
 #include "app/events.h"
 #include "board.h"
+#include "hal/touch_cal_ui.h"
 #include "config_html.h"
 
 
@@ -71,7 +72,7 @@ void handleConfig() {
 void handleBackup() {
   Config c;
   cfgGet(c);
-  if (configToBackupJson(c, httpBody, kHttpBodySize)) {
+  if (configToBackupJson(c, httpBody, kHttpBodySize, lastScreenLoad())) {
     server.sendHeader("Cache-Control", "no-store");
     server.sendHeader("Content-Disposition", "attachment; filename=esp32-ham-clock-backup.json");
     sendJson(200, httpBody);
@@ -91,6 +92,7 @@ void handleSave() {
     d["error"] = r.error;
     return sendDoc(400, d);
   }
+  if (r.tcalSet) touchCalLoadSaved();  // takes effect now; applies the stored map only, never starts the calibration UI
   if (r.needsRestart) restartAt = (millis() + 1500) | 1;  // |1 keeps it nonzero
   sendJson(200, r.needsRestart ? "{\"status\":\"ok\",\"restart\":true}" : "{\"status\":\"ok\",\"restart\":false}");
 }
