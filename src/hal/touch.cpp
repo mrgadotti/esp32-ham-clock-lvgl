@@ -4,6 +4,9 @@
 #include <XPT2046_Touchscreen.h>
 
 #include "board.h"
+#ifdef SCREEN_TEST
+#include "debug/screen_test.h"
+#endif
 
 static SPIClass touchSpi(VSPI);
 static XPT2046_Touchscreen ts(PIN_TOUCH_CS, PIN_TOUCH_IRQ);
@@ -54,10 +57,16 @@ bool touchHeldAtBoot(uint32_t ms) {
 
 static void readCb(lv_indev_t*, lv_indev_data_t* data) {
   int16_t rx, ry, x, y;
-  if (touchReadRaw(rx, ry)) {
-    misses = 0;
+  bool have = touchReadRaw(rx, ry);
+  if (have) {
     touchCalApply(cal, rx, ry, x, y);
     if (mirror) { x = 319 - x; y = 239 - y; }
+  }
+#ifdef SCREEN_TEST
+  have = screenTestTouch(x, y) || have;  // synthetic press, already in screen coordinates
+#endif
+  if (have) {
+    misses = 0;
     if (!down) { down = true; ox = x; oy = y; }
     lx = x;
     ly = y;

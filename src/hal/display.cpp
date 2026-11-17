@@ -5,6 +5,9 @@
 
 #include "board.h"
 #include "app/config_store.h"
+#ifdef SCREEN_TEST
+#include "debug/screen_test.h"
+#endif
 
 static TFT_eSPI tft;
 static lv_display_t* disp;
@@ -18,6 +21,9 @@ uint32_t g_perfFlushes, g_perfFlushUs, g_perfPixels, g_perfFrames;
 static void flushCb(lv_display_t* d, const lv_area_t* a, uint8_t* px) {
 #ifdef PERF_TEST
   uint32_t t0 = micros();
+#endif
+#ifdef SCREEN_TEST
+  if (screenTestCapturing()) screenTestFlush(a, px, lv_display_flush_is_last(d));
 #endif
   uint32_t w = a->x2 - a->x1 + 1, h = a->y2 - a->y1 + 1;
   tft.startWrite();
