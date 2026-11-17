@@ -14,6 +14,8 @@ void configDefaults(Config&);
 void configClamp(Config&);
 // Secrets are emitted as "<key>_set": bool. False if buf is too small.
 bool configToJson(const Config&, char* buf, size_t len);
+// Same keys as POST /api/save accepts, with every secret in PLAIN TEXT (no "_set" flags). For the backup download only: never log the output.
+bool configToBackupJson(const Config&, char* buf, size_t len);
 // Partial update applied in place, all-or-nothing: on error the Config is untouched (no temporary Config copy). Empty secret strings keep the old value.
 ApplyResult configApplyJson(Config&, const char* json);
 // The same in two steps, so a caller can parse before taking a lock and keep only apply() inside it.

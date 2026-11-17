@@ -175,7 +175,7 @@ void configClamp(Config& c) {
   }
 }
 
-bool configToJson(const Config& c, char* buf, size_t len) {
+static bool toJson(const Config& c, char* buf, size_t len, bool withSecrets) {
   JsonDocument doc;
   const uint8_t* base = (const uint8_t*)&c;
   for (size_t i = 0; i < kFieldCount; i++) {
@@ -184,7 +184,7 @@ bool configToJson(const Config& c, char* buf, size_t len) {
     const uint8_t* p = base + f.offset;
     switch (f.type) {
       case FT_STR:
-        if (f.isSecret) {
+        if (f.isSecret && !withSecrets) {
           char k[48];
           snprintf(k, sizeof k, "%s_set", f.jsonKey);
           doc[k] = ((const char*)p)[0] != 0;
@@ -208,6 +208,9 @@ bool configToJson(const Config& c, char* buf, size_t len) {
   serializeJson(doc, buf, len);
   return true;
 }
+
+bool configToJson(const Config& c, char* buf, size_t len) { return toJson(c, buf, len, false); }
+bool configToBackupJson(const Config& c, char* buf, size_t len) { return toJson(c, buf, len, true); }
 
 static ApplyResult fail(const char* what, const char* key) {
   ApplyResult r = {false, false, {}};
