@@ -38,3 +38,13 @@ Findings: N-01, N-02, M-06 (diagnostics + allocation order), K-01, K-04, plus th
 - No `SSL - Memory allocation failed (-32512)` in 10 consecutive boots.
 - The HamAlert list still fills (the server's non-ASCII bytes are now dropped by `LineReader`, as DX always did).
 - DX connect/reconnect with a bad host or DNS failure, to confirm the net task keeps running.
+
+## Review fixes
+- **TLS guard** (`lib/core/tls_policy.{h,cpp}`, native test `test_tls_policy`; `httpPollGate()` in `http_fetch.cpp`). Every HTTPS poller (POTA, QRZ, weather, propagation) calls the gate before its fetch. It returns false (nothing consumed, asked again next tick) while HamAlert holds the line, or when `memLargest8()` is below `kTlsMinBlock` (28 KB). In that case it logs `[HTTP] deferred (largest=...)` and waits 2 s. After 5 deferrals it goes anyway, so it never blocks permanently.
+- **Quick retry.** The SSL allocation failure is detected from `WiFiClientSecure::lastError()` (-32512). `httpQuickRetryMs()` returns 4000 once; the token is restored by the next HTTP 200. POTA, weather and propagation use it instead of their long retry. QRZ keeps its own queue backoff.
+- **HamAlert.** `hamalertBusy()` (state != Idle) feeds the gate. If a tick arrives more than 2 s late, the session is marked cut and `finish()` keeps the previous list. The ring uses `kSpotScratchN`.
+- **Diagnostics.** `MEM_DIAG` is off by default (enable with `-DMEM_DIAG=1`), and the first fetch also logs "after end".
+- **APRS-IS.** It drops and reconnects when host, port, callsign, passcode, SSID or radius change.
+- **DX.** The backoff base is the end of the failed attempt (APRS-IS already counted from the failure tick).
+- **Numbers.** `cyd` RAM 118732 B, flash 1742433 B. `esp32-38pin` RAM 118708 B, flash 1741909 B. Native 173/173.
+- **Hardware.** The 28 KB threshold is a first value. Check the `[HTTP] deferred` frequency on the board and tune `kTlsMinBlock`.
