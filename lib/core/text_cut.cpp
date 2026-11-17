@@ -21,3 +21,8 @@ void formatKmCell(char* out, size_t cap, int km) {
   if (km >= 10000) snprintf(out, cap, "%dk", km / 1000);
   else snprintf(out, cap, "%d", km);
 }
+
+void formatHmCell(char* out, size_t cap, uint32_t utc) {
+  if (!utc) snprintf(out, cap, "--");
+  else snprintf(out, cap, "%02u:%02u", (unsigned)(utc % 86400 / 3600), (unsigned)(utc % 3600 / 60));
+}
