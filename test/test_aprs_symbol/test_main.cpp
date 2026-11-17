@@ -8,6 +8,9 @@ void test_name() {
   TEST_ASSERT_TRUE(aprsSymbolName("/u", n)); TEST_ASSERT_EQUAL(Tr::SymTruck, n);
   TEST_ASSERT_TRUE(aprsSymbolName("/q", n)); TEST_ASSERT_EQUAL(Tr::SymGrid, n);
   TEST_ASSERT_TRUE(aprsSymbolName("L&", n)); TEST_ASSERT_EQUAL(Tr::SymLora, n);
+  TEST_ASSERT_TRUE(aprsSymbolName("/c", n)); TEST_ASSERT_EQUAL(Tr::SymIcp, n);
+  TEST_ASSERT_TRUE(aprsSymbolName("/f", n)); TEST_ASSERT_EQUAL(Tr::SymFiretruck, n);
+  TEST_ASSERT_TRUE(aprsSymbolName("/V", n)); TEST_ASSERT_EQUAL(Tr::SymHamClock, n);
   n = Tr::DescOther;
   TEST_ASSERT_FALSE(aprsSymbolName("Lz", n)); TEST_ASSERT_FALSE(aprsSymbolName("/!", n)); TEST_ASSERT_FALSE(aprsSymbolName("\\>", n));
   TEST_ASSERT_EQUAL(Tr::DescOther, n); }
