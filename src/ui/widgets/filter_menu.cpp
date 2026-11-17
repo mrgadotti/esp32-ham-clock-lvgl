@@ -17,6 +17,7 @@ struct Menu {
   uint16_t band;  // working copies
   uint8_t mode;
   void (*onSave)();
+  void (*onExtra)();
   lv_obj_t* modeTile[4];            // ALL, CW, SSB, DIGI
   lv_obj_t* bandTile[kMaxBands + 1];  // ALL + bands
 };
@@ -57,6 +58,12 @@ void finish(bool save) {
 }
 void onOk(lv_event_t*) { finish(true); }
 void onCancel(lv_event_t*) { finish(false); }
+void onExtra(lv_event_t*) {
+  if (!m) return;
+  void (*cb)() = m->onExtra;
+  filterMenuClose();
+  if (cb) cb();
+}
 
 }  // namespace
 
@@ -70,7 +77,7 @@ void filterMenuClose() {
 }
 
 void filterMenuOpen(lv_obj_t*, const uint8_t* bands, uint8_t nBands, uint16_t* bandMask, uint8_t* modeMask,
-                    void (*onSave)()) {
+                    void (*onSave)(), const char* extraLabel, void (*onExtra_)()) {
   if (m) return;
   m = new Menu{};
   m->nBands = nBands > kMaxBands ? kMaxBands : nBands;
@@ -80,9 +87,12 @@ void filterMenuOpen(lv_obj_t*, const uint8_t* bands, uint8_t nBands, uint16_t* b
   m->band = *bandMask;
   m->mode = *modeMask;
   m->onSave = onSave;
+  m->onExtra = onExtra_;
 
   lv_obj_t* p = m->panel = uiModalPanel();
   uiLabel(p, &font_18, COL_ACCENT, tr(Tr::Filters), 8, 2);
+
+  if (extraLabel) uiTile(p, extraLabel, 164, 2, 148, 24, onExtra, 0);
 
   uiLabel(p, &font_14, lv_color_hex(0xC0C0C0), tr(Tr::Mode), 8, 24);
   const char* names[4] = {tr(Tr::All), tr(Tr::FilterCw), tr(Tr::FilterSsb), tr(Tr::FilterDigi)};

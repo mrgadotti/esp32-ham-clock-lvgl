@@ -70,7 +70,8 @@ class SpotListScreen : public Screen {
 
   static void onFilter(lv_event_t*) {
     if (!self_) return;
-    filterMenuOpen(nullptr, self_->d_.bands, self_->d_.nBands, &self_->band_, &self_->mode_, onSave);
+    filterMenuOpen(nullptr, self_->d_.bands, self_->d_.nBands, &self_->band_, &self_->mode_, onSave,
+                self_->d_.clearList ? tr(Tr::ClearDxList) : nullptr, self_->d_.clearList);
   }
 
   static void onSave() {
