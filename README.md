@@ -33,8 +33,9 @@ Screens, in swipe order:
 ## Screens
 
 Mock screenshots of each screen, captured from the device in English with
-sample data (the DX and APRS tables are filled with fake rows, and the other
-network-dependent screens show their "no data" state).
+sample data (the DX, POTA, HamAlert and APRS tables are filled with fake rows,
+and the other network-dependent screens show their "no data" state). The
+Settings screen was opened from the gear icon on the Clock screen.
 
 |   |   |   |
 |:---:|:---:|:---:|
@@ -61,7 +62,7 @@ DX Cluster menu (mode and band filters, Clear DX list) and APRS list menu
 ### Web configuration page
 
 The configuration page served by the board, shown with placeholder values
-(callsign `PY0TEST`, fake WiFi network). The WiFi, Station and Display
+(callsign `PY0TEST`, fake WiFi network, no passwords). The WiFi and Station
 sections are expanded; the other sections are collapsed.
 
 <img src="docs/screenshots/web-desktop-en.png" width="600"><br>
