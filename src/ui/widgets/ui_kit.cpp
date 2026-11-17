@@ -70,3 +70,16 @@ lv_obj_t* uiModalPanel() {
   lv_obj_add_flag(p, LV_OBJ_FLAG_CLICKABLE);  // swallow touches
   return p;
 }
+
+lv_obj_t* uiScrollArea(lv_obj_t* parent, int x, int y, int w, int h) {
+  lv_obj_t* c = lv_obj_create(parent);
+  lv_obj_remove_style_all(c);
+  lv_obj_set_pos(c, x, y);
+  lv_obj_set_size(c, w, h);
+  lv_obj_set_scroll_dir(c, LV_DIR_VER);
+  lv_obj_set_scrollbar_mode(c, LV_SCROLLBAR_MODE_AUTO);
+  lv_obj_set_style_width(c, 3, LV_PART_SCROLLBAR);
+  lv_obj_set_style_bg_opa(c, LV_OPA_COVER, LV_PART_SCROLLBAR);
+  lv_obj_set_style_bg_color(c, lv_color_hex(0x808080), LV_PART_SCROLLBAR);
+  return c;
+}

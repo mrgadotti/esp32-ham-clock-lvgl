@@ -134,11 +134,13 @@ class AprsListScreen : public Screen {
     for (int i = 0; i < 3; i++) menu->tile[i] = uiTile(p, tr(sn[i]), 8 + i * 96, 26, 92, 26, onTile, i);
     uiLabel(p, &font_14, lv_color_hex(0xC0C0C0), tr(Tr::AprsSetting), 8, 58);
     const Tr bn[] = {Tr::Beaconing, Tr::AprsAlert, Tr::RangeAlert, Tr::LedBuzzer};
+    lv_obj_t* area = uiScrollArea(p, 0, 76, 320, 92);  // 4 rows x 32 px = 128 px: scrolls
     for (int i = 0; i < 4; i++) {
-      lv_obj_t* cb = menu->box[i] = lv_checkbox_create(p);
+      lv_obj_t* cb = menu->box[i] = lv_checkbox_create(area);
       lv_checkbox_set_text(cb, tr(bn[i]));
       lv_obj_set_style_text_font(cb, &font_14, 0);
-      lv_obj_set_pos(cb, 24, 76 + i * 22);
+      lv_obj_set_height(cb, 30);  // 32 px pitch: touch areas never overlap
+      lv_obj_set_pos(cb, 24, i * 32);
       if (menu->flag[i]) lv_obj_add_state(cb, LV_STATE_CHECKED);
       lv_obj_add_event_cb(cb, onBox, LV_EVENT_VALUE_CHANGED, (void*)(intptr_t)i);
     }

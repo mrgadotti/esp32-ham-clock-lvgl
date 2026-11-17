@@ -20,3 +20,6 @@ lv_obj_t* uiHamburger(lv_obj_t* header, lv_event_cb_t cb);
 
 // Opaque full-screen panel on lv_layer_top that swallows touches (menus). Delete it with lv_obj_delete_async.
 lv_obj_t* uiModalPanel();
+
+// Transparent vertically scrollable box at (x, y) with a thin scrollbar, for menu rows that do not fit the screen.
+lv_obj_t* uiScrollArea(lv_obj_t* parent, int x, int y, int w, int h);
