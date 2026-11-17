@@ -98,6 +98,12 @@ function render(){
   });
   document.querySelectorAll("[data-t]").forEach(e=>e.textContent=T(e.dataset.t));
   fill(cfg);
+  $("k_user_locator").oninput=e=>{  // fill lat/lon from a valid 4/6-char locator, same maths as locatorToLatLon
+    const m=/^([A-R]{2})(\d\d)(?:([A-X]{2}))?$/i.exec(e.target.value);if(!m)return;
+    const a=m[1].toUpperCase(),s=m[3]&&m[3].toUpperCase(),c=(x,i)=>x.charCodeAt(i)-65;
+    $("k_user_lon").value=(c(a,0)*20-180+m[2][0]*2+(s?c(s,0)/12+1/24:1)).toFixed(6);
+    $("k_user_lat").value=(c(a,1)*10-90+ +m[2][1]+(s?c(s,1)/24+1/48:.5)).toFixed(6);
+  };
   $("scan").onclick=async()=>{await post("/api/bridge_bt_scan");pollBt()};
   pollBt();
 }
