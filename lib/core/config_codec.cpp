@@ -217,81 +217,93 @@ static ApplyResult fail(const char* what, const char* key) {
   return r;
 }
 
+// Widest field (cluster_filters, aprs_alert): fields are parsed into this scratch, never into a second Config.
+static const size_t kMaxFieldSize = 128;
+
+// Parses v into p, a scratch copy of the field's current bytes. Returns the error kind, or nullptr on success.
+static const char* parseField(const ConfigField& f, JsonVariantConst v, uint8_t* p) {
+  switch (f.type) {
+    case FT_STR: {
+      if (!v.is<const char*>()) return "bad_type";
+      const char* s = v.as<const char*>();
+      while (isspace((unsigned char)*s)) s++;
+      size_t n = strlen(s);
+      while (n && isspace((unsigned char)s[n - 1])) n--;
+      if (f.isSecret && n == 0) break;  // empty secret = keep
+      if (n >= f.size) n = f.size - 1;
+      memcpy(p, s, n);
+      p[n] = 0;
+      if (f.offset == OFS(wifi_ssid) || f.offset == OFS(wifi_ssid2)) {  // keep UTF-8 SSID bytes, drop control bytes
+        size_t w = 0;
+        for (size_t k = 0; k < n; k++)
+          if (p[k] >= 0x20) p[w++] = p[k];
+        p[w] = 0;
+      } else if (!f.isSecret) {  // printable ASCII only (newline kept for the cluster filter list)
+        for (size_t k = 0; k < n; k++)
+          if (((char*)p)[k] != '\n' || f.offset != OFS(cluster_filters))
+            if (p[k] < 0x20 || p[k] > 0x7E) p[k] = '?';
+      }
+      break;
+    }
+    case FT_INT:
+      if (!v.is<double>()) return "bad_type";
+      *(int32_t*)p = (int32_t)clampf((float)v.as<double>(), f.min, f.max);
+      break;
+    case FT_FLT:
+      if (!v.is<double>()) return "bad_type";
+      *(float*)p = clampf((float)v.as<double>(), f.min, f.max);
+      break;
+    case FT_BOOL:
+      if (!v.is<bool>()) return "bad_type";
+      *(bool*)p = v.as<bool>();
+      break;
+    case FT_LANG: {
+      const char* s = v.is<const char*>() ? v.as<const char*>() : nullptr;
+      if (s && !strcasecmp(s, "en")) *p = 0;
+      else if (s && !strcasecmp(s, "pt-br")) *p = 1;
+      else return "bad_value";
+      break;
+    }
+    case FT_BYTES: {
+      if (!v.is<JsonArrayConst>()) return "bad_type";
+      uint16_t k = 0;
+      for (JsonVariantConst e : v.as<JsonArrayConst>()) {
+        if (!e.is<double>()) return "bad_type";
+        double d = e.as<double>();
+        if (k < f.size) p[k++] = (d >= f.min && d <= f.max) ? (uint8_t)d : 0;
+      }
+      break;
+    }
+    case FT_BLOB: break;
+  }
+  return nullptr;
+}
+
+// In place and all-or-nothing without a second Config: pass 0 only validates (parses each field into scratch and
+// discards it), pass 1 commits the same parses, which cannot fail any more.
 ApplyResult configApplyJson(Config& cfg, const char* json) {
   JsonDocument doc;
   if (deserializeJson(doc, json)) return fail("json_parse", nullptr);
   if (!doc.is<JsonObject>()) return fail("json_parse", nullptr);
 
-  Config c = cfg;
-  uint8_t* base = (uint8_t*)&c;
-  for (size_t i = 0; i < kFieldCount; i++) {
-    const ConfigField& f = kFields[i];
-    if (!f.jsonKey || f.offset == OFS(user_ll_ok)) continue;  // user_lat_lon_valid is read-only
-    JsonVariantConst v = doc[f.jsonKey];
-    if (v.isNull()) continue;
-    uint8_t* p = base + f.offset;
-    switch (f.type) {
-      case FT_STR: {
-        if (!v.is<const char*>()) return fail("bad_type", f.jsonKey);
-        const char* s = v.as<const char*>();
-        while (isspace((unsigned char)*s)) s++;
-        size_t n = strlen(s);
-        while (n && isspace((unsigned char)s[n - 1])) n--;
-        if (f.isSecret && n == 0) break;  // empty secret = keep
-        if (n >= f.size) n = f.size - 1;
-        memcpy(p, s, n);
-        p[n] = 0;
-        if (f.offset == OFS(wifi_ssid) || f.offset == OFS(wifi_ssid2)) {  // keep UTF-8 SSID bytes, drop control bytes
-          size_t w = 0;
-          for (size_t k = 0; k < n; k++)
-            if (p[k] >= 0x20) p[w++] = p[k];
-          p[w] = 0;
-        } else if (!f.isSecret) {  // printable ASCII only (newline kept for the cluster filter list)
-          for (size_t k = 0; k < n; k++)
-            if (((char*)p)[k] != '\n' || f.offset != OFS(cluster_filters))
-              if (p[k] < 0x20 || p[k] > 0x7E) p[k] = '?';
-        }
-        break;
-      }
-      case FT_INT:
-        if (!v.is<double>()) return fail("bad_type", f.jsonKey);
-        *(int32_t*)p = (int32_t)clampf((float)v.as<double>(), f.min, f.max);
-        break;
-      case FT_FLT:
-        if (!v.is<double>()) return fail("bad_type", f.jsonKey);
-        *(float*)p = clampf((float)v.as<double>(), f.min, f.max);
-        break;
-      case FT_BOOL:
-        if (!v.is<bool>()) return fail("bad_type", f.jsonKey);
-        *(bool*)p = v.as<bool>();
-        break;
-      case FT_LANG: {
-        const char* s = v.is<const char*>() ? v.as<const char*>() : nullptr;
-        if (s && !strcasecmp(s, "en")) *p = 0;
-        else if (s && !strcasecmp(s, "pt-br")) *p = 1;
-        else return fail("bad_value", f.jsonKey);
-        break;
-      }
-      case FT_BYTES: {
-        if (!v.is<JsonArrayConst>()) return fail("bad_type", f.jsonKey);
-        uint16_t k = 0;
-        for (JsonVariantConst e : v.as<JsonArrayConst>()) {
-          if (!e.is<double>()) return fail("bad_type", f.jsonKey);
-          double d = e.as<double>();
-          if (k < f.size) p[k++] = (d >= f.min && d <= f.max) ? (uint8_t)d : 0;
-        }
-        break;
-      }
-      case FT_BLOB: break;
+  uint8_t tmp[kMaxFieldSize];
+  uint8_t* base = (uint8_t*)&cfg;
+  ApplyResult r = {true, false, {}};
+  for (int pass = 0; pass < 2; pass++) {
+    for (size_t i = 0; i < kFieldCount; i++) {
+      const ConfigField& f = kFields[i];
+      if (!f.jsonKey || f.offset == OFS(user_ll_ok)) continue;  // user_lat_lon_valid is read-only
+      JsonVariantConst v = doc[f.jsonKey];
+      if (v.isNull()) continue;
+      if (f.size > sizeof tmp) return fail("too_big", f.jsonKey);
+      uint8_t* p = base + f.offset;
+      memcpy(tmp, p, f.size);
+      if (const char* err = parseField(f, v, tmp)) return fail(err, f.jsonKey);  // pass 0 only
+      if (pass == 0) continue;
+      if (f.needsRestart && memcmp(tmp, p, f.size)) r.needsRestart = true;
+      memcpy(p, tmp, f.size);
     }
   }
-
-  configClamp(c);
-  ApplyResult r = {true, false, {}};
-  for (size_t i = 0; i < kFieldCount; i++) {
-    const ConfigField& f = kFields[i];
-    if (f.needsRestart && memcmp((uint8_t*)&c + f.offset, (const uint8_t*)&cfg + f.offset, f.size)) r.needsRestart = true;
-  }
-  cfg = c;
+  configClamp(cfg);
   return r;
 }
