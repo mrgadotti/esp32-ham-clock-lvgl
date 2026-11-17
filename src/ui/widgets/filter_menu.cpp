@@ -92,7 +92,7 @@ void filterMenuOpen(lv_obj_t*, const uint8_t* bands, uint8_t nBands, uint16_t* b
   lv_obj_t* p = m->panel = uiModalPanel();
   uiLabel(p, &font_18, COL_ACCENT, tr(Tr::Filters), 8, 2);
 
-  if (extraLabel) uiTile(p, extraLabel, 164, 2, 148, 24, onExtra, 0);
+  if (extraLabel) uiTilePaint(uiTile(p, extraLabel, 164, 0, 148, 24, onExtra, 0), false);
 
   uiLabel(p, &font_14, lv_color_hex(0xC0C0C0), tr(Tr::Mode), 8, 24);
   const char* names[4] = {tr(Tr::All), tr(Tr::FilterCw), tr(Tr::FilterSsb), tr(Tr::FilterDigi)};
