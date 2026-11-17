@@ -5,6 +5,7 @@
 #include "../fonts/fonts.h"
 #include "../theme.h"
 #include "header.h"
+#include "ui_kit.h"
 
 namespace {
 struct State {
@@ -43,8 +44,7 @@ lv_obj_t* spotTableCreate(lv_obj_t* parent, const SpotTableCols& cols) {
   lv_obj_set_style_bg_opa(t, LV_OPA_COVER, LV_PART_ITEMS);  // fill task must exist; stripeRow sets real opa
   lv_obj_set_style_border_width(t, 0, LV_PART_ITEMS);
   lv_obj_set_style_pad_all(t, 0, LV_PART_ITEMS);
-  lv_obj_set_style_pad_left(t, 2, LV_PART_ITEMS);
-  lv_obj_set_style_pad_right(t, 2, LV_PART_ITEMS);
+  lv_obj_set_style_pad_left(t, SPOT_TABLE_PAD_L, LV_PART_ITEMS);
   lv_obj_set_scroll_dir(t, LV_DIR_VER);
   lv_obj_add_flag(t, LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS);
   int w = 0;
@@ -71,15 +71,40 @@ void spotTableSet(lv_obj_t* t, size_t n, CellFn cell, void* ctx) {
   auto* st = static_cast<State*>(lv_obj_get_user_data(t));
   if (!st) return;
   int32_t sy = lv_obj_get_scroll_y(t);
-  lv_table_set_row_count(t, n ? n : 0);
+  uint32_t oldRows = lv_table_get_row_count(t);
+  lv_table_set_row_count(t, n);
   char buf[48];
   for (size_t r = 0; r < n; r++)
     for (uint8_t c = 0; c < st->cols.n; c++) {
       buf[0] = 0;
       if (!cell(r, c, buf, sizeof buf, ctx)) buf[0] = 0;
       const char* old = lv_table_get_cell_value(t, r, c);
-      if (!old || strcmp(old, buf) != 0) lv_table_set_cell_value(t, r, c, buf);
-      lv_table_set_cell_ctrl(t, r, c, LV_TABLE_CELL_CTRL_TEXT_CROP);
+      if (!old || strcmp(old, buf) != 0) lv_table_set_cell_value(t, r, c, buf);  // keeps the cell's ctrl bits
+      if (r >= oldRows) lv_table_set_cell_ctrl(t, r, c, LV_TABLE_CELL_CTRL_TEXT_CROP);  // only new cells
     }
   lv_obj_scroll_to_y(t, sy, LV_ANIM_OFF);
+}
+
+SpotListUi spotListUiCreate(lv_obj_t* p, Tr title, const SpotTableCols& cols, const Tr* colTitles, Tr waitText,
+                            lv_event_cb_t onMenu) {
+  SpotListUi ui;
+  ui.hdr = headerCreate(p, title);
+  uiHamburger(ui.hdr, onMenu);
+  int x = 0;
+  for (uint8_t i = 0; i < cols.n; i++) {
+    uiLabel(p, &font_14, lv_color_hex(0xA0A0A0), tr(colTitles[i]), x + SPOT_TABLE_PAD_L, HEADER_H);
+    x += cols.width[i];
+  }
+  ui.table = spotTableCreate(p, cols);
+  lv_obj_set_pos(ui.table, 0, HEADER_H + 18);
+  lv_obj_set_height(ui.table, 240 - HEADER_H - 18);
+  ui.wait = uiLabel(p, &font_18, COL_ERROR, tr(waitText));
+  lv_obj_center(ui.wait);
+  return ui;
+}
+
+void spotListUiSet(const SpotListUi& ui, size_t n, CellFn cell, void* ctx) {
+  lv_obj_set_flag(ui.wait, LV_OBJ_FLAG_HIDDEN, n != 0);
+  lv_obj_set_flag(ui.table, LV_OBJ_FLAG_HIDDEN, n == 0);
+  spotTableSet(ui.table, n, cell, ctx);
 }

@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "geo.h"
+#include "i18n.h"
 #include "radar_proj.h"
 #include "../../app/config_store.h"
 #include "../../app/data_store.h"
@@ -54,7 +55,7 @@ class AprsRadarScreen : public Screen {
     lv_obj_add_event_cb(b, onReset, LV_EVENT_CLICKED, this);
     lv_obj_t* l = lv_label_create(b);
     lv_obj_set_style_text_font(l, &font_14, 0);
-    lv_label_set_text(l, "1\xC3\x97");
+    lv_label_set_text(l, tr(Tr::RadarZoomReset));
     lv_obj_center(l);
   }
 
@@ -169,7 +170,7 @@ class AprsRadarScreen : public Screen {
     if (qy - rOut + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut + 2, txt, false, used, nu);
     km(b, sizeof b, range / 2);
     if (qy - rOut / 2 + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut / 2 + 2, txt, false, used, nu);
-    text(l, "N", OX - 4, HEADER_H + 1, txt, false, used, nu);
+    text(l, tr(Tr::RadarNorth), OX - 4, HEADER_H + 1, txt, false, used, nu);
     if (qx >= 0 && qx < 320 && qy >= HEADER_H && qy < 240) arc(l, qx, qy, 4, 4, lv_color_hex(0xFF8C00));
 
     const bool labels = v.zoom >= 2 || s->n_ <= 11;

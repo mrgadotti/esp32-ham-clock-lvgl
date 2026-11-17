@@ -80,10 +80,24 @@ add("Header", "title vs clock 'hh:mm Z'", "font_18", HDR_FREE - CLK, T(*titles))
 add("Header", "APRS list title (x=46) vs clock", "font_18", HDR_FREE - 40 - CLK, T("AprsIs", "AprsKiss", "AprsTnc2"))
 add("Header", "radar title vs 'x16' zoom", "font_18", HDR_FREE - width("font_18", "×16"), T("AprsRadar"))
 
-# ---------------- APRS list (aprs_list_screen.cpp: table cols, cell pad_left 3, font_14) ----------------
-APRS_W = [36, 90, 87, 48, 59]  # UTC CALL SYM KM FREQ (must sum to 320)
+# ---------------- spot tables (spot_table.cpp: cell pad_left SPOT_TABLE_PAD_L = 1, pad_right 0, font_14) ----------------
+PAD = 1
+SPOT_W = [38, 76, 60, 42, 104]  # spot_list_screen.cpp: UTC CALL MHz MOD COUNTRY|MSG (must sum to 320)
+assert sum(SPOT_W) == 320
+add("Spot list", "col UTC cell '2359'", "font_14", SPOT_W[0] - PAD, ["2359", "--"])
+add("Spot list", "col CALL cell (8 chars; longer portable calls are cropped by design)", "font_14", SPOT_W[1] - PAD, ["PY2XXX/P", "9A1ABC/P"])
+add("Spot list", "col MHz cell", "font_14", SPOT_W[2] - PAD, ["144.800", "430.000", "14.074"])
+add("Spot list", "col MOD cell", "font_14", SPOT_W[3] - PAD, ["CW", "SSB", "DIGI", "-"])
+add("Spot list", "col COUNTRY cell (cut at 15 chars)", "font_14", SPOT_W[4] - PAD, ["United States", "Brazil", "Germany"])
+for i, k in enumerate(["Utc", "ColCall", "Mhz", "ColMod"]):
+    add("Spot list", f"col header {k}", "font_14", SPOT_W[i] - PAD, T(k))
+add("Spot list", "col header COUNTRY / MSG", "font_14", SPOT_W[4] - PAD, T("ColCountry", "ColMsg"))
+add("Spot list", "waiting label (font_18, centred)", "font_18", 300, T("WaitingForSpots"))
+add("Spot list", "HamAlert no-login label (font_18, centred)", "font_18", 300, T("HamAlertNoLogin"))
+
+# ---------------- APRS list (aprs_list_screen.cpp: table cols, same cell padding) ----------------
+APRS_W = [37, 94, 85, 46, 58]  # UTC CALL SYM KM FREQ (must sum to 320)
 assert sum(APRS_W) == 320
-PAD = 3
 syms = [TR[k][i] for k in TR if k.startswith("Sym") for i in (0, 1)]
 add("APRS list", "col UTC cell '2359'", "font_14", APRS_W[0] - PAD, ["2359", "--"])
 add("APRS list", "col CALL cell 'PY2XXX-15'", "font_14", APRS_W[1] - PAD, ["PY2XXX-15", "WA1ABC-15", "PU2MMM-10"])

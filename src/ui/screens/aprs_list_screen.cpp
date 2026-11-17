@@ -2,16 +2,15 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 
 #include "i18n.h"
 #include "../../app/config_store.h"
 #include "../../app/data_store.h"
-#include "../../net/time_service.h"
 #include "../fonts/fonts.h"
 #include "../theme.h"
 #include "../widgets/header.h"
 #include "../widgets/spot_table.h"
+#include "../widgets/ui_kit.h"
 
 namespace {
 enum { SORT_TIME, SORT_CALL, SORT_DIST };
@@ -42,11 +41,6 @@ bool symName(const char* s, const char*& out) {
   return false;
 }
 
-void paintTile(lv_obj_t* t, bool on) {
-  lv_obj_set_style_bg_color(t, on ? COL_ACCENT : lv_color_hex(0x808080), 0);
-  lv_obj_set_style_text_color(t, on ? COL_BG : COL_TEXT, 0);
-}
-
 void closeMenu() {
   if (!menu) return;
   lv_obj_delete_async(menu->panel);  // may run inside a widget's own callback
@@ -68,81 +62,36 @@ class AprsListScreen : public Screen {
     sort_ = (int)cfg().aprs_sort;
     if (sort_ < 0 || sort_ > SORT_DIST) sort_ = SORT_TIME;
     cols_.n = 5;
-    const int16_t w[] = {36, 90, 87, 48, 59};  // UTC CALL SYM KM FREQ, sized by tools/check_text_fit.py
+    const int16_t w[] = {37, 94, 85, 46, 58};  // UTC CALL SYM KM FREQ, sized by tools/check_text_fit.py
     const lv_color_t c[] = {lv_color_hex(0xC0C0C0), COL_TEXT, lv_color_hex(0x00FFFF), COL_ACCENT, COL_FREQ};
     for (int i = 0; i < 5; i++) { cols_.width[i] = w[i]; cols_.color[i] = c[i]; }
     const char* cm = cfg().uart2_cmod;
     Tr title = !strcmp(cm, "aprs_tnc_kiss") ? Tr::AprsKiss : !strcmp(cm, "aprs_tnc") ? Tr::AprsTnc2 : Tr::AprsIs;
-    hdr_ = headerCreate(p, title);
-    lv_obj_t* tl = lv_obj_get_child(hdr_, 0);  // headerCreate adds the title first
-    lv_obj_align(tl, LV_ALIGN_LEFT_MID, 46, 0);
-    lv_obj_t* btn = lv_obj_create(hdr_);
-    lv_obj_remove_style_all(btn);
-    lv_obj_set_size(btn, 40, HEADER_H);
-    lv_obj_set_pos(btn, 0, 0);
-    lv_obj_add_flag(btn, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_remove_flag(btn, LV_OBJ_FLAG_SCROLLABLE);
-    for (int i = 0; i < 3; i++) {  // hamburger bars
-      lv_obj_t* bar = lv_obj_create(btn);
-      lv_obj_remove_style_all(bar);
-      lv_obj_set_size(bar, 20, 3);
-      lv_obj_set_pos(bar, 10, 6 + i * 6);
-      lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, 0);
-      lv_obj_set_style_bg_color(bar, COL_BG, 0);
-    }
-    lv_obj_add_event_cb(btn, onMenu, LV_EVENT_CLICKED, nullptr);
-
     const Tr hd[] = {Tr::Utc, Tr::ColCall, Tr::ColSymbol, Tr::ColKm, Tr::ColFreq};
-    int x = 0;
-    for (int i = 0; i < 5; i++) {
-      lv_obj_t* l = lv_label_create(p);
-      lv_obj_set_style_text_font(l, &font_14, 0);
-      lv_obj_set_style_text_color(l, lv_color_hex(0xA0A0A0), 0);
-      lv_label_set_text(l, tr(hd[i]));
-      lv_obj_set_pos(l, x + 2, HEADER_H);
-      x += cols_.width[i];
-    }
-    table_ = spotTableCreate(p, cols_);
-    lv_obj_set_pos(table_, 0, HEADER_H + 18);
-    lv_obj_set_height(table_, 240 - HEADER_H - 18);
-    wait_ = lv_label_create(p);
-    lv_obj_set_style_text_font(wait_, &font_18, 0);
-    lv_obj_set_style_text_color(wait_, COL_ERROR, 0);
-    lv_label_set_text(wait_, tr(Tr::WaitingForAprs));
-    lv_obj_center(wait_);
-    ver_ = ~g_store.aprs.version();
-    refresh();
+    ui_ = spotListUiCreate(p, title, cols_, hd, Tr::WaitingForAprs, onMenu);
+    force_ = true;
   }
 
   void tick(uint32_t) override {
-    if (ver_ != g_store.aprs.version()) refresh();
-    if (timeValid()) {
-      time_t t = time(nullptr);
-      struct tm tm;
-      gmtime_r(&t, &tm);
-      if (tm.tm_min != lastMin_) {
-        lastMin_ = tm.tm_min;
-        char b[12];
-        snprintf(b, sizeof b, "%02d:%02d Z", tm.tm_hour, tm.tm_min);
-        headerSetClock(hdr_, b);
-      }
-    }
+    uint32_t now = lv_tick_get();
+    if (force_ || (ver_ != g_store.aprs.version() && now - lastMs_ >= 1000)) refresh(now);  // table rebuild: <= 1 Hz
+    headerTickUtc(ui_.hdr);
   }
 
  private:
   static inline AprsListScreen* self_ = nullptr;
   SpotTableCols cols_{};
-  lv_obj_t *hdr_, *table_, *wait_;
+  SpotListUi ui_{};
   int sort_;
-  uint32_t ver_;
-  int lastMin_ = -1;
+  uint32_t ver_ = 0, lastMs_ = 0;
+  bool force_ = false;
   uint8_t idx_[30];
   size_t n_ = 0;
   size_t cachedRow_ = (size_t)-1;
   AprsStation cached_;
 
   static void refreshMenu() {
-    for (int i = 0; i < 3; i++) paintTile(menu->tile[i], menu->sort == i);
+    for (int i = 0; i < 3; i++) uiTilePaint(menu->tile[i], menu->sort == i);
   }
 
   static void onTile(lv_event_t* e) {
@@ -168,35 +117,10 @@ class AprsListScreen : public Screen {
       c.aprs_al_near = pend.flag[2];
       c.led_al_en = pend.flag[3];
     });
-    if (self_) { self_->sort_ = pend.sort; self_->ver_ = ~g_store.aprs.version(); }
+    if (self_) { self_->sort_ = pend.sort; self_->force_ = true; }
   }
 
   static void onCancel(lv_event_t*) { closeMenu(); }
-
-  static lv_obj_t* tile(lv_obj_t* p, const char* txt, int x, int y, int w, int h, lv_event_cb_t cb, intptr_t id) {
-    lv_obj_t* t = lv_obj_create(p);
-    lv_obj_remove_style_all(t);
-    lv_obj_set_pos(t, x, y);
-    lv_obj_set_size(t, w, h);
-    lv_obj_set_style_bg_opa(t, LV_OPA_COVER, 0);
-    lv_obj_set_style_radius(t, 3, 0);
-    lv_obj_set_style_text_font(t, &font_14, 0);
-    lv_obj_remove_flag(t, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_t* l = lv_label_create(t);
-    lv_label_set_text(l, txt);
-    lv_obj_center(l);
-    lv_obj_add_flag(t, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(t, cb, LV_EVENT_CLICKED, (void*)id);
-    return t;
-  }
-
-  static void label(lv_obj_t* p, const char* txt, int y) {
-    lv_obj_t* l = lv_label_create(p);
-    lv_obj_set_style_text_font(l, &font_14, 0);
-    lv_obj_set_style_text_color(l, lv_color_hex(0xC0C0C0), 0);
-    lv_label_set_text(l, txt);
-    lv_obj_set_pos(l, 8, y);
-  }
 
   static void onMenu(lv_event_t*) {
     if (menu) return;
@@ -207,19 +131,12 @@ class AprsListScreen : public Screen {
     menu->flag[1] = c.aprs_alert_en;
     menu->flag[2] = c.aprs_al_near;
     menu->flag[3] = c.led_al_en;
-    lv_obj_t* p = menu->panel = lv_obj_create(lv_layer_top());
-    lv_obj_remove_style_all(p);
-    lv_obj_set_size(p, LV_PCT(100), LV_PCT(100));
-    lv_obj_set_style_bg_color(p, COL_BG, 0);
-    lv_obj_set_style_bg_opa(p, LV_OPA_COVER, 0);
-    lv_obj_set_style_text_color(p, COL_TEXT, 0);
-    lv_obj_remove_flag(p, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(p, LV_OBJ_FLAG_CLICKABLE);  // swallow touches
+    lv_obj_t* p = menu->panel = uiModalPanel();
 
-    label(p, tr(Tr::SortBy), 6);
+    uiLabel(p, &font_14, lv_color_hex(0xC0C0C0), tr(Tr::SortBy), 8, 6);
     const Tr sn[] = {Tr::SortTime, Tr::SortCall, Tr::SortDist};
-    for (int i = 0; i < 3; i++) menu->tile[i] = tile(p, tr(sn[i]), 8 + i * 96, 26, 92, 26, onTile, i);
-    label(p, tr(Tr::AprsSetting), 66);
+    for (int i = 0; i < 3; i++) menu->tile[i] = uiTile(p, tr(sn[i]), 8 + i * 96, 26, 92, 26, onTile, i);
+    uiLabel(p, &font_14, lv_color_hex(0xC0C0C0), tr(Tr::AprsSetting), 8, 66);
     const Tr bn[] = {Tr::Beaconing, Tr::AprsAlert, Tr::RangeAlert, Tr::LedBuzzer};
     for (int i = 0; i < 4; i++) {
       lv_obj_t* cb = menu->box[i] = lv_checkbox_create(p);
@@ -229,10 +146,10 @@ class AprsListScreen : public Screen {
       if (menu->flag[i]) lv_obj_add_state(cb, LV_STATE_CHECKED);
       lv_obj_add_event_cb(cb, onBox, LV_EVENT_VALUE_CHANGED, (void*)(intptr_t)i);
     }
-    lv_obj_t* ok = tile(p, tr(Tr::Ok), 40, 208, 100, 26, onOk, 0);
-    lv_obj_t* cancel = tile(p, tr(Tr::Cancel), 180, 208, 100, 26, onCancel, 0);
-    paintTile(ok, true);
-    paintTile(cancel, false);
+    lv_obj_t* ok = uiTile(p, tr(Tr::Ok), 40, 208, 100, 26, onOk, 0);
+    lv_obj_t* cancel = uiTile(p, tr(Tr::Cancel), 180, 208, 100, 26, onCancel, 0);
+    uiTilePaint(ok, true);
+    uiTilePaint(cancel, false);
     refreshMenu();
   }
 
@@ -267,27 +184,24 @@ class AprsListScreen : public Screen {
     return true;
   }
 
-  void refresh() {
-    AprsStation* snap = new AprsStation[30];  // copied under the lock, sorted outside it (heap: 2.5 KB)
-    size_t n = 0;
+  // Snapshot index + sort under the lock (n <= 30, insertion sort, stable): no heap copy of the stations.
+  void refresh(uint32_t now) {
+    force_ = false;
+    lastMs_ = now;
     g_store.aprs.read([&](const RingBuffer<AprsStation, 30>& r) {
       ver_ = g_store.aprs.version();
-      for (; n < r.size() && n < 30; n++) snap[n] = r.at(n);
+      n_ = r.size() < sizeof idx_ ? r.size() : sizeof idx_;
+      for (size_t i = 0; i < n_; i++) idx_[i] = (uint8_t)i;
+      if (sort_ != SORT_TIME)
+        for (size_t i = 1; i < n_; i++) {
+          uint8_t v = idx_[i];
+          size_t j = i;
+          while (j > 0 && before(r.at(v), r.at(idx_[j - 1]))) { idx_[j] = idx_[j - 1]; j--; }
+          idx_[j] = v;
+        }
     });
-    n_ = n;
-    for (size_t i = 0; i < n; i++) idx_[i] = (uint8_t)i;
-    if (sort_ != SORT_TIME)
-      for (size_t i = 1; i < n; i++) {  // insertion sort, n <= 30; stable
-        uint8_t v = idx_[i];
-        size_t j = i;
-        while (j > 0 && before(snap[v], snap[idx_[j - 1]])) { idx_[j] = idx_[j - 1]; j--; }
-        idx_[j] = v;
-      }
-    delete[] snap;
-    lv_obj_set_flag(wait_, LV_OBJ_FLAG_HIDDEN, n_ != 0);
-    lv_obj_set_flag(table_, LV_OBJ_FLAG_HIDDEN, n_ == 0);
     cachedRow_ = (size_t)-1;
-    spotTableSet(table_, n_, cell, this);
+    spotListUiSet(ui_, n_, cell, this);
   }
 
   bool before(const AprsStation& a, const AprsStation& b) const {
