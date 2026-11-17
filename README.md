@@ -183,7 +183,11 @@ Settings are split between two places:
   http://192.168.4.1 in access point mode): WiFi, station location and the
   service settings. Secrets such as passwords are never shown; the page only
   reports whether each one is set. Saving the page changes only the fields
-  you submit.
+  you submit. **Export backup** (`GET /api/backup`) is the exception: the
+  downloaded JSON contains every password and API key in plain text, so store
+  it safely. Import restores them on a new clock (then press Save). Like the
+  rest of the web page, `/api/backup` has no authentication: anyone on the
+  LAN (or connected to the AP) can download it.
 
 For development, copy `include/secrets.h.example` to `include/secrets.h` and
 set a default WiFi network there. This file is git-ignored and optional. The

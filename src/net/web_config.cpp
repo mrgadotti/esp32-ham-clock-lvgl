@@ -67,6 +67,19 @@ void handleConfig() {
   else sendJson(500, "{\"error\":\"config_too_large\"}");
 }
 
+// Plain-text secrets, same (LAN-only, unauthenticated) exposure as the rest of the page. Never logged; the shared buffer is wiped after sending.
+void handleBackup() {
+  Config c;
+  cfgGet(c);
+  if (configToBackupJson(c, httpBody, kHttpBodySize)) {
+    server.sendHeader("Cache-Control", "no-store");
+    server.sendHeader("Content-Disposition", "attachment; filename=esp32-ham-clock-backup.json");
+    sendJson(200, httpBody);
+  } else sendJson(500, "{\"error\":\"config_too_large\"}");
+  memset(httpBody, 0, kHttpBodySize);
+  memset(&c, 0, sizeof c);
+}
+
 void handleSave() {
   if (!postAllowed()) return;
   const String& body = server.arg("plain");
@@ -157,6 +170,7 @@ void webInit() {
   server.collectHeaders(kHeaders, 2);
   server.on("/", HTTP_GET, handleRoot);
   server.on("/api/config", HTTP_GET, handleConfig);
+  server.on("/api/backup", HTTP_GET, handleBackup);
   server.on("/api/save", HTTP_POST, handleSave);
   server.on("/api/reset_touch", HTTP_POST, handleResetTouch);
   server.on("/api/status", HTTP_GET, handleStatus);

@@ -33,7 +33,7 @@ ul{padding-left:18px}
 const $=id=>document.getElementById(id);
 // The device only accepts POSTs with this content type: a cross-site page cannot send it without a preflight.
 const post=(u,b)=>fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:b||"{}"});
-const PT={"Save":"Salvar","Saved":"Salvo","Saved, restarting...":"Salvo, reiniciando...","Export backup":"Exportar backup","Import backup":"Importar backup","Recalibrate touch":"Recalibrar toque","Show/hide":"Mostrar/ocultar","Look at the device screen and touch the targets":"Olhe a tela do dispositivo e toque nos alvos","Touch recalibration failed":"Falha ao recalibrar o toque","Off":"Desligado","Error":"Erro","(set)":"(definido)","Imported: press Save":"Importado: pressione Salvar",
+const PT={"Save":"Salvar","Saved":"Salvo","Saved, restarting...":"Salvo, reiniciando...","Export backup":"Exportar backup","Backup saved. It contains passwords and API keys in plain text: store it safely":"Backup salvo. Contém senhas e chaves de API em texto puro: guarde com segurança","Import backup":"Importar backup","Recalibrate touch":"Recalibrar toque","Show/hide":"Mostrar/ocultar","Look at the device screen and touch the targets":"Olhe a tela do dispositivo e toque nos alvos","Touch recalibration failed":"Falha ao recalibrar o toque","Off":"Desligado","Error":"Erro","(set)":"(definido)","Imported: press Save":"Importado: pressione Salvar",
 "WiFi":"WiFi","SSID 1":"SSID 1","Password 1":"Senha 1","SSID 2":"SSID 2","Password 2":"Senha 2","AP password (min 8 chars)":"Senha do AP (mín. 8 caracteres)",
 "Station":"Estação","Callsign":"Indicativo","Locator":"Locator","Latitude":"Latitude","Longitude":"Longitude","Valid lat/lon":"Lat/lon válidos","Timezone (hours)":"Fuso horário (horas)","Use GPS position when active":"Usar posição do GPS quando ativo",
 "Host":"Servidor","Port":"Porta","No announcements":"Sem anúncios","No WWV":"Sem WWV","No WCY":"Sem WCY","Use filters":"Usar filtros","Filters (one per line)":"Filtros (um por linha)",
@@ -111,7 +111,7 @@ function fill(c){
   S.forEach(([,fl])=>fl.forEach(([k,t])=>{
     const e=$("k_"+k);
     if(t=="b")e.checked=!!c[k];
-    else if(t=="p"){e.value="";e.placeholder=c[k+"_set"]?"••• "+T("(set)"):"";}
+    else if(t=="p"){e.value=c[k]||"";e.placeholder=c[k+"_set"]?"••• "+T("(set)"):"";}
     else if(k in c)e.value=c[k];
   }));
   for(let i=0;i<12;i++)$("so"+i).value=(c.screen_order||[])[i]||0;
@@ -151,10 +151,13 @@ $("save").onclick=async()=>{
     if(j.restart)setTimeout(()=>location.reload(),8000);else load();
   }catch(e){msg(T("Error"),1);}
 };
-$("exp").onclick=()=>{
-  const o={};for(const k in cfg)if(!/_set$|^uart2_[rt]x_pin$|^qrz_status$/.test(k))o[k]=cfg[k];
-  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,1)],{type:"application/json"}));
-  a.download="hamclock-config.json";a.click();
+$("exp").onclick=async()=>{
+  try{
+    const r=await fetch("/api/backup");if(!r.ok)throw 0;
+    const a=document.createElement("a");a.href=URL.createObjectURL(await r.blob());
+    a.download="esp32-ham-clock-backup.json";a.click();
+    msg(T("Backup saved. It contains passwords and API keys in plain text: store it safely"));
+  }catch(x){msg(T("Error"),1);}
 };
 $("imp").onclick=()=>$("file").click();
 $("file").onchange=async e=>{

@@ -66,6 +66,44 @@ void test_roundtrip() {
   TEST_ASSERT_EQUAL_UINT8(9, b.screen_order[3]);
 }
 
+void test_backup_has_plain_secrets_and_roundtrips() {
+  Config a = defaults();
+  strcpy(a.wifi_pass, "p\"w1");
+  strcpy(a.wifi_pass2, "pw2");
+  strcpy(a.ap_pass, "apsecret99");
+  strcpy(a.hama_pass, "ham");
+  strcpy(a.aprs_passcode, "12345");
+  strcpy(a.qrz_pass, "qrz");
+  strcpy(a.weather_key, "owkey");
+  strcpy(a.user_callsign, "PY2XX");
+  char buf[4096], plain[4096];
+  TEST_ASSERT_TRUE(configToBackupJson(a, buf, sizeof buf));
+  TEST_ASSERT_NOT_NULL(strstr(buf, "\"ap_pass\":\"apsecret99\""));
+  TEST_ASSERT_NOT_NULL(strstr(buf, "\"weather_key\":\"owkey\""));
+  TEST_ASSERT_NULL(strstr(buf, "_set\""));
+  TEST_ASSERT_NOT_NULL(strstr(buf, "\"user_callsign\":\"PY2XX\""));
+  TEST_ASSERT_TRUE(configToJson(a, plain, sizeof plain));
+  TEST_ASSERT_NULL(strstr(plain, "apsecret99"));  // GET /api/config unchanged
+  Config b = defaults();
+  ApplyResult r = configApplyJson(b, buf);
+  TEST_ASSERT_TRUE_MESSAGE(r.ok, r.error);
+  TEST_ASSERT_TRUE(r.needsRestart);
+  TEST_ASSERT_EQUAL_STRING("p\"w1", b.wifi_pass);
+  TEST_ASSERT_EQUAL_STRING("pw2", b.wifi_pass2);
+  TEST_ASSERT_EQUAL_STRING("apsecret99", b.ap_pass);
+  TEST_ASSERT_EQUAL_STRING("ham", b.hama_pass);
+  TEST_ASSERT_EQUAL_STRING("12345", b.aprs_passcode);
+  TEST_ASSERT_EQUAL_STRING("qrz", b.qrz_pass);
+  TEST_ASSERT_EQUAL_STRING("owkey", b.weather_key);
+  TEST_ASSERT_EQUAL_STRING("PY2XX", b.user_callsign);
+}
+
+void test_backup_fails_when_buffer_too_small() {
+  Config c = defaults();
+  char buf[32];
+  TEST_ASSERT_FALSE(configToBackupJson(c, buf, sizeof buf));
+}
+
 void test_partial_update_keeps_absent() {
   Config c = defaults();
   strcpy(c.wifi_ssid, "home");
@@ -199,6 +237,8 @@ int main() {
   RUN_TEST(test_tft_rot_only_1_or_3);
   RUN_TEST(test_readonly_and_ascii);
   RUN_TEST(test_ssid_keeps_utf8);
+  RUN_TEST(test_backup_has_plain_secrets_and_roundtrips);
+  RUN_TEST(test_backup_fails_when_buffer_too_small);
   RUN_TEST(test_nvs_keys_fit);
   RUN_TEST(test_in_place_apply);
   RUN_TEST(test_json_fields_fit_scratch);
