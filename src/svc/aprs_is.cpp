@@ -25,6 +25,7 @@ struct Cfg {
 uint32_t cfgVer;
 bool haveCfg;
 
+Cfg used;  // settings of the session in progress: a change reconnects
 AsyncConnect conn;
 WiFiClient client;
 char line[kLineMax];
@@ -46,6 +47,11 @@ void refreshCfg() {
     strlcpy(c.uart2Cmod, s.uart2_cmod, sizeof c.uart2Cmod);
     c.port = s.aprs_port; c.ssid = s.aprs_ssid; c.radius = s.aprs_radius;
   });
+}
+
+bool sameSession(const Cfg& a, const Cfg& b) {
+  return a.port == b.port && a.ssid == b.ssid && a.radius == b.radius && !strcmp(a.host, b.host) && !strcmp(a.call, b.call) &&
+         !strcmp(a.pass, b.pass);
 }
 
 void drop(uint32_t now, bool failed) {
@@ -96,6 +102,11 @@ void aprsIsTick(uint32_t now) {
     return;
   }
 
+  if ((up || connecting) && !sameSession(used, c)) {
+    drop(now, false);
+    fails = 0;
+    nextTry = 0;
+  }
   if (up && !client.connected()) drop(now, true);
   if (connecting) {
     AsyncConnect::State st = conn.poll(now, client);
@@ -123,6 +134,7 @@ void aprsIsTick(uint32_t now) {
   if (!up) {
     if (nextTry && (int32_t)(now - nextTry) < 0) return;
     MEM_DIAG_ONCE("aprs-is: before connect");
+    used = c;
     conn.start(c.host, (uint16_t)c.port, now);
     connecting = true;
     return;

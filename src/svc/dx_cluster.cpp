@@ -59,7 +59,10 @@ void drop(bool failed) {
   conn.cancel();
   client.stop();
   up = connecting = false;
-  if (failed && failures < 255) failures++;
+  if (failed) {
+    if (failures < 255) failures++;
+    lastAttempt = millis();  // backoff counts from the end of the failed attempt
+  }
 }
 
 void queueCmd(const char* s) {
