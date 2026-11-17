@@ -72,7 +72,7 @@ void onLine() {
     if (serviceCoords(ml, mo)) s.distKm = (int16_t)distanceKm(ml, mo, la, lo);
   }
   qrzOnNewSpot(s);
-  g_store.dx.write([&](RingBuffer<Spot, 100>& r) { r.pushFront(s); });
+  g_store.dx.write([&](RingBuffer<Spot, kDxSpots>& r) { r.pushFront(s); });
 }
 
 void connectNow(uint32_t now) {

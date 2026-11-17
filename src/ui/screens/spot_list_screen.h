@@ -5,7 +5,7 @@
 #include "config.h"
 #include "i18n.h"
 
-// Type-erased view of a Guarded<RingBuffer<Spot, N>>: one screen class serves the 100-spot DX ring and the 30-spot ones.
+// Type-erased view of a Guarded<RingBuffer<Spot, N>>: one screen class serves the DX ring and the 30-spot ones.
 struct SpotSrc {
   const void* store;
   uint32_t (*version)(const void*);
@@ -15,11 +15,11 @@ struct SpotSrc {
   void (*get)(const void*, size_t storeIdx, Spot& out);  // one lock + copy
 };
 
-constexpr size_t SPOT_LIST_MAX = 100;  // largest ring a SpotSrc may wrap (indexes are uint8_t)
+constexpr size_t SPOT_LIST_MAX = kDxSpots;  // largest ring a SpotSrc may wrap
 
 template <size_t N>
 SpotSrc spotSrc(const Guarded<RingBuffer<Spot, N>>& g) {
-  static_assert(N <= SPOT_LIST_MAX, "store indexes are uint8_t");
+  static_assert(N <= SPOT_LIST_MAX && N <= 255, "store indexes are uint8_t and idx_ is sized for the DX ring");
   using G = Guarded<RingBuffer<Spot, N>>;
   return {&g, [](const void* s) { return static_cast<const G*>(s)->version(); },
           [](const void* s, uint8_t* idx, size_t cap, uint16_t band, uint8_t mode, uint32_t& ver) {
