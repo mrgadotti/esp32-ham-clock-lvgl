@@ -47,7 +47,7 @@ class AprsListScreen : public Screen {
     sort_ = (int)cfg().aprs_sort;
     if (sort_ < 0 || sort_ > SORT_DIST) sort_ = SORT_TIME;
     cols_.n = 5;
-    const int16_t w[] = {40, 94, 85, 43, 58};  // UTC CALL SYM KM FREQ, sized by tools/check_text_fit.py
+    const int16_t w[] = {41, 93, 85, 43, 58};  // UTC CALL SYM KM FREQ, sized by tools/check_text_fit.py
     const lv_color_t c[] = {lv_color_hex(0xC0C0C0), COL_TEXT, lv_color_hex(0x00FFFF), COL_ACCENT, COL_FREQ};
     for (int i = 0; i < 5; i++) { cols_.width[i] = w[i]; cols_.color[i] = c[i]; }
     const char* cm = cfg().uart2_cmod;
@@ -61,6 +61,7 @@ class AprsListScreen : public Screen {
     uint32_t now = lv_tick_get();
     if (force_ || (ver_ != g_store.aprs.version() && now - lastMs_ >= 1000)) refresh(now);  // table rebuild: <= 1 Hz
     headerTickUtc(ui_.hdr);
+    if (spotListUiTimeSync(ui_)) force_ = true;
   }
 
  private:
@@ -147,8 +148,7 @@ class AprsListScreen : public Screen {
     const AprsStation& a = s->cached_;
     switch (col) {
       case 0:
-        if (!a.utc) snprintf(out, cap, "--");
-        else snprintf(out, cap, "%02u%02u", (unsigned)(a.utc % 86400 / 3600), (unsigned)(a.utc % 3600 / 60));
+        formatHmCell(out, cap, a.utc, uiTimeOffsetSec());
         break;
       case 1: snprintf(out, cap, "%s", a.call); break;
       case 2: {

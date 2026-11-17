@@ -30,6 +30,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(ColCall, "CALL", "CALL") \
   X(ColMod, "MOD", "MOD") \
   X(ColMsg, "MSG", "MSG") \
+  X(ColLocal, "LOC", "LOC") \
   X(ColCountry, "COUNTRY", "PAÍS") \
   X(ColSymbol, "SYM", "SYM") \
   X(ColKm, "KM", "KM") \

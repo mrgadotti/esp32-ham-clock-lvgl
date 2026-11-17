@@ -10,6 +10,7 @@
 #include "../../net/time_service.h"
 #include "../fonts/fonts.h"
 #include "../theme.h"
+#include "../widgets/header.h"
 #include "../widgets/ui_kit.h"
 
 namespace {
@@ -86,7 +87,7 @@ class ClockScreen : public Screen {
     if (timeValid()) {
       time_t now = time(nullptr);
       struct tm tm;
-      if (local) now += (time_t)(cfg().timezone * 3600.0f);  // UI snapshot of the timezone
+      now += uiTimeOffsetSec();
       gmtime_r(&now, &tm);
       bool localChg = lastLocal_ != local;
       if (tm.tm_sec != lastSec_ || localChg) {

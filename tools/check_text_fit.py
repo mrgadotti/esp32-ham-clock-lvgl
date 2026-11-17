@@ -91,20 +91,22 @@ add("Spot list", "col MHz cell", "font_14", SPOT_W[2] - PAD, ["144.800", "430.00
 add("Spot list", "col MOD cell", "font_14", SPOT_W[3] - PAD, ["CW", "SSB", "DIGI", "-"])
 add("Spot list", "col COUNTRY cell (cut at 15 chars)", "font_14", SPOT_W[4] - PAD, ["United States", "Brazil", "Germany"])
 for i, k in enumerate(["Utc", "ColCall", "Mhz", "ColMod"]):
+    if i == 0: add("Spot list", "col header LOC", "font_14", SPOT_W[0] - PAD, T("ColLocal"))
     add("Spot list", f"col header {k}", "font_14", SPOT_W[i] - PAD, T(k))
 add("Spot list", "col header COUNTRY / MSG", "font_14", SPOT_W[4] - PAD, T("ColCountry", "ColMsg"))
 # the waiting label is 300 px wide and wraps (spot_table.cpp), so two lines are available
 add("Spot list", "waiting / no-login labels (font_18, wrapped, 2 lines)", "font_18", 600, T("WaitingForSpots", "FetchFailedRetrying", "HamAlertNoLogin", "WaitingForAprs"))
 
 # ---------------- APRS list (aprs_list_screen.cpp: table cols, same cell padding) ----------------
-APRS_W = [40, 94, 85, 43, 58]  # UTC CALL SYM KM FREQ (must sum to 320)
+APRS_W = [41, 93, 85, 43, 58]  # UTC CALL SYM KM FREQ (must sum to 320)
 assert sum(APRS_W) == 320
 syms = [TR[k][i] for k in TR if k.startswith("Sym") for i in (0, 1)]
-add("APRS list", "col UTC cell '2359'", "font_14", APRS_W[0] - PAD, ["2359", "--"])
+add("APRS list", "col UTC cell '23:59'", "font_14", APRS_W[0] - PAD, ["23:59", "--"])
 add("APRS list", "col CALL cell 'PY2XXX-15'", "font_14", APRS_W[1] - PAD, ["PY2XXX-15", "WA1ABC-15", "PU2MMM-10"])
 add("APRS list", "col SYM cell (all symbol names)", "font_14", APRS_W[2] - PAD, syms)
 add("APRS list", "col KM cell '9999' (>= 10000 km shows '12k')", "font_14", APRS_W[3] - PAD, ["9999", "12k", "-"])
 add("APRS list", "col FREQ cell '144.800'", "font_14", APRS_W[4] - PAD, ["144.800", "430.000"])
+add("APRS list", "col header LOC", "font_14", APRS_W[0] - PAD, T("ColLocal"))
 for i, k in enumerate(["Utc", "ColCall", "ColSymbol", "ColKm", "ColFreq"]):
     add("APRS list", f"col header {k}", "font_14", APRS_W[i] - PAD, T(k))
 add("APRS list", "menu sort tile (92 px)", "font_14", 92 - 6, T("SortTime", "SortCall", "SortDist"))

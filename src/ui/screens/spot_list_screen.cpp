@@ -51,6 +51,7 @@ class SpotListScreen : public Screen {
     uint32_t now = lv_tick_get();
     if (force_ || (ver_ != d_.src.version(d_.src.store) && now - lastMs_ >= kRefreshMs)) refresh(now);
     headerTickUtc(ui_.hdr);
+    if (spotListUiTimeSync(ui_)) force_ = true;
   }
 
  private:
@@ -89,7 +90,7 @@ class SpotListScreen : public Screen {
     const Spot& sp = s->cached_;
     switch (col) {
       case 0:
-        formatHmCell(out, cap, sp.utc);
+        formatHmCell(out, cap, sp.utc, uiTimeOffsetSec());
         break;
       case 1: snprintf(out, cap, "%s", sp.call); break;
       case 2: snprintf(out, cap, "%u.%03u", (unsigned)(sp.khz / 1000), (unsigned)(sp.khz % 1000)); break;

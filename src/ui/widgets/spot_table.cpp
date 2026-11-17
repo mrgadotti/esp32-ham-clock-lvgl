@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "../fonts/fonts.h"
+#include "../../app/config_store.h"
 #include "../theme.h"
 #include "header.h"
 #include "ui_kit.h"
@@ -152,7 +153,8 @@ SpotListUi spotListUiCreate(lv_obj_t* p, Tr title, const SpotTableCols& cols, co
   uiHamburger(ui.hdr, onMenu);
   int x = 0;
   for (uint8_t i = 0; i < cols.n; i++) {
-    uiLabel(p, &font_14, lv_color_hex(0xA0A0A0), tr(colTitles[i]), x + SPOT_TABLE_PAD_L, HEADER_H);
+    lv_obj_t* l = uiLabel(p, &font_14, lv_color_hex(0xA0A0A0), tr(colTitles[i]), x + SPOT_TABLE_PAD_L, HEADER_H);
+    if (!i) ui.timeTitle = l;
     x += cols.width[i];
   }
   ui.table = spotTableCreate(p, cols);
@@ -163,6 +165,14 @@ SpotListUi spotListUiCreate(lv_obj_t* p, Tr title, const SpotTableCols& cols, co
   lv_obj_set_style_text_align(ui.wait, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_center(ui.wait);
   return ui;
+}
+
+bool spotListUiTimeSync(SpotListUi& ui) {
+  int8_t local = cfg().screen1_time != 0;
+  if (local == ui.lastLocal) return false;
+  ui.lastLocal = local;
+  lv_label_set_text(ui.timeTitle, tr(local ? Tr::ColLocal : Tr::Utc));
+  return true;
 }
 
 void spotListUiSet(const SpotListUi& ui, size_t n, CellFn cell, void* ctx) {

@@ -1,18 +1,21 @@
 #include "header.h"
 #include "../theme.h"
 #include "../fonts/fonts.h"
+#include "../../app/config_store.h"
 #include "../../net/time_service.h"
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
+int32_t uiTimeOffsetSec() { return cfg().screen1_time ? (int32_t)(cfg().timezone * 3600.0f) : 0; }
+
 void headerTickUtc(lv_obj_t* header) {
   char s[12] = "--:--";
   if (timeValid()) {
-    time_t t = time(nullptr);
+    time_t t = time(nullptr) + uiTimeOffsetSec();
     struct tm tm;
     gmtime_r(&t, &tm);
-    snprintf(s, sizeof s, "%02d:%02d Z", tm.tm_hour, tm.tm_min);
+    snprintf(s, sizeof s, "%02d:%02d %c", tm.tm_hour, tm.tm_min, cfg().screen1_time ? 'L' : 'Z');
   }
   lv_obj_t* c = static_cast<lv_obj_t*>(lv_obj_get_user_data(header));
   if (c && lv_label_get_text(c) && strcmp(lv_label_get_text(c), s) != 0) headerSetClock(header, s);

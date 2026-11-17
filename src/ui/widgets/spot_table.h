@@ -24,9 +24,12 @@ void spotTableSet(lv_obj_t* table, size_t n, CellFn cell, void* ctx);
 // The whole list-screen scaffold shared by the spot and APRS lists: header with hamburger, column titles,
 // table and a centred "waiting" label shown while the table is empty.
 struct SpotListUi {
-  lv_obj_t *hdr, *table, *wait;
+  lv_obj_t *hdr, *table, *wait, *timeTitle;  // timeTitle: the UTC/LOC title of column 0
+  int8_t lastLocal = -1;
 };
 SpotListUi spotListUiCreate(lv_obj_t* parent, Tr title, const SpotTableCols& cols, const Tr* colTitles, Tr waitText,
                             lv_event_cb_t onMenu);
+// Follows the UTC/Local toggle: retitles column 0; true when it changed (the caller must rebuild the cells).
+bool spotListUiTimeSync(SpotListUi& ui);
 // spotTableSet plus the waiting label / table visibility for n rows.
 void spotListUiSet(const SpotListUi& ui, size_t n, CellFn cell, void* ctx);
