@@ -22,7 +22,7 @@ class ClockScreen : public Screen {
   void create(lv_obj_t* p) override {
     lv_obj_t* frame = lv_obj_create(p);
     lv_obj_remove_style_all(frame);
-    lv_obj_set_size(frame, 300, 155);
+    lv_obj_set_size(frame, 300, 172);  // bottom edge at y=182: >= 6 px below the date text (ends ~y=164), clear of the IP line (y=200)
     lv_obj_set_pos(frame, 10, 10);
     lv_obj_set_style_radius(frame, 8, 0);
     lv_obj_set_style_border_width(frame, 2, 0);
