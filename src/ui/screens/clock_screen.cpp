@@ -12,6 +12,7 @@
 #include "../theme.h"
 #include "../widgets/header.h"
 #include "../widgets/ui_kit.h"
+#include "../ui_manager.h"
 
 namespace {
 constexpr int DATE_W = 296;
@@ -54,6 +55,30 @@ class ClockScreen : public Screen {
     lv_obj_set_pos(dot_, 15, 207);
     gps_ = uiLabel(p, &font_14, COL_MODE, tr(Tr::Gps), 30, 205);
     lv_obj_add_flag(gps_, LV_OBJ_FLAG_HIDDEN);
+    // Gear (Settings): 36x36 touch target, drawn from an outline ring plus four teeth since font_14 has no gear glyph.
+    lv_obj_t* gear = lv_obj_create(p);
+    lv_obj_remove_style_all(gear);
+    lv_obj_set_size(gear, 36, 36);
+    lv_obj_set_pos(gear, 280, 200);
+    lv_obj_add_flag(gear, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(gear, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(gear, [](lv_event_t*) { uiRequest(ScreenId::Settings); }, LV_EVENT_CLICKED, nullptr);  // deferred switch
+    static const int16_t part[5][4] = {{9, 9, 18, 18}, {16, 5, 4, 6}, {16, 25, 4, 6}, {5, 16, 6, 4}, {25, 16, 6, 4}};
+    for (int i = 0; i < 5; i++) {
+      lv_obj_t* o = lv_obj_create(gear);
+      lv_obj_remove_style_all(o);
+      lv_obj_remove_flag(o, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_set_pos(o, part[i][0], part[i][1]);
+      lv_obj_set_size(o, part[i][2], part[i][3]);
+      if (i == 0) {
+        lv_obj_set_style_radius(o, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_border_width(o, 3, 0);
+        lv_obj_set_style_border_color(o, lv_color_hex(0xA0A0A0), 0);
+      } else {
+        lv_obj_set_style_bg_opa(o, LV_OPA_COVER, 0);
+        lv_obj_set_style_bg_color(o, lv_color_hex(0xA0A0A0), 0);
+      }
+    }
     lastSec_ = -1;
     refresh();
   }

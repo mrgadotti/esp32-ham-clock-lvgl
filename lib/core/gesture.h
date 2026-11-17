@@ -10,8 +10,8 @@ constexpr uint8_t HamClock = 1, DxCluster = 2, SunSpots = 3, BandInfo = 4, Weath
 }
 enum class Gesture : uint8_t { None, SwipeLeft, SwipeRight };
 Gesture classifyGesture(int dx, int dy);
-// order: 12 screen ids (0 = unused); enabledMask bit = screen id. Settings is always last.
-// Matrix and Game (and any id not in the carousel) are never reachable; from such a cur, returns the first entry.
+// order: 12 screen ids (0 = unused); enabledMask bit = screen id. Settings is not in the carousel (opened from the Clock gear).
+// The Clock is always enabled. Matrix, Game and Settings (any id not in the carousel) are never reachable; from such a cur, returns the first entry.
 uint8_t nextScreen(const uint8_t order[12], uint16_t enabledMask, uint8_t cur, int dir);
 // Auto-switch step: next enabled carousel screen after cur, never Settings; wraps to the first. Returns cur if none enabled.
 uint8_t nextAutoSwitchScreen(const uint8_t order[12], uint16_t enabledMask, uint8_t cur);

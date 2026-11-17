@@ -20,7 +20,7 @@ void test_auto_switch_from_outside_carousel() {
 void test_auto_switch_stays_when_alone() {
   const uint8_t order[12] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   TEST_ASSERT_EQUAL(1, nextAutoSwitchScreen(order, 1u << 1, 1));
-  TEST_ASSERT_EQUAL(scr::Settings, nextAutoSwitchScreen(order, 0, scr::Settings)); }
+  TEST_ASSERT_EQUAL(1, nextAutoSwitchScreen(order, 0, scr::Settings)); }  // Clock is always enabled
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_auto_switch_wraps_past_settings);
