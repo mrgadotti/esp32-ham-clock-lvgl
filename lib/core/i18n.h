@@ -159,7 +159,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(PressureLabel, "PRESSURE:", "PRESSÃO:") \
   /* APRS radar */ \
   X(RadarNorth, "N", "N") \
-  X(RadarZoomReset, "1Ã", "1Ã") \
+  X(RadarZoomReset, "1×", "1×") \
   /* APRS symbol short names (table order) */ \
   X(SymHouse, "HOUSE", "CASA") \
   X(SymCar, "CAR", "CARRO") \
