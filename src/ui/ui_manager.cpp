@@ -27,6 +27,7 @@ static uint32_t bootStart, lastTick, lastSwitch;
 static lv_obj_t* bootObj;
 static bool night;
 static uint32_t lastWxVer = ~0u;
+static uint8_t lastSaved;  // last screen id written to NVS
 
 static void applyNight() { displayApplyNightDim(night); }
 
@@ -48,6 +49,7 @@ void uiInit() {
   bootObj = bootScreenCreate();
   lv_screen_load(bootObj);
   booting = true;
+  lastSaved = lastScreenLoad();
   bootStart = millis();
 }
 
@@ -90,6 +92,14 @@ static void show(ScreenId id) {
 static ScreenId carouselNext(uint8_t from, int dir) {
   const Config& c = cfg();
   return (ScreenId)nextScreen(c.screen_order, (uint16_t)c.scr_en, from, dir);
+}
+
+// Manual navigation only (never auto-switch). Settings/Matrix/Game keep the previous value. Writes only on change.
+static void persistScreen() {
+  uint8_t v = (uint8_t)cur->id();
+  if (resolveStartScreen(v, 0xFFFF) != v || v == lastSaved) return;
+  lastSaved = v;
+  lastScreenSave(v);
 }
 
 void uiHandleEvent(const UiEvent& e) {
@@ -139,7 +149,7 @@ void uiTick(uint32_t now) {
     booting = false;
     pendingDir = 0;
     pendingTarget = 0;
-    show(carouselNext(0, 1));
+    show((ScreenId)resolveStartScreen(lastSaved, (uint16_t)cfg().scr_en));
     return;
   }
 
@@ -152,8 +162,10 @@ void uiTick(uint32_t now) {
   }
   if (target) {
     show((ScreenId)target);
+    persistScreen();
   } else if (dir && !locked) {
     show(carouselNext((uint8_t)cur->id(), dir));
+    persistScreen();
   } else if (cur && cfg().tft_autosw && !overlayActive() && cur->id() != ScreenId::Settings &&
              lv_display_get_inactive_time(nullptr) > TOUCH_PAUSE_MS &&
              now - lastSwitch >= (uint32_t)cfg().tft_sw_sec * 1000) {
