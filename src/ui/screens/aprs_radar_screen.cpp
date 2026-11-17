@@ -41,8 +41,9 @@ class AprsRadarScreen : public Screen {
     lv_obj_set_pos(cv_, 0, HEADER_H);
     lv_obj_add_flag(cv_, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(cv_, onDraw, LV_EVENT_DRAW_MAIN, this);
-    lv_obj_add_event_cb(cv_, onTap, LV_EVENT_SHORT_CLICKED, this);
 
+    zoomButton(p, 144, "+", onZoomIn);
+    zoomButton(p, 176, "-", onZoomOut);
     lv_obj_t* b = lv_button_create(p);
     lv_obj_set_size(b, 44, 28);
     lv_obj_set_pos(b, 272, 208);
@@ -103,13 +104,28 @@ class AprsRadarScreen : public Screen {
     }
     lv_obj_invalidate(cv_);
   }
-  static void onTap(lv_event_t* e) {
+  void zoomButton(lv_obj_t* p, int y, const char* txt, lv_event_cb_t cb) {
+    lv_obj_t* b = lv_button_create(p);
+    lv_obj_set_size(b, 44, 28);
+    lv_obj_set_pos(b, 272, y);
+    lv_obj_set_style_bg_color(b, lv_color_black(), 0);
+    lv_obj_set_style_border_width(b, 1, 0);
+    lv_obj_set_style_border_color(b, lv_color_hex(0xC0C0C0), 0);
+    lv_obj_set_style_radius(b, 6, 0);
+    lv_obj_set_style_shadow_width(b, 0, 0);
+    lv_obj_add_event_cb(b, cb, LV_EVENT_CLICKED, this);
+    lv_obj_t* l = lv_label_create(b);
+    lv_obj_set_style_text_font(l, &font_14, 0);
+    lv_label_set_text(l, txt);
+    lv_obj_center(l);
+  }
+  static void step(lv_event_t* e, int dir) {
     AprsRadarScreen* s = static_cast<AprsRadarScreen*>(lv_event_get_user_data(e));
-    lv_point_t pt;
-    lv_indev_get_point(lv_indev_active(), &pt);
-    s->view_ = radarZoomAt(s->view_, pt.x, pt.y, (float)cfg().aprs_radius, R_PX, OX, OY);
+    s->view_ = radarZoomStep(s->view_, dir);
     s->viewChanged();
   }
+  static void onZoomIn(lv_event_t* e) { step(e, 1); }
+  static void onZoomOut(lv_event_t* e) { step(e, -1); }
   static void onReset(lv_event_t* e) {
     AprsRadarScreen* s = static_cast<AprsRadarScreen*>(lv_event_get_user_data(e));
     s->view_ = radarReset();
@@ -191,11 +207,11 @@ class AprsRadarScreen : public Screen {
 
     ring(l, qx, qy, rOut / 2, grey);
     ring(l, qx, qy, rOut, grey);
-    if (rAlert >= 1 && rAlert <= 2000) ring(l, qx, qy, rAlert, lv_color_make(70, 130, 190));
+    if (rAlert >= 1 && rAlert <= 4000) ring(l, qx, qy, rAlert, lv_color_make(70, 130, 190));
     char b[16];
     lv_area_t used[MAXN + 8];
     int nu = 0;
-    used[nu++] = {272 - 8, 208 - 8, 320, 240};  // the 1x button (with its extended click area)
+    used[nu++] = {272 - 8, 144 - 8, 320, 240};  // the zoom buttons (+, -, 1x)
     km(b, sizeof b, range);
     if (qy - rOut + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut + 2, txt, false, used, nu);
     km(b, sizeof b, range / 2);
@@ -210,7 +226,7 @@ class AprsRadarScreen : public Screen {
       if (t.distKm <= 0 || t.distKm > range) continue;
       if (!radarProject(v, t.distKm, t.bearing, range, R_PX, OX, OY, x, y)) continue;
       if (y < HEADER_H + 3 || y > 236) continue;
-      if (x > 256 && y > 192) continue;  // keep clear of the 1\xC3\x97 button
+      if (x > 256 && y > 128) continue;  // keep clear of the zoom buttons
       arc(l, x, y, 3, 3, t.col);
       if (labels) text(l, t.call, x, y - 18 < HEADER_H ? y + 4 : y - 18, t.col, true, used, nu, true);
     }
