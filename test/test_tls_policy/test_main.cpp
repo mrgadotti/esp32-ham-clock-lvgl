@@ -10,11 +10,13 @@ void test_defers_then_goes_anyway() {
   TEST_ASSERT_TRUE(tlsDecide(1000, kTlsMaxDeferrals) == TlsDecision::Go);  // never blocks for good
   TEST_ASSERT_TRUE(tlsDecide(0, 255) == TlsDecision::Go);
 }
-void test_quick_retry_only_for_alloc_failure_once() {
-  TEST_ASSERT_TRUE(tlsQuickRetry(-32512, false));
-  TEST_ASSERT_FALSE(tlsQuickRetry(-32512, true));
-  TEST_ASSERT_FALSE(tlsQuickRetry(-76, false));
-  TEST_ASSERT_FALSE(tlsQuickRetry(0, false));
+void test_alloc_retry_doubles_to_a_cap_and_only_for_alloc_failure() {
+  const uint32_t want[] = {4000, 8000, 16000, 32000, 60000, 60000};
+  for (uint8_t n = 1; n <= 6; n++) TEST_ASSERT_EQUAL_UINT32(want[n - 1], tlsAllocRetryMs(-32512, n));
+  TEST_ASSERT_EQUAL_UINT32(60000, tlsAllocRetryMs(-32512, 255));
+  TEST_ASSERT_EQUAL_UINT32(0, tlsAllocRetryMs(-76, 1));
+  TEST_ASSERT_EQUAL_UINT32(0, tlsAllocRetryMs(0, 1));
+  TEST_ASSERT_EQUAL_UINT32(0, tlsAllocRetryMs(-32512, 0));
 }
 // A 20 KB heap never recovers: 5 deferrals (2 s apart), then Go on the 6th decision at ~10 s.
 void test_gate_worst_case_goes_after_ten_seconds() {
@@ -58,4 +60,4 @@ void test_boot_blocks_go_and_transient_holders_defer() {
   TEST_ASSERT_TRUE(tlsDecide(35 * 1024, 0) == TlsDecision::Go);
   TEST_ASSERT_TRUE(tlsDecide(20 * 1024, 0) == TlsDecision::Defer);
 }
-int main() { UNITY_BEGIN(); RUN_TEST(test_boot_blocks_go_and_transient_holders_defer); RUN_TEST(test_go_when_block_is_big_enough); RUN_TEST(test_defers_then_goes_anyway); RUN_TEST(test_quick_retry_only_for_alloc_failure_once); RUN_TEST(test_gate_worst_case_goes_after_ten_seconds); RUN_TEST(test_gate_go_immediately_with_a_big_block); RUN_TEST(test_gate_survives_millis_crossing_2_pow_31_and_2_pow_32); RUN_TEST(test_gate_window_across_the_wrap); return UNITY_END(); }
+int main() { UNITY_BEGIN(); RUN_TEST(test_boot_blocks_go_and_transient_holders_defer); RUN_TEST(test_go_when_block_is_big_enough); RUN_TEST(test_defers_then_goes_anyway); RUN_TEST(test_alloc_retry_doubles_to_a_cap_and_only_for_alloc_failure); RUN_TEST(test_gate_worst_case_goes_after_ten_seconds); RUN_TEST(test_gate_go_immediately_with_a_big_block); RUN_TEST(test_gate_survives_millis_crossing_2_pow_31_and_2_pow_32); RUN_TEST(test_gate_window_across_the_wrap); return UNITY_END(); }

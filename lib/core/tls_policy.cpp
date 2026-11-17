@@ -19,4 +19,8 @@ TlsAction tlsGateStep(TlsGate& g, uint32_t now, uint32_t largest) {
   return TlsAction::Defer;
 }
 
-bool tlsQuickRetry(int err, bool alreadyRetried) { return err == kMbedtlsAllocFailed && !alreadyRetried; }
+uint32_t tlsAllocRetryMs(int err, uint8_t failures) {
+  if (err != kMbedtlsAllocFailed || failures == 0) return 0;
+  uint32_t ms = kTlsRetryMinMs << (failures > 5 ? 5 : failures - 1);
+  return ms > kTlsRetryMaxMs ? kTlsRetryMaxMs : ms;
+}

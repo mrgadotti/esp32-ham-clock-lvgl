@@ -24,7 +24,7 @@ static uint32_t s_nextCur, s_nextFc, s_lastSched;
 static bool s_curFirst = true, s_fcFirst = true;  // first fetch fires immediately
 
 static uint32_t retryMs() {
-  uint32_t q = httpQuickRetryMs();  // one quick retry after an SSL allocation failure
+  uint32_t q = httpQuickRetryMs();  // retry soon after an SSL allocation failure
   return q ? q : RETRY_MS;
 }
 
