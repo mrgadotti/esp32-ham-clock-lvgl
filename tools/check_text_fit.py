@@ -78,17 +78,32 @@ HDR_FREE = 320 - 6 - 6 - 6  # title x=6, clock margin 6, 6 px gap
 titles = ["Propagation", "HfBands", "Weather", "Forecast", "Location", "Settings", "AprsRadar", "DxCluster", "Pota", "HamAlert"]
 add("Header", "title vs clock 'hh:mm Z'", "font_18", HDR_FREE - CLK, T(*titles))
 add("Header", "APRS list title (x=46) vs clock", "font_18", HDR_FREE - 40 - CLK, T("AprsIs", "AprsKiss", "AprsTnc2"))
+add("Header", "DX/POTA/HamAlert title (x=46) vs clock", "font_18", HDR_FREE - 40 - CLK, T("DxCluster", "Pota", "HamAlert"))
 add("Header", "radar title vs 'x16' zoom", "font_18", HDR_FREE - width("font_18", "×16"), T("AprsRadar"))
 
-# ---------------- APRS list (aprs_list_screen.cpp: table cols, cell pad_left 3, font_14) ----------------
-APRS_W = [36, 90, 87, 48, 59]  # UTC CALL SYM KM FREQ (must sum to 320)
+# ---------------- spot tables (spot_table.cpp: cell pad_left SPOT_TABLE_PAD_L = 1, pad_right 0, font_14) ----------------
+PAD = 1
+SPOT_W = [40, 76, 60, 42, 102]  # spot_list_screen.cpp: UTC CALL MHz MOD COUNTRY|MSG (must sum to 320)
+assert sum(SPOT_W) == 320
+add("Spot list", "col UTC cell '2359'", "font_14", SPOT_W[0] - PAD, ["2359", "--"])
+add("Spot list", "col CALL cell (8 chars; longer portable calls are cropped by design)", "font_14", SPOT_W[1] - PAD, ["PY2XXX/P", "9A1ABC/P"])
+add("Spot list", "col MHz cell", "font_14", SPOT_W[2] - PAD, ["144.800", "430.000", "14.074"])
+add("Spot list", "col MOD cell", "font_14", SPOT_W[3] - PAD, ["CW", "SSB", "DIGI", "-"])
+add("Spot list", "col COUNTRY cell (cut at 15 chars)", "font_14", SPOT_W[4] - PAD, ["United States", "Brazil", "Germany"])
+for i, k in enumerate(["Utc", "ColCall", "Mhz", "ColMod"]):
+    add("Spot list", f"col header {k}", "font_14", SPOT_W[i] - PAD, T(k))
+add("Spot list", "col header COUNTRY / MSG", "font_14", SPOT_W[4] - PAD, T("ColCountry", "ColMsg"))
+# the waiting label is 300 px wide and wraps (spot_table.cpp), so two lines are available
+add("Spot list", "waiting / no-login labels (font_18, wrapped, 2 lines)", "font_18", 600, T("WaitingForSpots", "HamAlertNoLogin", "WaitingForAprs"))
+
+# ---------------- APRS list (aprs_list_screen.cpp: table cols, same cell padding) ----------------
+APRS_W = [40, 94, 85, 43, 58]  # UTC CALL SYM KM FREQ (must sum to 320)
 assert sum(APRS_W) == 320
-PAD = 3
 syms = [TR[k][i] for k in TR if k.startswith("Sym") for i in (0, 1)]
 add("APRS list", "col UTC cell '2359'", "font_14", APRS_W[0] - PAD, ["2359", "--"])
 add("APRS list", "col CALL cell 'PY2XXX-15'", "font_14", APRS_W[1] - PAD, ["PY2XXX-15", "WA1ABC-15", "PU2MMM-10"])
 add("APRS list", "col SYM cell (all symbol names)", "font_14", APRS_W[2] - PAD, syms)
-add("APRS list", "col KM cell '99999'", "font_14", APRS_W[3] - PAD, ["99999", "-"])
+add("APRS list", "col KM cell '9999' (>= 10000 km shows '12k')", "font_14", APRS_W[3] - PAD, ["9999", "12k", "-"])
 add("APRS list", "col FREQ cell '144.800'", "font_14", APRS_W[4] - PAD, ["144.800", "430.000"])
 for i, k in enumerate(["Utc", "ColCall", "ColSymbol", "ColKm", "ColFreq"]):
     add("APRS list", f"col header {k}", "font_14", APRS_W[i] - PAD, T(k))
@@ -212,16 +227,18 @@ add("Alert overlay", "weather alert body (226 px beside icon)", "font_18", 226,
 add("Alert overlay", "beacon body (290 px)", "font_18", 290, ["PY2XXX-15", "-23.12345,-046.12345", "WIDE1-1,WIDE2-1"])
 
 # ---------------- report ----------------
-bad = 0
+bad = warn = 0  # WARN: fits, but within 1 px of the limit (kerning is ignored, so the real width may differ by ~1 px)
 cur = None
 for screen, item, font, avail, strs in rows:
     worst = max(strs, key=lambda s: width(font, s))
     w = width(font, worst)
     over = w > avail
+    tight = not over and w >= avail - 1
     bad += over
+    warn += tight
     if screen != cur:
         print(f"\n== {screen}")
         cur = screen
-    print(f"  {'OVERFLOW' if over else 'ok':8} {item:52} {font:13} need {w:4} / {avail:4}  {worst!r}")
-print(f"\n{bad} overflow(s) in {len(rows)} checks")
+    print(f"  {'OVERFLOW' if over else 'WARN' if tight else 'ok':8} {item:52} {font:13} need {w:4} / {avail:4}  {worst!r}")
+print(f"\n{bad} overflow(s), {warn} tight (<= 1 px slack) in {len(rows)} checks")
 sys.exit(1 if bad else 0)

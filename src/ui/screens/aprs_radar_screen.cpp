@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "geo.h"
+#include "i18n.h"
 #include "radar_proj.h"
 #include "../../app/config_store.h"
 #include "../../app/data_store.h"
@@ -54,7 +55,7 @@ class AprsRadarScreen : public Screen {
     lv_obj_add_event_cb(b, onReset, LV_EVENT_CLICKED, this);
     lv_obj_t* l = lv_label_create(b);
     lv_obj_set_style_text_font(l, &font_14, 0);
-    lv_label_set_text(l, "1\xC3\x97");
+    lv_label_set_text(l, tr(Tr::RadarZoomReset));
     lv_obj_center(l);
   }
 
@@ -120,6 +121,34 @@ class AprsRadarScreen : public Screen {
     d.start_angle = 0; d.end_angle = 360;
     lv_draw_arc(l, &d);
   }
+  // Range ring. lv_draw_arc builds circle masks of ~22 B per pixel of radius in LV_MEM and a failed allocation halts
+  // (LV_ASSERT_MALLOC): at 8x the rings are 800 px, so big rings are drawn as chords (sagitta <= 0.5 px) and only
+  // those that touch the layer's current clip area become draw tasks (onDraw runs once per render chunk).
+  // Rings that miss the screen are skipped; the angle advances by a rotation, no trig per segment.
+  static void ring(lv_layer_t* l, int cx, int cy, int r, lv_color_t c) {
+    constexpr int kArcMax = 128, kTop = HEADER_H;
+    int dx = cx < 0 ? -cx : cx > 319 ? cx - 319 : 0, dy = cy < kTop ? kTop - cy : cy > 239 ? cy - 239 : 0;
+    int fx = cx > 160 ? cx : 319 - cx, fy = cy > (kTop + 239) / 2 ? cy - kTop : 239 - cy;  // farthest corner
+    if (r + 1 < (int)hypotf((float)dx, (float)dy) || r - 1 > (int)hypotf((float)fx, (float)fy)) return;
+    if (r <= kArcMax) { arc(l, cx, cy, r, 1, c); return; }
+    lv_draw_line_dsc_t d;
+    lv_draw_line_dsc_init(&d);
+    d.color = c; d.width = 1;
+    const float chord = 2.0f * sqrtf((float)r);  // sagitta chord^2 / (8 r) = 0.5 px
+    const int n = (int)(6.2832f * r / chord) + 1;
+    const float da = 6.2832f / n, co = cosf(da), si = sinf(da);
+    const lv_area_t& k = l->_clip_area;
+    float vx = (float)r, vy = 0;  // vector from the centre
+    for (int i = 0; i < n; i++) {
+      float wx = vx * co - vy * si, wy = vx * si + vy * co;
+      float x1 = cx + vx, y1 = cy + vy, x2 = cx + wx, y2 = cy + wy;
+      if (fmaxf(x1, x2) >= k.x1 - 1 && fminf(x1, x2) <= k.x2 + 1 && fmaxf(y1, y2) >= k.y1 - 1 && fminf(y1, y2) <= k.y2 + 1) {
+        d.p1.x = x1; d.p1.y = y1; d.p2.x = x2; d.p2.y = y2;
+        lv_draw_line(l, &d);
+      }
+      vx = wx; vy = wy;
+    }
+  }
   // Draws s at (x, y) (centred on x when `center`) and records its box in `used`. Optional labels
   // (`optional`) are skipped when they would overlap an earlier one, so text never overprints.
   static void text(lv_layer_t* l, const char* s, int x, int y, lv_color_t c, bool center, lv_area_t* used, int& nu,
@@ -158,9 +187,9 @@ class AprsRadarScreen : public Screen {
     const int rOut = (int)(R_PX * v.zoom), rAlert = (int)lroundf(cfg().alrt_dst_km * sc);
     const lv_color_t grey = lv_color_hex(0x808080), txt = lv_color_hex(0xD3D3D3);
 
-    arc(l, qx, qy, rOut / 2, 1, grey);
-    arc(l, qx, qy, rOut, 1, grey);
-    if (rAlert >= 1 && rAlert <= 2000) arc(l, qx, qy, rAlert, 1, lv_color_make(70, 130, 190));
+    ring(l, qx, qy, rOut / 2, grey);
+    ring(l, qx, qy, rOut, grey);
+    if (rAlert >= 1 && rAlert <= 2000) ring(l, qx, qy, rAlert, lv_color_make(70, 130, 190));
     char b[16];
     lv_area_t used[MAXN + 8];
     int nu = 0;
@@ -169,7 +198,7 @@ class AprsRadarScreen : public Screen {
     if (qy - rOut + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut + 2, txt, false, used, nu);
     km(b, sizeof b, range / 2);
     if (qy - rOut / 2 + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut / 2 + 2, txt, false, used, nu);
-    text(l, "N", OX - 4, HEADER_H + 1, txt, false, used, nu);
+    text(l, tr(Tr::RadarNorth), OX - 16, HEADER_H + 1, txt, false, used, nu, true);  // left of the km labels (at qx + 4)
     if (qx >= 0 && qx < 320 && qy >= HEADER_H && qy < 240) arc(l, qx, qy, 4, 4, lv_color_hex(0xFF8C00));
 
     const bool labels = v.zoom >= 2 || s->n_ <= 11;

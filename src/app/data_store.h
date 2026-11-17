@@ -30,8 +30,12 @@ class Guarded {
   std::atomic<uint32_t> ver_{0};
 };
 
+// DX ring size. The DX table keeps 5 LV_MEM cells per spot (8 B header + text, 4-aligned, + up to 8 B allocator
+// overhead: about 120-150 B per spot with the row arrays), so 75 spots stay under 12 KB of LV_MEM (100 would be 14 KB).
+constexpr size_t kDxSpots = 75;
+
 struct DataStore {
-  Guarded<RingBuffer<Spot, 100>> dx;
+  Guarded<RingBuffer<Spot, kDxSpots>> dx;
   Guarded<RingBuffer<Spot, 30>> pota, hamalert;
   Guarded<RingBuffer<AprsStation, 30>> aprs;
   Guarded<PropagationData> prop;
