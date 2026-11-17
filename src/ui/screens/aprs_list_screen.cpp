@@ -7,6 +7,7 @@
 #include "text_cut.h"
 #include "../../app/config_store.h"
 #include "../../app/data_store.h"
+#include "../../svc/aprs_beacon.h"
 #include "../fonts/fonts.h"
 #include "../theme.h"
 #include "../widgets/header.h"
@@ -107,6 +108,16 @@ class AprsListScreen : public Screen {
 
   static void onCancel(lv_event_t*) { closeMenu(); }
 
+  static void onBeacon(lv_event_t*) {
+    closeMenu();
+    aprsBeaconRequest();
+  }
+
+  static void onClear(lv_event_t*) {
+    closeMenu();
+    g_store.aprs.write([](RingBuffer<AprsStation, 30>& r) { r.clear(); });
+  }
+
   static void onMenu(lv_event_t*) {
     if (menu) return;
     const Config& c = cfg();
@@ -127,10 +138,12 @@ class AprsListScreen : public Screen {
       lv_obj_t* cb = menu->box[i] = lv_checkbox_create(p);
       lv_checkbox_set_text(cb, tr(bn[i]));
       lv_obj_set_style_text_font(cb, &font_14, 0);
-      lv_obj_set_pos(cb, 24, 88 + i * 28);
+      lv_obj_set_pos(cb, 24, 86 + i * 24);
       if (menu->flag[i]) lv_obj_add_state(cb, LV_STATE_CHECKED);
       lv_obj_add_event_cb(cb, onBox, LV_EVENT_VALUE_CHANGED, (void*)(intptr_t)i);
     }
+    uiTile(p, tr(Tr::BeaconNow), 8, 180, 148, 24, onBeacon, 0);
+    uiTile(p, tr(Tr::ClearAprsList), 164, 180, 148, 24, onClear, 0);
     lv_obj_t* ok = uiTile(p, tr(Tr::Ok), 40, 208, 100, 26, onOk, 0);
     lv_obj_t* cancel = uiTile(p, tr(Tr::Cancel), 180, 208, 100, 26, onCancel, 0);
     uiTilePaint(ok, true);

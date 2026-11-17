@@ -8,7 +8,6 @@
 #include "../../app/config_store.h"
 #include "../../app/data_store.h"
 #include "../../app/mem_log.h"
-#include "../../svc/aprs_beacon.h"
 #include "../../hal/display.h"
 #include "../../hal/touch_cal_ui.h"
 #include "../fonts/fonts.h"
@@ -170,9 +169,6 @@ class SettingsScreen : public Screen {
       int32_t v = kAprsKm[lv_dropdown_get_selected((lv_obj_t*)lv_event_get_target(e))];
       cfgUpdate([v](Config& c) { c.aprs_radius = v; });  // APRS-IS reconnects with the new filter (aprs_is.cpp sameSession)
     });
-    button(list, Tr::BeaconNow, [](lv_event_t*) { aprsBeaconRequest(); });
-    button(list, Tr::ClearAprsList, [](lv_event_t*) { g_store.aprs.write([](RingBuffer<AprsStation, 30>& r) { r.clear(); }); });
-    button(list, Tr::ClearDxList, [](lv_event_t*) { g_store.dx.write([](RingBuffer<Spot, kDxSpots>& r) { r.clear(); }); });
 
     uiLabel(list, &font_14, COL_ACCENT, tr(Tr::EnabledScreens));
     for (size_t i = 0; i < sizeof kScreens / sizeof *kScreens; i++) {

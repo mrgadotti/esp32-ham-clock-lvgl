@@ -47,5 +47,6 @@ struct SpotListDef {
   int32_t Config::*modeKey;  // saved filter masks
   int32_t Config::*bandKey;
   bool NetStatus::*failKey = nullptr;  // set while the last fetch failed: an empty list says so instead of "waiting"
+  void (*clearList)() = nullptr;       // when set, the filter menu shows a "Clear list" button that calls it
 };
 Screen* createSpotListScreen(const SpotListDef& def);
