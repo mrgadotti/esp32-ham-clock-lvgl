@@ -120,6 +120,8 @@ static void tick(lv_timer_t*) {
   }
 }
 
+bool touchCalActive() { return S.timer != nullptr; }
+
 void touchCalRun(void (*onDone)(bool saved)) {
   if (S.timer) return;  // already running
   S = {};
