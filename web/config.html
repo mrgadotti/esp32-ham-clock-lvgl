@@ -31,6 +31,8 @@ ul{padding-left:18px}
 <input type="file" id="file" accept=".json" hidden></main>
 <script>
 const $=id=>document.getElementById(id);
+// The device only accepts POSTs with this content type: a cross-site page cannot send it without a preflight.
+const post=(u,b)=>fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:b||"{}"});
 const PT={"Save":"Salvar","Saved":"Salvo","Saved, restarting...":"Salvo, reiniciando...","Export backup":"Exportar backup","Import backup":"Importar backup","Recalibrate touch":"Recalibrar toque","Off":"Desligado","Error":"Erro","(set)":"(definido)","Imported: press Save":"Importado: pressione Salvar",
 "WiFi":"WiFi","SSID 1":"SSID 1","Password 1":"Senha 1","SSID 2":"SSID 2","Password 2":"Senha 2","AP password (min 8 chars)":"Senha do AP (mín. 8 caracteres)",
 "Station":"Estação","Callsign":"Indicativo","Locator":"Locator","Latitude":"Latitude","Longitude":"Longitude","Valid lat/lon":"Lat/lon válidos","Timezone (hours)":"Fuso horário (horas)","Use GPS position when active":"Usar posição do GPS quando ativo",
@@ -42,7 +44,7 @@ const PT={"Save":"Salvar","Saved":"Salvo","Saved, restarting...":"Salvo, reinici
 "LED and QRZ":"LED e QRZ","LED alerts":"Alertas por LED","LED duration (ms)":"Duração do LED (ms)","LED blink (ms)":"Piscar do LED (ms)","QRZ user":"Usuário QRZ","QRZ password":"Senha QRZ",
 "Connected module":"Módulo conectado","None":"Nenhum","APRS TNC":"TNC APRS","APRS TNC KISS":"TNC APRS KISS","ESP32 bridge":"Bridge ESP32","Data bits":"Bits de dados","Parity":"Paridade","Stop bits":"Stop bits",
 "Scan":"Buscar","Pair":"Parear","Paired":"Pareado","Bridge password":"Senha do bridge","Pairing...":"Pareando...","Bridge is not enabled":"Bridge não habilitado",
-"Display":"Tela","Backlight (%)":"Brilho (%)","Night dimming (%)":"Escurecimento noturno (%)","Invert colors":"Inverter cores","Language":"Idioma","Rotation":"Rotação","Normal":"Normal","Flipped":"Invertida","Touch rotation":"Rotação do toque","Auto switch screens":"Troca automática de telas","Switch time (s)":"Tempo de troca (s)","Screen order":"Ordem das telas","Slot":"Posição",
+"Display":"Tela","Backlight (%)":"Brilho (%)","Night dimming (%)":"Escurecimento noturno (%)","Invert colors":"Inverter cores","Language":"Idioma","Rotation":"Rotação","Normal":"Normal","Flipped":"Invertida","Auto switch screens":"Troca automática de telas","Switch time (s)":"Tempo de troca (s)","Screen order":"Ordem das telas","Slot":"Posição",
 "Sunspots":"Manchas solares","Band info":"Info de bandas","APRS list":"Lista APRS","APRS radar":"Radar APRS","Forecast":"Previsão","Location":"Localização",
 "Free heap":"Heap livre","Uptime":"Tempo ligado","GPS fix":"Fix do GPS","no":"não"};
 let L="en";try{L=localStorage.getItem("lang")||"en"}catch(x){}
@@ -96,7 +98,7 @@ function render(){
   });
   document.querySelectorAll("[data-t]").forEach(e=>e.textContent=T(e.dataset.t));
   fill(cfg);
-  $("scan").onclick=async()=>{await fetch("/api/bridge_bt_scan",{method:"POST"});pollBt()};
+  $("scan").onclick=async()=>{await post("/api/bridge_bt_scan");pollBt()};
   pollBt();
 }
 function fill(c){
@@ -123,9 +125,6 @@ function collect(){
   }));
   const so=[];for(let i=0;i<12;i++)so.push(+$("so"+i).value);
   if(JSON.stringify(so)!=JSON.stringify(cfg.screen_order))o.screen_order=so;
-  // uart2_mode follows the connected module: gps->gps, TNC/bridge->bt, none->off
-  const m=o.uart2_connected_module;
-  if(m!==undefined)o.uart2_mode=m=="gps"?"gps":m=="none"?"off":"bt";
   return o;
 }
 function msg(t,e){const m=$("msg");m.textContent=t;m.className=e?"e":"";}
@@ -136,9 +135,10 @@ async function status(){
 }
 $("save").onclick=async()=>{
   const o=collect();
+  if(o.ap_pass&&o.ap_pass.length<8){msg(T("AP password (min 8 chars)"),1);return;}  // shorter would start an open AP
   if(!Object.keys(o).length){msg(T("Saved"));return;}
   try{
-    const r=await fetch("/api/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(o)});
+    const r=await post("/api/save",JSON.stringify(o));
     const j=await r.json();
     if(!r.ok){msg(T("Error")+": "+(j.error||r.status),1);return;}
     msg(T(j.restart?"Saved, restarting...":"Saved"));
@@ -159,7 +159,7 @@ $("file").onchange=async e=>{
   }catch(x){msg(T("Error"),1);}
   e.target.value="";
 };
-$("rt").onclick=()=>fetch("/api/reset_touch",{method:"POST"});
+$("rt").onclick=()=>post("/api/reset_touch");
 $("lang").value=L;
 $("lang").onchange=e=>{L=e.target.value;try{localStorage.setItem("lang",L)}catch(x){}render();status();};
 let btT;
@@ -173,7 +173,7 @@ async function pollBt(){
       "<ul>"+(s.devices||[]).map((d,i)=>"<li>"+esc(d.name)+" "+esc(d.addr)+' <button class="g" data-i="'+i+'">'+T("Pair")+"</button></li>").join("")+"</ul>";
     b.querySelectorAll("button").forEach(x=>x.onclick=async()=>{
       const d=s.devices[x.dataset.i],pw=prompt(T("Bridge password"),"")||"";
-      await fetch("/api/bridge_bt_pair",{method:"POST",body:JSON.stringify({name:d.name,address:d.addr_raw||d.addr,password:pw})});
+      await post("/api/bridge_bt_pair",JSON.stringify({name:d.name,address:d.addr_raw||d.addr,password:pw}));
       msg(T("Pairing..."));pollBt();
     });
     if(s.scan_in_progress||s.pair_pending||s.list_collecting)btT=setTimeout(pollBt,2000);

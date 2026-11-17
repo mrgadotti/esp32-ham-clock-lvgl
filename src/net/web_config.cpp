@@ -25,7 +25,24 @@ WebServer server(80);
 bool started = false;
 uint32_t restartAt = 0;  // millis() deadline, 0 = none
 
-void sendJson(int code, const char* s) { server.send(code, "application/json", s); }
+// send_P with a length writes straight from our buffer; send(code, type, const char*) would copy it into a String.
+void sendJson(int code, const char* s) { server.send_P(code, "application/json", s, strlen(s)); }
+
+// CSRF guard for every POST. A cross-site page can only send "simple" requests (form-urlencoded, text/plain) without a
+// preflight, which this server never answers, so requiring application/json blocks it. The Origin check (sent by
+// browsers on cross-origin and same-origin POSTs) is a second layer; curl and other non-browser clients omit it.
+bool postAllowed() {
+  if (!server.header("Content-Type").startsWith("application/json")) {
+    sendJson(415, "{\"error\":\"content_type_must_be_json\"}");
+    return false;
+  }
+  String origin = server.header("Origin");
+  if (origin.length() && origin != "http://" + server.hostHeader()) {
+    sendJson(403, "{\"error\":\"bad_origin\"}");
+    return false;
+  }
+  return true;
+}
 
 // Serializes into the shared net-task body buffer (handlers run one at a time in the net task, between fetches) and
 // sends it: no String, no per-request malloc, and the same char* serializer configToJson already links.
@@ -48,6 +65,7 @@ void handleConfig() {
 }
 
 void handleSave() {
+  if (!postAllowed()) return;
   const String& body = server.arg("plain");
   if (body.length() > kMaxBody) return sendJson(413, "{\"error\":\"body_too_large\"}");
   ApplyResult r;
@@ -62,6 +80,7 @@ void handleSave() {
 }
 
 void handleResetTouch() {
+  if (!postAllowed()) return;
   cfgUpdate([](Config& c) { memset(c.tcal, 0, sizeof c.tcal); });
   UiEvent e;
   e.kind = EventKind::StartTouchCal;
@@ -111,12 +130,14 @@ void handleBridgeStatus() {
 }
 
 void handleBridgeScan() {
+  if (!postAllowed()) return;
   if (!uart2BridgeEnabled()) return sendJson(400, "{\"status\":\"error\",\"message\":\"bridge_mode_required\"}");
   if (!uart2BridgeScan()) return sendJson(503, "{\"status\":\"error\",\"message\":\"busy\"}");
   sendJson(200, "{\"status\":\"ok\",\"action\":\"scan_started\"}");
 }
 
 void handleBridgePair() {
+  if (!postAllowed()) return;
   if (!uart2BridgeEnabled()) return sendJson(400, "{\"status\":\"error\",\"message\":\"bridge_mode_required\"}");
   JsonDocument d;
   if (deserializeJson(d, server.arg("plain").c_str())) return sendJson(400, "{\"status\":\"error\",\"message\":\"json_parse\"}");
@@ -129,6 +150,8 @@ void handleBridgePair() {
 }  // namespace
 
 void webInit() {
+  static const char* kHeaders[] = {"Content-Type", "Origin"};  // WebServer only keeps headers it was told to collect
+  server.collectHeaders(kHeaders, 2);
   server.on("/", HTTP_GET, handleRoot);
   server.on("/api/config", HTTP_GET, handleConfig);
   server.on("/api/save", HTTP_POST, handleSave);
