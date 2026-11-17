@@ -77,7 +77,9 @@ static void run(char* line) {
   } else if (!strcmp(cmd, "autosw")) {
     uiCfg().tft_autosw = v[0] != 0;
   } else if (!strcmp(cmd, "mem")) {
-    Serial.printf("[ST] mem lvfree=%u free=%u largest=%u minfree=%u\n", (unsigned)memLogLvFree(), (unsigned)ESP.getFreeHeap(),
+    lv_mem_monitor_t mon;
+    lv_mem_monitor(&mon);
+    Serial.printf("[ST] mem lvfree=%u free=%u largest=%u minfree=%u\n", (unsigned)mon.free_size, (unsigned)ESP.getFreeHeap(),
                   (unsigned)memLargest8(), (unsigned)ESP.getMinFreeHeap());
     return;
   } else if (strcmp(cmd, "ping")) {
