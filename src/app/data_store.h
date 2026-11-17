@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+#include <atomic>
 #include <freertos/semphr.h>
 
 #include "ring_buffer.h"
@@ -26,7 +27,7 @@ class Guarded {
  private:
   SemaphoreHandle_t mu_;
   T v_{};
-  volatile uint32_t ver_ = 0;
+  std::atomic<uint32_t> ver_{0};
 };
 
 struct DataStore {

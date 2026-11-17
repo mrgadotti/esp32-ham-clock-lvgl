@@ -1,3 +1,4 @@
+#include <string>
 #include <string.h>
 #include <unity.h>
 
@@ -152,6 +153,32 @@ void test_nvs_keys_fit() {
     if (kFields[i].nvsKey) TEST_ASSERT_TRUE_MESSAGE(strlen(kFields[i].nvsKey) <= 15, kFields[i].nvsKey);
 }
 
+// Patch applied in place: fields before a bad one (restart-flagged included) stay untouched, untouched fields keep
+// their bytes, and the widest fields fit the scratch used by the in-place apply.
+void test_in_place_apply() {
+  Config c = defaults();
+  Config before = c;
+  ApplyResult r = configApplyJson(c, "{\"wifi_ssid\":\"x\",\"uart2_baud\":115200,\"tft_lang\":\"xx\"}");
+  TEST_ASSERT_FALSE(r.ok);
+  TEST_ASSERT_FALSE(r.needsRestart);
+  TEST_ASSERT_EQUAL_MEMORY(&before, &c, sizeof c);
+
+  std::string longStr(300, 'a');
+  std::string patch = "{\"cluster_filters\":\"" + longStr + "\",\"aprs_alert\":\"" + longStr + "\",\"user_callsign\":\"PY2XX\"}";
+  r = configApplyJson(c, patch.c_str());
+  TEST_ASSERT_TRUE_MESSAGE(r.ok, r.error);
+  TEST_ASSERT_EQUAL(sizeof c.cluster_filters - 1, strlen(c.cluster_filters));
+  TEST_ASSERT_EQUAL(sizeof c.aprs_alert - 1, strlen(c.aprs_alert));
+  TEST_ASSERT_EQUAL_STRING("PY2XX", c.user_callsign);
+  TEST_ASSERT_EQUAL_STRING(before.cluster_host, c.cluster_host);
+  TEST_ASSERT_EQUAL_INT(before.cluster_port, c.cluster_port);
+}
+
+void test_json_fields_fit_scratch() {
+  for (size_t i = 0; i < kFieldCount; i++)
+    if (kFields[i].jsonKey) TEST_ASSERT_TRUE_MESSAGE(kFields[i].size <= kMaxFieldSize, kFields[i].jsonKey);
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_defaults_match_original);
@@ -168,5 +195,7 @@ int main() {
   RUN_TEST(test_readonly_and_ascii);
   RUN_TEST(test_ssid_keeps_utf8);
   RUN_TEST(test_nvs_keys_fit);
+  RUN_TEST(test_in_place_apply);
+  RUN_TEST(test_json_fields_fit_scratch);
   return UNITY_END();
 }

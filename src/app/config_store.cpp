@@ -1,6 +1,7 @@
 #include "config_store.h"
 
 #include <Preferences.h>
+#include <atomic>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 
@@ -11,13 +12,27 @@
 #include "secrets.h"
 #endif
 
+// Build with -DCFG_LOG_HOLD to print how long the config mutex is held per update (target < 1 ms).
+#ifdef CFG_LOG_HOLD
+#include <Arduino.h>
+#include <esp_timer.h>
+#define HOLD_T0() int64_t holdT0 = esp_timer_get_time()
+#define HOLD_LOG(what) Serial.printf("[CFG] %s held mutex %d us\n", what, (int)(esp_timer_get_time() - holdT0))
+#else
+#define HOLD_T0()
+#define HOLD_LOG(what)
+#endif
+
 static Config g_cfg, g_cfgUi;
-static SemaphoreHandle_t g_mutex;
+static SemaphoreHandle_t g_mutex;      // guards g_cfg; never held across NVS writes
+static SemaphoreHandle_t g_saveMutex;  // serialises NVS saves (leaf lock; g_mutex may be taken inside it, not the reverse)
+static std::atomic<uint32_t> g_ver{0};
 
 __attribute__((weak)) void onConfigChanged() {}
 
 void configStoreLoad(Config& c) {
   if (!g_mutex) g_mutex = xSemaphoreCreateMutex();
+  if (!g_saveMutex) g_saveMutex = xSemaphoreCreateMutex();
   configDefaults(c);
   c.tft_inv = DISPLAY_INVERT_DEFAULT;
 #ifdef SECRET_WIFI_SSID
@@ -48,6 +63,7 @@ void configStoreLoad(Config& c) {
   }
   configClamp(c);
   g_cfg = g_cfgUi = c;
+  g_ver++;
 }
 
 bool configStoreSave(const Config& c) {
@@ -86,32 +102,55 @@ const Config& cfg() { return g_cfgUi; }
 
 void cfgRefreshUiSnapshot() { cfgGet(g_cfgUi); }
 
-bool cfgUpdate(void (*fn)(Config&)) {
+uint32_t cfgVersion() { return g_ver; }
+
+void cfgReadImpl(void (*fn)(const Config&, void*), void* ctx) {
   xSemaphoreTake(g_mutex, portMAX_DELAY);
-  Config c = g_cfg;
-  fn(c);
-  configClamp(c);
-  g_cfg = c;
-  bool ok = configStoreSave(c);
+  fn(g_cfg, ctx);
   xSemaphoreGive(g_mutex);
+}
+
+// Saves the latest published config, so concurrent updates cannot leave an older snapshot in NVS. The save buffer is
+// static (guarded by g_saveMutex) to keep 1.3 KB off the caller's stack. If A's save fails and B's (later, newer)
+// succeeds, A reports failure although its state did reach flash through B: harmless, the caller only warns.
+static Config s_persist;
+static bool persistLatest() {
+  xSemaphoreTake(g_saveMutex, portMAX_DELAY);
+  cfgGet(s_persist);
+  bool ok = configStoreSave(s_persist);
+  xSemaphoreGive(g_saveMutex);
+  return ok;
+}
+
+bool cfgUpdateImpl(void (*fn)(Config&, void*), void* ctx) {
+  HOLD_T0();
+  xSemaphoreTake(g_mutex, portMAX_DELAY);
+  fn(g_cfg, ctx);  // in place: readers wait on the mutex, so RAM state changes atomically
+  configClamp(g_cfg);
+  g_ver++;
+  xSemaphoreGive(g_mutex);
+  HOLD_LOG("cfgUpdate");
+  bool ok = persistLatest();
   onConfigChanged();
   return ok;
 }
 
 // On an NVS save failure the new values stay applied in RAM, but out.ok is false (error "nvs_save").
 bool cfgApplyJson(const char* json, ApplyResult& out) {
+  ConfigPatch patch(json);  // parsed before the lock: only validate+commit run under it
+  out = patch.parsed();
+  if (!out.ok) return false;
+  HOLD_T0();
   xSemaphoreTake(g_mutex, portMAX_DELAY);
-  Config c = g_cfg;
-  out = configApplyJson(c, json);
-  if (out.ok) {
-    g_cfg = c;
-    if (!configStoreSave(c)) {
-      out.ok = false;
-      snprintf(out.error, sizeof out.error, "nvs_save");
-    }
-  }
-  bool applied = out.ok || !strcmp(out.error, "nvs_save");
+  out = patch.apply(g_cfg);  // all-or-nothing: g_cfg is untouched on error
+  if (out.ok) g_ver++;
   xSemaphoreGive(g_mutex);
-  if (applied) onConfigChanged();
+  HOLD_LOG("cfgApplyJson");
+  if (!out.ok) return false;
+  if (!persistLatest()) {
+    out.ok = false;
+    snprintf(out.error, sizeof out.error, "nvs_save");
+  }
+  onConfigChanged();
   return out.ok;
 }
