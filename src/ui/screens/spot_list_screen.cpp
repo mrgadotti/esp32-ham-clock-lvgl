@@ -31,7 +31,7 @@ class SpotListScreen : public Screen {
     mode_ = (uint8_t)(cfg().*d_.modeKey);
     band_ = (uint16_t)(cfg().*d_.bandKey);
     cols_.n = 5;
-    const int16_t w[] = {40, 76, 60, 42, 102};
+    const int16_t w[] = {42, 76, 60, 42, 100};
     const lv_color_t c[] = {lv_color_hex(0xC0C0C0), COL_TEXT, COL_FREQ, COL_MODE, COL_ACCENT};
     for (int i = 0; i < 5; i++) { cols_.width[i] = w[i]; cols_.color[i] = c[i]; }
     const Tr hdr[] = {Tr::Utc, Tr::ColCall, Tr::Mhz, Tr::ColMod, d_.comment ? Tr::ColMsg : Tr::ColCountry};
@@ -86,8 +86,7 @@ class SpotListScreen : public Screen {
     const Spot& sp = s->cached_;
     switch (col) {
       case 0:
-        if (!sp.utc) snprintf(out, cap, "--");
-        else snprintf(out, cap, "%02u%02u", (unsigned)(sp.utc % 86400 / 3600), (unsigned)(sp.utc % 3600 / 60));
+        formatHmCell(out, cap, sp.utc);
         break;
       case 1: snprintf(out, cap, "%s", sp.call); break;
       case 2: snprintf(out, cap, "%u.%03u", (unsigned)(sp.khz / 1000), (unsigned)(sp.khz % 1000)); break;

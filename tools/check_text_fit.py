@@ -83,9 +83,9 @@ add("Header", "radar title vs 'x16' zoom", "font_18", HDR_FREE - width("font_18"
 
 # ---------------- spot tables (spot_table.cpp: cell pad_left SPOT_TABLE_PAD_L = 1, pad_right 0, font_14) ----------------
 PAD = 1
-SPOT_W = [40, 76, 60, 42, 102]  # spot_list_screen.cpp: UTC CALL MHz MOD COUNTRY|MSG (must sum to 320)
+SPOT_W = [42, 76, 60, 42, 100]  # spot_list_screen.cpp: UTC CALL MHz MOD COUNTRY|MSG (must sum to 320)
 assert sum(SPOT_W) == 320
-add("Spot list", "col UTC cell '2359'", "font_14", SPOT_W[0] - PAD, ["2359", "--"])
+add("Spot list", "col UTC cell '23:59'", "font_14", SPOT_W[0] - PAD, ["23:59", "--"])
 add("Spot list", "col CALL cell (8 chars; longer portable calls are cropped by design)", "font_14", SPOT_W[1] - PAD, ["PY2XXX/P", "9A1ABC/P"])
 add("Spot list", "col MHz cell", "font_14", SPOT_W[2] - PAD, ["144.800", "430.000", "14.074"])
 add("Spot list", "col MOD cell", "font_14", SPOT_W[3] - PAD, ["CW", "SSB", "DIGI", "-"])

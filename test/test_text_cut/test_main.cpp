@@ -37,6 +37,13 @@ void test_km_cell() {
   formatKmCell(b, sizeof b, -5); TEST_ASSERT_EQUAL_STRING("0", b);
 }
 
+void test_hm_cell() {
+  char b[8];
+  formatHmCell(b, sizeof b, 0); TEST_ASSERT_EQUAL_STRING("--", b);
+  formatHmCell(b, sizeof b, 86400 + 3600 * 7 + 60 * 5 + 59); TEST_ASSERT_EQUAL_STRING("07:05", b);
+  formatHmCell(b, sizeof b, 3600 * 23 + 60 * 59); TEST_ASSERT_EQUAL_STRING("23:59", b);
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_short_text_unchanged);
@@ -44,5 +51,6 @@ int main() {
   RUN_TEST(test_utf8_not_split);
   RUN_TEST(test_small_buffer);
   RUN_TEST(test_km_cell);
+  RUN_TEST(test_hm_cell);
   return UNITY_END();
 }

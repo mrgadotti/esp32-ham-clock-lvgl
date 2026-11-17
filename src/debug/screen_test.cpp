@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #include "app/config_store.h"
+#include "app/data_store.h"
 #include "app/mem_log.h"
 #include "i18n.h"
 #include "ui/ui_manager.h"
@@ -54,6 +55,32 @@ static void touchStart(int x1, int y1, int x2, int y2, uint32_t dur) {
 // Runtime-only change of the UI snapshot: never saved to NVS, reverted by the next ConfigChanged.
 static Config& uiCfg() { return const_cast<Config&>(cfg()); }
 
+// "fill N": N fake rows in every list store (screenshots of the spot / APRS tables without network).
+static void fill(int n) {
+  for (int i = n; i > 0; i--) {
+    Spot sp = {};
+    sp.utc = 1700000000u + i * 137;
+    sp.khz = 14000 + i * 13;
+    snprintf(sp.call, sizeof sp.call, "PY%dABC", i % 10);
+    snprintf(sp.comment, sizeof sp.comment, "msg %d", i);
+    snprintf(sp.country, sizeof sp.country, "Brazil");
+    sp.band = 4;
+    sp.mode = 1 + i % 3;
+    g_store.dx.write([&](auto& r) { r.pushFront(sp); });
+    g_store.pota.write([&](auto& r) { r.pushFront(sp); });
+    g_store.hamalert.write([&](auto& r) { r.pushFront(sp); });
+    AprsStation a = {};
+    a.utc = sp.utc;
+    snprintf(a.call, sizeof a.call, "PU2MM-%d", i % 10);
+    a.sym[0] = '/';
+    a.sym[1] = '>';
+    a.freqMhz = 144.8f;
+    a.distKm = (int16_t)(i * 7);
+    a.source = 'I';
+    g_store.aprs.write([&](auto& r) { r.pushFront(a); });
+  }
+}
+
 static void run(char* line) {
   char* cmd = strtok(line, " \t\r");
   if (!cmd) return;
@@ -66,6 +93,8 @@ static void run(char* line) {
     capturing = true;
     lv_obj_invalidate(lv_screen_active());
     return;  // "[ST] shot_end" is the ack
+  } else if (!strcmp(cmd, "fill")) {
+    fill(v[0]);
   } else if (!strcmp(cmd, "tap")) {
     touchStart(v[0], v[1], v[0], v[1], 0);
   } else if (!strcmp(cmd, "swipe")) {  // x1 y1 x2 y2 [ms]
