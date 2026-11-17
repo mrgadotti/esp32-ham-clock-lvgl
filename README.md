@@ -188,6 +188,7 @@ Settings are split between two places:
   it safely. Import restores them on a new clock (then press Save). Like the
   rest of the web page, `/api/backup` has no authentication: anyone on the
   LAN (or connected to the AP) can download it.
+  The HTTP routes and the full settings reference are in [docs/api.md](docs/api.md).
 
 For development, copy `include/secrets.h.example` to `include/secrets.h` and
 set a default WiFi network there. This file is git-ignored and optional. The
