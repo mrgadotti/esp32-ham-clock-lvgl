@@ -111,6 +111,15 @@ void test_text_sanitizing() {
   TEST_ASSERT_EQUAL_UINT8(0xA9, (uint8_t)w.cityName[29]);
 }
 
+void test_text_drops_glyphs_missing_from_fonts() {
+  JsonDocument d;
+  WeatherData w; memset(&w, 0, sizeof w);
+  // NBSP, inverted question mark, division sign dropped; degree sign, a-grave and the range ends C0/FF kept
+  deserializeJson(d, "{\"name\":\"a\xC2\xA0" "b\xC2\xBF" "c\xC3\xB7" "d\xC2\xB0" "e\xC2\xA9" "f\xC3\x80" "g\xC3\xBF\",\"weather\":[{\"id\":800,\"icon\":\"01d\"}],\"main\":{\"temp\":1}}");
+  TEST_ASSERT_TRUE(weatherParseCurrent(d, w));
+  TEST_ASSERT_EQUAL_STRING("abcd\xC2\xB0" "ef\xC3\x80" "g\xC3\xBF", w.cityName);
+}
+
 void test_air_requires_pm() {
   JsonDocument d; WeatherData w; memset(&w, 0, sizeof w); w.pm25 = 7;
   deserializeJson(d, "{\"list\":[{\"components\":{\"co\":1}}]}");
@@ -119,7 +128,7 @@ void test_air_requires_pm() {
 
 int main() {
   UNITY_BEGIN();
-  RUN_TEST(test_night_min_small_hours); RUN_TEST(test_text_sanitizing); RUN_TEST(test_air_requires_pm);
+  RUN_TEST(test_night_min_small_hours); RUN_TEST(test_text_sanitizing); RUN_TEST(test_text_drops_glyphs_missing_from_fonts); RUN_TEST(test_air_requires_pm);
   RUN_TEST(test_current_fixture); RUN_TEST(test_forecast_fixture);
   RUN_TEST(test_air_fixture); RUN_TEST(test_weather_rejects_garbage);
   return UNITY_END();

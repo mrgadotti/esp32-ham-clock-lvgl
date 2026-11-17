@@ -3,6 +3,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// One body buffer for every text fetch (hamqsl XML, QRZ). Net task only: use it one fetch at a time, and copy out
+// what you need before the next httpGet.
+constexpr size_t kHttpBodySize = 6144;
+extern char httpBody[kHttpBodySize];
+
 // Net task only. https uses setInsecure() (no CA pinning, as in the original).
 // Body is NUL-terminated; fails cleanly if it does not fit in len-1 bytes.
 bool httpGet(const char* url, char* buf, size_t len, uint32_t timeoutMs);

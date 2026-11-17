@@ -10,9 +10,11 @@
 
 constexpr uint32_t HTTP_TIMEOUT_MS = 8000;
 
-// Runs `body(http)` on a 200 response. Logs the host only: query strings carry credentials.
-template <class F>
-static bool fetch(const char* url, uint32_t timeoutMs, F body) {
+char httpBody[kHttpBodySize];
+
+// Runs `body(http, ctx)` on a 200 response. Logs the host only: query strings carry credentials.
+// Non-template so the HTTPClient + TLS setup exists once; fetchWith() below adapts lambdas.
+static bool fetch(const char* url, uint32_t timeoutMs, bool (*body)(HTTPClient&, void*), void* ctx) {
   bool https = strncmp(url, "https://", 8) == 0;
   WiFiClientSecure sec;
   WiFiClient plain;
@@ -30,17 +32,22 @@ static bool fetch(const char* url, uint32_t timeoutMs, F body) {
   h = h ? h + 3 : url;
   Serial.printf("[HTTP] GET %.*s -> %d (%u ms) largest=%u->%u free=%u\n", (int)strcspn(h, "/?:;"), h, code, (unsigned)(millis() - t0),
                 (unsigned)big0, (unsigned)memLargest8(), (unsigned)ESP.getFreeHeap());
-  bool ok = code == 200 && body(http);
+  bool ok = code == 200 && body(http, ctx);
   http.end();
   return ok;
 }
 
+template <class F>
+static bool fetchWith(const char* url, uint32_t timeoutMs, F body) {
+  return fetch(url, timeoutMs, [](HTTPClient& h, void* p) { return (*static_cast<F*>(p))(h); }, &body);
+}
+
 bool httpGet(const char* url, char* buf, size_t len, uint32_t timeoutMs) {
   if (!buf || len < 2) return false;
-  return fetch(url, timeoutMs, [&](HTTPClient& http) {
+  return fetchWith(url, timeoutMs, [&](HTTPClient& http) {
     int sz = http.getSize();  // -1 when chunked
     if (sz >= 0 && (size_t)sz > len - 1) return false;
-    WiFiClient& s = http.getStream();
+    Stream& s = http.getStream();
     size_t got = 0;
     uint32_t last = millis();
     while (got < len - 1 && (http.connected() || s.available()) && millis() - last < timeoutMs) {
@@ -61,16 +68,16 @@ bool httpGet(const char* url, char* buf, size_t len, uint32_t timeoutMs) {
 }
 
 bool httpGetJson(const char* url, JsonDocument& doc, const JsonDocument* filter) {
-  return fetch(url, HTTP_TIMEOUT_MS, [&](HTTPClient& http) {
-    DeserializationError e = filter ? deserializeJson(doc, http.getStream(), DeserializationOption::Filter(*filter))
-                                    : deserializeJson(doc, http.getStream());
+  return fetchWith(url, HTTP_TIMEOUT_MS, [&](HTTPClient& http) {
+    Stream& s = http.getStream();  // typed Stream&: one ArduinoJson reader instantiation shared with httpGetJsonArray
+    DeserializationError e = filter ? deserializeJson(doc, s, DeserializationOption::Filter(*filter)) : deserializeJson(doc, s);
     if (e) Serial.printf("[HTTP] json: %s\n", e.c_str());
     return !e;
   });
 }
 
 bool httpGetJsonArray(const char* url, const JsonDocument& filter, void (*onItem)(JsonObjectConst, void*), void* ctx) {
-  return fetch(url, HTTP_TIMEOUT_MS, [&](HTTPClient& http) {
+  return fetchWith(url, HTTP_TIMEOUT_MS, [&](HTTPClient& http) {
     Stream& s = http.getStream();
     if (!s.find('[')) return false;
     size_t n = 0;
