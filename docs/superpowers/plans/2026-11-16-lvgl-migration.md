@@ -1083,3 +1083,24 @@ Per task:
 2. A Sonnet 5.5 reviewer reviews it.
 3. A Haiku 5.5 gate runs the full tests, both builds, the upload when there is a hardware step, and commit + push.
 4. If the gate fails, the implementer gets the exact output and fixes it.
+
+### Task 23 (user request): Whole-codebase review after all implementations
+
+Runs after Tasks 1–22 and all follow-up fixes are merged on `main`, before Task 21's soak and the final release.
+
+**Files:** Create `docs/review/2026-final-code-review.md`. Fixes go into the affected source files.
+
+- [ ] **Step 1: Review the whole codebase.** Use the most capable model (`superpowers:requesting-code-review`, whole-branch scope from the first commit to `main` HEAD), not per-task diffs. Check that:
+  - every Global Constraint holds: pure `lib/core`, no `String` in stores, network text sanitized, i18n EN/PT-BR with no hard-coded UI text, dark theme, budgets;
+  - concurrency is safe: LVGL is touched only from the UI task, store and config mutexes are used, there is no lock-order inversion, no blocking calls hold locks;
+  - memory and heap are sound: no leaks, no per-poll fragmentation, enough TLS headroom, enough LV_MEM headroom on every screen;
+  - error handling and security hold up: no secrets in logs or API responses, and bounded reads on every network and UART input;
+  - dead code, duplication and leftovers are gone, including Matrix and game remnants and unused hooks;
+  - tests cover all pure logic, and the docs (README, NOTICE, budget) match the code.
+- [ ] **Step 2: Write the report.** Record the findings in `docs/review/2026-final-code-review.md`, ranked Critical, Important, then Minor, each with `file:line`.
+- [ ] **Step 3: Fix the findings.** Fix every Critical and Important finding in a single fix wave, with Sonnet implementers and a scoped re-review. Triage the Minor findings: fix the cheap ones and record the rest in the report.
+- [ ] **Step 4: Verify (Haiku gate).**
+  - `pio test -e native` passes.
+  - `pio run -e cyd -e esp32-38pin` succeeds.
+  - Flash the board and capture a 10-minute log with no panic.
+  - Commit and push.
