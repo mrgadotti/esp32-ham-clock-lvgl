@@ -13,7 +13,8 @@
 
 namespace {
 constexpr uint32_t kFirstDelayMs = 60000;
-constexpr const char* kProjectComment = "https://github.com/SP3KON/ESP32-HAM-CLOCK";
+constexpr const char kProjectComment[] = "github.com/mrgadotti/esp32-ham-clock-lvgl";  // no scheme: the APRS comment limit is 43 chars
+static_assert(sizeof kProjectComment - 1 <= 43, "APRS comment limit");
 const char* const kPath[] = {"WIDE1-1", "WIDE2-1"};
 
 struct Cfg {
