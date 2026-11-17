@@ -6,7 +6,7 @@
 struct Spot {
   uint32_t utc; uint32_t khz;
   char call[12]; char comment[40]; char country[24]; char loc[7];
-  float lat, lon; int16_t distKm; uint8_t band, mode; bool hasLatLon;
+  int16_t distKm; uint8_t band, mode;
 };
 
 struct AprsStation {

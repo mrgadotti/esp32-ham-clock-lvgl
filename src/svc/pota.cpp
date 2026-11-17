@@ -20,14 +20,14 @@ void potaTick(uint32_t now) {
   static bool tried;
   bool sta = false;
   g_store.net.read([&](const NetStatus& n) { sta = n.sta; });
-  if (!sta || (tried && now - last < kPeriodMs)) return;
+  if (!sta || (tried && now - last < kPeriodMs) || spotScratchHeld()) return;
   tried = true;
   last = now;
 
   char apiUrl[sizeof(Config::pota_api_url)];
   cfgRead([&](const Config& c) { strlcpy(apiUrl, c.pota_api_url, sizeof apiUrl); });
   JsonDocument filter;
-  for (const char* k : {"activator", "frequency", "mode", "reference", "spotTime", "locationDesc", "comments", "spotter"})
+  for (const char* k : {"activator", "frequency", "mode", "reference", "spotTime", "locationDesc", "comments"})
     filter[k] = true;  // per-element filter: the array is streamed item by item
   const char* url = apiUrl[0] ? apiUrl : "https://api.pota.app/v1/spots";
   Spot* spots = spotScratch();

@@ -22,3 +22,10 @@ void memLogTick(uint32_t now) {
                 hNet ? (unsigned)uxTaskGetStackHighWaterMark(hNet) : 0u, hUi ? (unsigned)uxTaskGetStackHighWaterMark(hUi) : 0u,
                 hUart ? (unsigned)uxTaskGetStackHighWaterMark(hUart) : 0u);
 }
+
+void memLogHeap(const char* tag) {
+  multi_heap_info_t i;
+  heap_caps_get_info(&i, MALLOC_CAP_8BIT);
+  Serial.printf("[MEM] %s free=%u largest=%u allocs=%u freeblocks=%u\n", tag, (unsigned)i.total_free_bytes,
+                (unsigned)i.largest_free_block, (unsigned)i.allocated_blocks, (unsigned)i.free_blocks);
+}

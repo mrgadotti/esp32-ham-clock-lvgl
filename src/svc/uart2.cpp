@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <HardwareSerial.h>
+#include <atomic>
 #include <freertos/semphr.h>
 #include <string.h>
 #include <sys/time.h>
@@ -12,6 +13,7 @@
 #include "ax25_kiss.h"
 #include "board.h"
 #include "bridge_proto.h"
+#include "gps_time.h"
 #include "nmea.h"
 #include "net/time_service.h"
 
@@ -21,9 +23,9 @@ struct PortCfg { Mode mode; int32_t baud, dbits, stop; char par[6]; };
 
 SemaphoreHandle_t g_mu;             // guards g_fsm
 BridgeFsm* g_fsm;                   // heap, only in bridge mode
-volatile Mode g_mode = M_NONE;
-volatile bool g_pairPending = false;
-volatile uint32_t g_timeSetMs = 0;  // millis() of the last settimeofday, 0 = never
+std::atomic<Mode> g_mode{M_NONE};
+std::atomic<bool> g_pairPending{false};
+std::atomic<uint32_t> g_timeSetMs{0};  // millis() of the last settimeofday, 0 = never
 
 Mode modeOf(const char* c) {
   if (!strcmp(c, "gps")) return M_GPS;
@@ -54,24 +56,14 @@ bool samePort(const PortCfg& a, const PortCfg& b) {
   return a.mode == b.mode && a.baud == b.baud && a.dbits == b.dbits && a.stop == b.stop && !strcmp(a.par, b.par);
 }
 
-// Days since 1970-01-01 for a civil date (Hinnant's algorithm); newlib has no timegm.
-int64_t daysFromCivil(int y, int m, int d) {
-  y -= m <= 2;
-  int era = (y >= 0 ? y : y - 399) / 400;
-  int yoe = y - era * 400;
-  int doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
-  int doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-  return (int64_t)era * 146097 + doe - 719468;
-}
-
 void syncClock(const GpsState& g, uint32_t now) {
   if (!g.fix || !g.date || !g.utc) return;
-  if (g_timeSetMs && now - g_timeSetMs < 60000UL) return;
+  uint32_t set = g_timeSetMs;
+  if (set && now - set < 60000UL) return;
   if (ntpSyncedWithin(2UL * 3600 * 1000)) return;
-  int d = g.date / 10000, mo = g.date / 100 % 100, y = 2000 + g.date % 100;
-  int hh = g.utc / 10000, mi = g.utc / 100 % 100, ss = g.utc % 100;
-  if (y < 2024 || mo < 1 || mo > 12 || d < 1 || d > 31 || hh > 23 || mi > 59 || ss > 59) return;
-  struct timeval tv = {(time_t)(daysFromCivil(y, mo, d) * 86400 + hh * 3600 + mi * 60 + ss), 0};
+  int64_t t;
+  if (!gpsToUnix(g.date, g.utc, t)) return;
+  struct timeval tv = {(time_t)t, 0};
   settimeofday(&tv, nullptr);
   g_timeSetMs = now | 1;
 }
@@ -100,30 +92,50 @@ bool uart2SendKiss(const uint8_t* frame, size_t len) {
 bool uart2BridgeEnabled() { return g_mode == M_BRIDGE; }
 
 void uart2BridgeStatus(JsonDocument& d) {
+  // Copy under the lock, build the JSON (heap allocations) outside it: the uart task waits on g_mu forever.
+  struct Snap {
+    bool have, scan, pairPending;
+    int pairResult, count;
+    char lastError[40], lastAck[24], lastDisc[16], pairedName[41], pairedAddr[13];
+    BridgeDevice devices[BRIDGE_MAX_DEVICES];
+  };
+  static Snap sn;  // web task only; too big for its stack
   d["enabled"] = uart2BridgeEnabled();
   if (!g_mu || xSemaphoreTake(g_mu, pdMS_TO_TICKS(200)) != pdTRUE) return;
-  if (g_fsm) {
+  sn.have = g_fsm != nullptr;
+  if (sn.have) {
     const BridgeFsm& f = *g_fsm;
-    d["scan_in_progress"] = f.scanInProgress;
-    d["last_error"] = f.lastError;
-    d["last_ack"] = f.lastAck;
-    d["disc_status"] = f.lastDisc;
-    d["pair_pending"] = (bool)g_pairPending;
-    d["pair_result"] = f.pairResult > 0 ? "ok" : f.pairResult < 0 ? "err" : "none";
-    d["paired_name"] = f.pairedName;
-    d["paired_addr"] = f.pairedAddr;
-    JsonArray a = d["devices"].to<JsonArray>();
-    for (int i = 0; i < f.deviceCount; i++) {
-      JsonObject o = a.add<JsonObject>();
-      o["name"] = f.devices[i].name;
-      o["addr_raw"] = f.devices[i].addr;
-      char s[18];
-      const char* r = f.devices[i].addr;
-      snprintf(s, sizeof s, "%.2s:%.2s:%.2s:%.2s:%.2s:%.2s", r, r + 2, r + 4, r + 6, r + 8, r + 10);
-      o["addr"] = s;
-    }
+    sn.scan = f.scanInProgress;
+    sn.pairPending = g_pairPending;
+    sn.pairResult = f.pairResult;
+    sn.count = f.deviceCount;
+    memcpy(sn.lastError, f.lastError, sizeof sn.lastError);
+    memcpy(sn.lastAck, f.lastAck, sizeof sn.lastAck);
+    memcpy(sn.lastDisc, f.lastDisc, sizeof sn.lastDisc);
+    memcpy(sn.pairedName, f.pairedName, sizeof sn.pairedName);
+    memcpy(sn.pairedAddr, f.pairedAddr, sizeof sn.pairedAddr);
+    memcpy(sn.devices, f.devices, sizeof(BridgeDevice) * f.deviceCount);
   }
   xSemaphoreGive(g_mu);
+  if (!sn.have) return;
+  d["scan_in_progress"] = sn.scan;
+  d["last_error"] = sn.lastError;
+  d["last_ack"] = sn.lastAck;
+  d["disc_status"] = sn.lastDisc;
+  d["pair_pending"] = sn.pairPending;
+  d["pair_result"] = sn.pairResult > 0 ? "ok" : sn.pairResult < 0 ? "err" : "none";
+  d["paired_name"] = sn.pairedName;
+  d["paired_addr"] = sn.pairedAddr;
+  JsonArray a = d["devices"].to<JsonArray>();
+  for (int i = 0; i < sn.count; i++) {
+    JsonObject o = a.add<JsonObject>();
+    o["name"] = sn.devices[i].name;
+    o["addr_raw"] = sn.devices[i].addr;
+    char s[18];
+    const char* r = sn.devices[i].addr;
+    snprintf(s, sizeof s, "%.2s:%.2s:%.2s:%.2s:%.2s:%.2s", r, r + 2, r + 4, r + 6, r + 8, r + 10);
+    o["addr"] = s;
+  }
 }
 
 bool uart2BridgeScan() {

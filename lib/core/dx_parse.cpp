@@ -88,7 +88,6 @@ bool parseDxLine(const char* line, uint32_t nowUtc, Spot& dst) {
   out.band = bandFromKhz(out.khz);
   out.mode = modeFrom(out.comment, out.khz);
   out.distKm = -1;
-  out.hasLatLon = false;
   dst = out;
   return true;
 }

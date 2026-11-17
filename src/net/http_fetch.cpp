@@ -27,7 +27,9 @@ static bool fetch(const char* url, uint32_t timeoutMs, bool (*body)(HTTPClient&,
   uint32_t t0 = millis();
   uint32_t big0 = memLargest8();
   if (!http.begin(https ? static_cast<WiFiClient&>(sec) : plain, url)) return false;
+  MEM_DIAG_ONCE("first fetch: before");
   int code = http.GET();
+  MEM_DIAG_ONCE("first fetch: after");
   const char* h = strstr(url, "://");
   h = h ? h + 3 : url;
   Serial.printf("[HTTP] GET %.*s -> %d (%u ms) largest=%u->%u free=%u\n", (int)strcspn(h, "/?:;"), h, code, (unsigned)(millis() - t0),

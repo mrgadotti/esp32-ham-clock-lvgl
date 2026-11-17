@@ -10,6 +10,7 @@
 #include "geo.h"
 #include "net/http_fetch.h"
 #include "qrz_cache.h"
+#include "url_encode.h"
 
 constexpr uint32_t SESSION_TTL_MS = 30UL * 60UL * 1000UL;
 constexpr uint32_t QRZ_HTTP_TIMEOUT_MS = 8000;
@@ -40,16 +41,6 @@ void qrzInit() {
   configASSERT(s_mu != nullptr);
 }
 
-static void urlEncode(const char* in, char* out, size_t cap) {
-  size_t o = 0;
-  for (; *in && o + 4 < cap; ++in) {
-    unsigned char c = *in;
-    if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') out[o++] = c;
-    else o += snprintf(out + o, 4, "%%%02X", c);
-  }
-  out[o] = 0;
-}
-
 static bool login(uint32_t now) {
   char u[100], p[100], url[256];
   cfgRead([&](const Config& c) {  // one consistent user/pass pair even while Settings writes
@@ -77,7 +68,6 @@ static void applyToSpot(Spot& s, const QrzInfo& q, bool haveUser, double ulat, d
   double lat = q.lat, lon = q.lon;
   bool has = q.hasLatLon || (strlen(s.loc) >= 4 && locatorToLatLon(s.loc, lat, lon));
   if (!has) return;
-  s.lat = lat; s.lon = lon; s.hasLatLon = true;
   if (haveUser) s.distKm = (int16_t)distanceKm(ulat, ulon, lat, lon);
 }
 
