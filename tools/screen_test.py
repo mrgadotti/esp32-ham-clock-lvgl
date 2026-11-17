@@ -126,7 +126,7 @@ class Board:
             for x1, y1, x2, y2, px, _ in self.rects:
                 w, h = x2 - x1 + 1, y2 - y1 + 1
                 for j in range(w * h):
-                    v = px[2 * j] | (px[2 * j + 1] << 8)
+                    v = (px[2 * j] << 8) | px[2 * j + 1]  # RGB565_SWAPPED: big-endian on the wire
                     r, g, b = (v >> 11) & 31, (v >> 5) & 63, v & 31
                     x, y = x1 + j % w, y1 + j // w
                     img.putpixel((x, y), ((r << 3) | (r >> 2), (g << 2) | (g >> 4), (b << 3) | (b >> 2)))
