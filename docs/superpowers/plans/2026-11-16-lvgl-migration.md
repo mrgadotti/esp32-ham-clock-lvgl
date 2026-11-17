@@ -103,7 +103,7 @@ Data structs use fixed `char[]` buffers (no `String`), so there is no heap churn
 
 **Settings screen**
 - Always present, pinned last in the carousel, cannot be disabled.
-- Skipped by auto-switch, and auto-switch pauses while it is open.
+- Skipped by auto-switch, and auto-switch pauses while it is open. Auto-switch never moves to Settings: after the last enabled carousel screen it wraps to the first one (`nextAutoSwitchScreen`). Swipe still reaches Settings.
 
 **Effective screen list**
 - `screen_order` slots with a non-zero code **and** their bit set in `scr_en`, then Settings last.

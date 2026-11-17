@@ -157,7 +157,8 @@ void uiTick(uint32_t now) {
   } else if (cur && cfg().tft_autosw && !overlayActive() && cur->id() != ScreenId::Settings &&
              lv_display_get_inactive_time(nullptr) > TOUCH_PAUSE_MS &&
              now - lastSwitch >= (uint32_t)cfg().tft_sw_sec * 1000) {
-    show(carouselNext((uint8_t)cur->id(), 1));
+    const Config& c = cfg();
+    show((ScreenId)nextAutoSwitchScreen(c.screen_order, (uint16_t)c.scr_en, (uint8_t)cur->id()));
   }
 
   if (cur) cur->tick(now);

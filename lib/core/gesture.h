@@ -13,3 +13,5 @@ Gesture classifyGesture(int dx, int dy);
 // order: 12 screen ids (0 = unused); enabledMask bit = screen id. Settings is always last.
 // Matrix and Game (and any id not in the carousel) are never reachable; from such a cur, returns the first entry.
 uint8_t nextScreen(const uint8_t order[12], uint16_t enabledMask, uint8_t cur, int dir);
+// Auto-switch step: next enabled carousel screen after cur, never Settings; wraps to the first. Returns cur if none enabled.
+uint8_t nextAutoSwitchScreen(const uint8_t order[12], uint16_t enabledMask, uint8_t cur);
