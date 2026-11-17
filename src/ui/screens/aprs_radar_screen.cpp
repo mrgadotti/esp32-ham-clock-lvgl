@@ -41,6 +41,7 @@ class AprsRadarScreen : public Screen {
     lv_obj_set_pos(cv_, 0, HEADER_H);
     lv_obj_add_flag(cv_, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(cv_, onDraw, LV_EVENT_DRAW_MAIN, this);
+    lv_obj_add_event_cb(cv_, onTap, LV_EVENT_SHORT_CLICKED, this);
 
     zoomButton(p, 144, "+", onZoomIn);
     zoomButton(p, 176, "-", onZoomOut);
