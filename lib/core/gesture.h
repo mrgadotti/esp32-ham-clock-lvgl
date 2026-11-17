@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-// Copy of ScreenId values (src/ui/screen.h) so lib/core has no LVGL dependency.
+// Copy of ScreenId values (src/ui/screen.h) so lib/core has no LVGL dependency; static_asserts in registry.cpp keep them in sync.
 namespace scr {
 constexpr uint8_t HamClock = 1, DxCluster = 2, SunSpots = 3, BandInfo = 4, Weather = 5, AprsList = 6,
                   Pota = 7, HamAlert = 8, AprsRadar = 9,

@@ -32,13 +32,7 @@ bool parseDxLine(const char* line, uint32_t nowUtc, Spot& dst) {
   const char* colon = strchr(line + 5, ':');
   if (!colon) return false;
   Spot out{};  // filled locally; committed to dst only on success
-  const char* p = line + 5;
-  while (p < colon && *p == ' ') p++;
-  const char* e = colon;
-  while (e > p && e[-1] == ' ') e--;
-  copyTok(out.spotter, sizeof(out.spotter), p, e - p);
-
-  p = colon + 1;
+  const char* p = colon + 1;
   while (*p == ' ') p++;
   char* end;
   double f = strtod(p, &end);
@@ -46,7 +40,7 @@ bool parseDxLine(const char* line, uint32_t nowUtc, Spot& dst) {
   out.khz = (uint32_t)(f + 0.5);
   p = end;
   while (*p == ' ') p++;
-  e = p;
+  const char* e = p;
   while (*e && *e != ' ') e++;
   if (e == p) return false;
   copyTok(out.call, sizeof(out.call), p, e - p);

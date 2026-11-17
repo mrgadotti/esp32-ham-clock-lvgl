@@ -9,7 +9,7 @@ static const uint32_t DAY = 86400u * 19000;
 void test_parse_basic() {
   Spot s;
   TEST_ASSERT_TRUE(parseDxLine("DX de PY2XX:     14025.0  K1ABC        CW 599                         1234Z", DAY + 13 * 3600, s));
-  TEST_ASSERT_EQUAL_STRING("K1ABC", s.call); TEST_ASSERT_EQUAL_STRING("PY2XX", s.spotter);
+  TEST_ASSERT_EQUAL_STRING("K1ABC", s.call);
   TEST_ASSERT_EQUAL_UINT32(14025, s.khz); TEST_ASSERT_EQUAL_STRING("CW 599", s.comment);
   TEST_ASSERT_EQUAL(BAND_20M, s.band); TEST_ASSERT_EQUAL(MODE_CW, s.mode);
   TEST_ASSERT_EQUAL_UINT32(DAY + 12 * 3600 + 34 * 60, s.utc);
@@ -36,7 +36,7 @@ void test_dx_rejects_garbage() {
   }
   Spot k{}; k.khz = 77; strcpy(k.call, "KEEP");
   TEST_ASSERT_FALSE(parseDxLine("DX de A1B: abc K1ABC cw 1234Z", DAY, k));
-  TEST_ASSERT_EQUAL_UINT32(77, k.khz); TEST_ASSERT_EQUAL_STRING("KEEP", k.call); TEST_ASSERT_EQUAL_STRING("", k.spotter); TEST_ASSERT_FALSE(parseDxLine("DX de A1B: abc K1ABC cw 1234Z", DAY, s));
+  TEST_ASSERT_EQUAL_UINT32(77, k.khz); TEST_ASSERT_EQUAL_STRING("KEEP", k.call); TEST_ASSERT_FALSE(parseDxLine("DX de A1B: abc K1ABC cw 1234Z", DAY, s));
 }
 void test_long_comment_truncated_and_sanitized() {
   char l[400] = "DX de A1B: 14025.0 K1ABC ";

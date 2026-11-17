@@ -16,7 +16,6 @@ static bool parseJsonLine(const char* line, uint32_t nowUtc, Spot& dst) {
   if (khz >= 1e7) return false;
   Spot s{};
   copyPrintable(s.call, sizeof(s.call), call);
-  copyPrintable(s.spotter, sizeof(s.spotter), r["de"] | r["spotter"] | r["source"] | "");
   copyPrintable(s.comment, sizeof(s.comment), r["comment"] | r["info"] | r["message"] | "");
   copyPrintable(s.country, sizeof(s.country), r["country"] | r["entity"] | "");
   s.khz = (uint32_t)(khz + 0.5);

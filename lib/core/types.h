@@ -5,7 +5,7 @@
 // All shared POD data structs. Fixed char[] only: no String/std::string.
 struct Spot {
   uint32_t utc; uint32_t khz;
-  char call[12]; char spotter[12]; char comment[40]; char country[24]; char loc[7];
+  char call[12]; char comment[40]; char country[24]; char loc[7];
   float lat, lon; int16_t distKm; uint8_t band, mode; bool hasLatLon;
 };
 
@@ -31,11 +31,8 @@ struct PropagationData {
 constexpr int WX_DETAIL_COLS = 5;
 struct WeatherData {
   char cityName[32], description[40], iconCode[8];
-  char forecast3hDesc[40], forecastNextDayDesc[40], forecastError[48], updated[24], lastError[48];
   char detailIconCode[WX_DETAIL_COLS][8];
   int weatherId; float tempC, windMs, pm25, pm10; int humidity, pressure;
-  float forecast3hTempC, forecast3hWindMs; bool forecast3hValid;
-  float forecastNextDayTempC, forecastNextDayWindMs; bool forecastNextDayValid;
   float detailTempC[WX_DETAIL_COLS]; int detailHumidity[WX_DETAIL_COLS];
   float detailWindMs[WX_DETAIL_COLS]; int detailWeatherId[WX_DETAIL_COLS]; bool detailValid[WX_DETAIL_COLS];
   float nightTempC[2]; bool nightTempValid[2];
