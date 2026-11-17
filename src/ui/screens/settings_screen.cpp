@@ -67,9 +67,11 @@ lv_obj_t* slider(lv_obj_t* parent, int32_t lo, int32_t hi, int32_t v) {
 
 void button(lv_obj_t* list, Tr t, lv_event_cb_t cb) {
   lv_obj_t* b = lv_button_create(list);
+  lv_obj_set_size(b, lv_pct(100), 32);  // identical full-width buttons
   lv_obj_t* l = lv_label_create(b);
   lv_obj_set_style_text_font(l, &font_14, 0);
   lv_label_set_text(l, tr(t));
+  lv_obj_center(l);
   lv_obj_add_event_cb(b, cb, LV_EVENT_CLICKED, nullptr);
 }
 
@@ -116,11 +118,7 @@ class SettingsScreen : public Screen {
       cfgUpdate([v](Config& c) { c.tft_ndim = v; });
     }, LV_EVENT_RELEASED, nd_);
 
-    lv_obj_t* b = lv_button_create(list);
-    lv_obj_t* bl = lv_label_create(b);
-    lv_obj_set_style_text_font(bl, &font_14, 0);
-    lv_label_set_text(bl, tr(Tr::CalibrateTouch));
-    lv_obj_add_event_cb(b, [](lv_event_t*) { touchCalRun(nullptr); }, LV_EVENT_CLICKED, nullptr);
+    button(list, Tr::CalibrateTouch, [](lv_event_t*) { touchCalRun(nullptr); });
 
     lv_obj_t* sw = lv_switch_create(row(list, tr(Tr::InvertColors)));
     if (c.tft_inv) lv_obj_add_state(sw, LV_STATE_CHECKED);
