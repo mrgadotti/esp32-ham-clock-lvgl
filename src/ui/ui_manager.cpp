@@ -33,7 +33,12 @@ static void onGesture(Gesture g) {  // indev callback: flag only
   pendingDir = (g == Gesture::SwipeLeft) ? 1 : -1;
 }
 
-void uiRequest(ScreenId id) { pendingTarget = (uint8_t)id; }
+// Reserved ids (Matrix/Game) have no screen; map them to the clock so cur->id() matches the request.
+static ScreenId normalise(ScreenId id) {
+  return (id == ScreenId::Matrix || id == ScreenId::Game) ? ScreenId::HamClock : id;
+}
+
+void uiRequest(ScreenId id) { pendingTarget = (uint8_t)normalise(id); }
 
 void uiInit() {
   lastLang = cfg().tft_lang;
@@ -64,7 +69,8 @@ static void showForce(ScreenId id) {
   s->create(obj);
   lv_mem_monitor_t m;  // create() only allocates, so free right after it is the minimum seen during it
   lv_mem_monitor(&m);
-  Serial.printf("[MEM] screen %d create lvfree=%u\n", (int)id, (unsigned)m.free_size);
+  Serial.printf("[MEM] screen %d create lvfree=%u big=%u\n", (int)id, (unsigned)m.free_size,
+                (unsigned)m.free_biggest_size);
   lv_screen_load(obj);
   lv_obj_delete(tmp);
   cur = s;
@@ -75,6 +81,7 @@ static void showForce(ScreenId id) {
 }
 
 static void show(ScreenId id) {
+  id = normalise(id);
   if (cur && cur->id() == id) return;
   showForce(id);
 }
@@ -109,7 +116,8 @@ void uiTick(uint32_t now) {
     memShowAt = 0;
     lv_mem_monitor_t m;
     lv_mem_monitor(&m);
-    Serial.printf("[MEM] screen %d settled lvfree=%u\n", memShowId, (unsigned)m.free_size);
+    Serial.printf("[MEM] screen %d settled lvfree=%u big=%u\n", memShowId, (unsigned)m.free_size,
+                  (unsigned)m.free_biggest_size);
   }
   if (uint32_t v = g_store.weather.version(); v != lastWxVer) {
     lastWxVer = v;
