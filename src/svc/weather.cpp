@@ -15,7 +15,7 @@
 #include "weather_alerts.h"
 #include "weather_json.h"
 
-constexpr uint32_t CUR_MS = 10UL * 60000UL, FC_MS = 30UL * 60000UL, RETRY_MS = 2UL * 60000UL;
+constexpr uint32_t CUR_MS = 30UL * 60000UL, FC_MS = 30UL * 60000UL, RETRY_MS = 2UL * 60000UL;
 
 static WeatherAlertScheduler s_sched;
 static Config s_cfg;  // static: keeps it off the net task stack
