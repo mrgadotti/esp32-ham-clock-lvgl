@@ -8,7 +8,7 @@
 > - **Reviewer per task**: a fresh Sonnet 5.5 agent, plus one whole-branch review at the end (Task 5).
 > - **Orchestrator** (main session): dispatches agents and relays results. It does not edit code.
 
-**Goal:** Remove the Location (GPS) screen, all GPS support, and the leftover Matrix/Game screen ids, and refresh current weather every 5 minutes.
+**Goal:** Remove the Location (GPS) screen, all GPS support, and the leftover Matrix/Game screen ids, and refresh weather (current and forecast) every 30 minutes.
 
 **Architecture:** Screen ids stay numerically stable for the surviving screens (stored `screen_order`, `scr_en`, `last_scr` stay valid); the removed ids 10, 11 and 13 become "not a carousel screen" through one shared predicate instead of per-id special cases. GPS code is deleted from the UART2 task, the data store, the clock, the web API and the config table. Weather only changes one interval constant.
 
@@ -17,7 +17,7 @@
 **Spec:** the user request of 2026-11-18, as clarified in the session. Decisions:
 - "GPS screen" = the Location screen (id 13). User chose **all GPS support** removed.
 - "Legacy code" = the reserved Matrix (10) and Game (11) screen ids and every special case for them.
-- Weather: the user's free-text answer was "current and forecast, but every 30 min". Read as: **current conditions every 5 min** (the original request), **forecast stays every 30 min**. If the user meant both at 30 min, only Task 1's constant changes.
+- Weather: user decision 2026-11-18: current conditions and forecast both refresh every 30 minutes (the current interval was 10 minutes).
 - The bridge module's own `GPS ON` boot command (`lib/core/bridge_proto.cpp`) is protocol for external hardware, not GPS support in this firmware. It stays untouched.
 
 ## Global Constraints
@@ -26,7 +26,7 @@
 - Commits are plain messages with **no** `Co-Authored-By` trailer and no "Generated with Claude Code" line (also for PR text).
 - Screen ids that survive keep their numbers: `HamClock=1, DxCluster=2, SunSpots=3, BandInfo=4, Weather=5, AprsList=6, Pota=7, HamAlert=8, AprsRadar=9, Forecast=12, Settings=14`.
 - New default `scr_en` mask: `0x13FE` (bits 1..9 and 12). New default `screen_order`: `{1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 0, 0}`.
-- Weather intervals: current + air quality `5UL * 60000UL`; forecast stays `30UL * 60000UL`; failure retry stays `2UL * 60000UL`.
+- Weather intervals: current + air quality `30UL * 60000UL` (user decision 2026-11-18: every 30 minutes); forecast stays `30UL * 60000UL`; failure retry stays `2UL * 60000UL`.
 - `lib/core` stays free of Arduino/LVGL headers.
 - Every task ends with: `pio test -e native` green and `pio run -e cyd` builds (Haiku gate) before its commit.
 - CI flash budget (`.github/workflows/build.yml`) must still pass; this change only shrinks the binary.
@@ -43,7 +43,7 @@
 
 | File | Change |
 |---|---|
-| `src/svc/weather.cpp` | `CUR_MS` 10 min -> 5 min (Task 1) |
+| `src/svc/weather.cpp` | `CUR_MS` 10 min -> 30 min (Task 1) |
 | `src/ui/screens/location_screen.{h,cpp}` | delete (Task 2) |
 | `src/ui/screen.h`, `registry.cpp`, `ui_manager.cpp`, `settings_screen.cpp` | drop `Matrix`, `Game`, `Location` (Task 2) |
 | `lib/core/gesture.{h,cpp}` | `isCarouselScreen`, drop special cases (Task 2) |
@@ -62,7 +62,7 @@
 
 ---
 
-### Task 1: Weather current conditions every 5 minutes
+### Task 1: Weather current conditions every 30 minutes
 
 **Files:**
 - Modify: `src/svc/weather.cpp:16` (`CUR_MS`)
@@ -71,11 +71,11 @@
 - Consumes: nothing.
 - Produces: nothing other tasks use.
 
-- [ ] **Step 1 (Sonnet): Change the constant.** In `src/svc/weather.cpp` set `CUR_MS = 5UL * 60000UL`. Leave `FC_MS` and `RETRY_MS` as they are. `weatherTick` already uses `s_nextCur = now + (ok ? CUR_MS : retryMs())`, so no other line changes. `weather_alerts.cpp` `CURRENT_MAX_AGE_MS` only gets looser relative to the data age; do not touch it.
+- [ ] **Step 1 (Sonnet): Change the constant.** In `src/svc/weather.cpp` set `CUR_MS = 30UL * 60000UL`. Leave `FC_MS` and `RETRY_MS` as they are. `weatherTick` already uses `s_nextCur = now + (ok ? CUR_MS : retryMs())`, so no other line changes. `weather_alerts.cpp` `CURRENT_MAX_AGE_MS` only gets looser relative to the data age; do not touch it.
 - [ ] **Step 2 (Sonnet): Grep for stale mentions.** `git grep -nI '10 min\|10 minutes\|600000' -- src lib docs README.md` and fix any that describe the weather refresh interval.
 - [ ] **Step 3 (Haiku): Gate.** `pio test -e native` all pass; `pio run -e cyd` builds. There is no host test for this: `weather.cpp` needs Arduino and WiFi. Cadence is verified on the board in Task 5.
 - [ ] **Step 4 (Sonnet reviewer): Review the diff** against this task only.
-- [ ] **Step 5 (Haiku): Commit.** `git add src/svc/weather.cpp && git commit -m "feat: refresh current weather every 5 minutes"`
+- [ ] **Step 5 (Haiku): Commit.** `git add src/svc/weather.cpp && git commit -m "feat: refresh current weather every 30 minutes"`
 
 ---
 
@@ -184,7 +184,7 @@
 - [ ] **Step 1 (Haiku): Full gate.** `pio test -e native` all pass; `pio run -e cyd`, `-e esp32-38pin`, `-e cyd_test` build. Report the flash size line from the `cyd` build against the CI `FLASH_BUDGET`.
 - [ ] **Step 2 (Sonnet, fresh agent): Whole-branch review.** Run the `code-review` skill (or `superpowers:requesting-code-review`) over `627ec4c..HEAD`. It checks each Review Focus line above against the code, and that nothing else reads a removed `Config` field or `Tr` key at runtime (for example through `kFields` offsets). Findings go to a new Sonnet agent to fix, then Haiku re-runs the gate.
 - [ ] **Step 3 (Haiku): Flash.** With the board on USB: `pio run -e cyd -t upload`. If the port is missing, report it and stop; do not guess a port.
-- [ ] **Step 4 (Haiku): Capture 12 minutes of serial.** `timeout 720 pio device monitor --filter time > <scratchpad>/mon.log`. Expected: `NTP synced` boot line appears; two `[HTTP] GET api.openweathermap.org -> 200` pairs (weather + air_pollution) roughly 5 minutes apart; no `GPS` log text; no reset or `Guru Meditation`. Requires an OpenWeather key in the device config; if none is set, report that the cadence could not be observed and stop.
+- [ ] **Step 4 (Haiku): Capture 35 minutes of serial.** `timeout 2100 pio device monitor --filter time > <scratchpad>/mon.log`. Expected: `NTP synced` boot line appears; two `[HTTP] GET api.openweathermap.org -> 200` pairs (weather + air_pollution) roughly 30 minutes apart; no `GPS` log text; no reset or `Guru Meditation`. Requires an OpenWeather key in the device config; if none is set, report that the cadence could not be observed and stop.
 - [ ] **Step 5 (user, via orchestrator): Visual check.** Swipe through the carousel (no Location screen), confirm the clock has no GPS tag, and open the web page (no GPS fields, UART module list without GPS).
 - [ ] **Step 6 (Haiku): Push.** `git push origin main`.
 
@@ -192,6 +192,6 @@
 
 ## Self-Review
 
-- **Spec coverage:** Location screen (Task 2), all GPS support (Task 3), Matrix/Game ids (Task 2), weather 5 min (Task 1), docs/tools (Task 4), cyd-dev skill and board-level checks (header, Task 5), new agents and model split (header, every step labeled), review (per-task reviewer plus Task 5).
+- **Spec coverage:** Location screen (Task 2), all GPS support (Task 3), Matrix/Game ids (Task 2), weather 30 min (Task 1), docs/tools (Task 4), cyd-dev skill and board-level checks (header, Task 5), new agents and model split (header, every step labeled), review (per-task reviewer plus Task 5).
 - **Type consistency:** `isCarouselScreen(uint8_t)` is defined in Task 2 and not used elsewhere by name. Default `scr_en` `0x13FE` and default order match across Global Constraints, Task 2 tests and Task 4 docs.
-- **Open point for the user:** the weather reading above (current 5 min, forecast 30 min).
+- **Open point for the user:** none.
