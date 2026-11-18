@@ -32,9 +32,13 @@ static void fetch(uint32_t now, double lat, double lon) {
     f["hourly"][k] = true;
   for (const char* k : {"weather_code", "temperature_2m_max", "temperature_2m_min", "relative_humidity_2m_mean", "wind_speed_10m_max"})
     f["daily"][k] = true;
-  JsonDocument doc;
   g_store.weatherOm.read([](const WeatherData& w) { s_w = w; });
-  bool ok = n < (int)sizeof u && httpGetJson(u, doc, &f) && openMeteoParse(doc, s_w);
+  bool ok;
+  {
+    JsonDocument doc;  // scoped: frees its heap before the air-quality TLS handshake needs it
+    ok = n < (int)sizeof u && httpGetJson(u, doc, &f) && openMeteoParse(doc, s_w);
+  }
+  uint32_t q = httpQuickRetryMs();  // read now: a failed optional air call must not set the retry delay
   if (ok) {
     s_w.fetchedAt = s_w.forecastFetchedAt = now | 1;
     if (s_cycles++ % AIR_EVERY == 0) {  // a failed air call never fails the cycle
@@ -44,12 +48,13 @@ static void fetch(uint32_t now, double lat, double lon) {
       af["current"]["pm10"] = true;
       snprintf(u, sizeof u, "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=%.4f&longitude=%.4f&current=pm2_5,pm10", lat, lon);
       if (httpGetJson(u, ad, &af)) openMeteoParse(ad, s_w, true);
+      httpQuickRetryMs();
     }
   }
   s_w.fetchFailed = s_w.forecastFetchFailed = !ok;
   g_store.weatherOm.write([](WeatherData& w) { w = s_w; });
   s_first = false;
-  uint32_t q = httpQuickRetryMs();
+  Serial.printf("[OM] forecast %s\n", ok ? "ok" : "failed");
   s_next = now + (ok ? OM_MS : (q ? q : OM_RETRY_MS));
 }
 
