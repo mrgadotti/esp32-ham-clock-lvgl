@@ -140,9 +140,20 @@ void buildAprs(lv_obj_t* ov, const AprsStation& st) {
   AprsWx wx{};
   if (st.isWx && aprsDecodeWx(st.comment, wx)) {
     int y = 106;
-    if (wx.hasTempC) { snprintf(b, sizeof b, "%s %.1f C", tr(Tr::WxTemp), (double)wx.tempC); uiLabel(ov, &font_14, lv_color_hex(0x4080FF), b, 18, y); y += 18; }
-    if (wx.hasHumidity) { snprintf(b, sizeof b, "%s %d %%", tr(Tr::HumidityLabel), wx.humidityPct); uiLabel(ov, &font_14, white, b, 18, y); y += 18; }
-    if (wx.hasPressure) { snprintf(b, sizeof b, "%s %.1f %s", tr(Tr::PressureLabel), (double)wx.pressureHpa, tr(Tr::HPa)); uiLabel(ov, &font_14, white, b, 18, y); }
+    if (wx.hasTempC) {
+      snprintf(b, sizeof b, "%s %.1f C", tr(Tr::WxTemp), (double)wx.tempC);
+      uiLabel(ov, &font_14, lv_color_hex(0x4080FF), b, 18, y);
+      y += 18;
+    }
+    if (wx.hasHumidity) {
+      snprintf(b, sizeof b, "%s %d %%", tr(Tr::HumidityLabel), wx.humidityPct);
+      uiLabel(ov, &font_14, white, b, 18, y);
+      y += 18;
+    }
+    if (wx.hasPressure) {
+      snprintf(b, sizeof b, "%s %.1f %s", tr(Tr::PressureLabel), (double)wx.pressureHpa, tr(Tr::HPa));
+      uiLabel(ov, &font_14, white, b, 18, y);
+    }
     if (wx.hasWindSpeed) {
       if (wx.hasWindDir) snprintf(b, sizeof b, "%s %d\xC2\xB0 %.1f %s", tr(Tr::WxWind), wx.windDirDeg, (double)wx.windSpeedKmh, tr(Tr::KmH));
       else snprintf(b, sizeof b, "%s %.1f %s", tr(Tr::WxWind), (double)wx.windSpeedKmh, tr(Tr::KmH));
@@ -171,13 +182,9 @@ void overlayShow(const UiEvent& e) {
   else show(e);
 }
 
-static void show(const UiEvent& e) {
-  static char body[160];  // static: keeps 160 B off the UI task stack (UI task only)
-  const char* title;
-  const lv_image_dsc_t* wxImg = nullptr;
-  bool aprs = false;
-  AprsIcon bIcon = AprsIcon::None;
-  uint32_t secs = (uint32_t)cfg().alrt_scr_s;
+// Fills body and picks title, icon and on-screen seconds; false for event kinds that have no overlay.
+static bool formatBody(const UiEvent& e, char* body, size_t n, const char*& title, const lv_image_dsc_t*& wxImg,
+                       bool& aprs, AprsIcon& bIcon, uint32_t& secs) {
   body[0] = 0;
   switch (e.kind) {
     case EventKind::AprsAlert:
@@ -188,8 +195,8 @@ static void show(const UiEvent& e) {
       title = tr(Tr::AprsBeaconing);
       Tr d;
       aprsSymbolInfo(e.beacon.sym, bIcon, d);
-      if (bIcon == AprsIcon::None) appendf(body, sizeof body, "%s\n", tr(d));
-      appendf(body, sizeof body, "%s\n%s\n%s", e.beacon.call, e.beacon.position, e.beacon.path);
+      if (bIcon == AprsIcon::None) appendf(body, n, "%s\n", tr(d));
+      appendf(body, n, "%s\n%s\n%s", e.beacon.call, e.beacon.position, e.beacon.path);
       secs = 30;  // fixed, not configurable
       break;
     }
@@ -197,20 +204,31 @@ static void show(const UiEvent& e) {
       title = tr(Tr::WeatherAlert);
       if (e.wx.stormPossible) {
         wxImg = &wxicon_200;
-        appendf(body, sizeof body, "%s\n", tr(e.wx.stormNow ? Tr::StormNow : Tr::PossibleStorm));
+        appendf(body, n, "%s\n", tr(e.wx.stormNow ? Tr::StormNow : Tr::PossibleStorm));
       }
       if (e.wx.windPossible) {
         if (!wxImg) wxImg = &wxicon_wind;
-        appendf(body, sizeof body, "%s\n%s %.1f %s\n", tr(Tr::StrongWind), tr(Tr::WindLabel), (double)e.wx.maxWindMs, tr(Tr::Ms));
+        appendf(body, n, "%s\n%s %.1f %s\n", tr(Tr::StrongWind), tr(Tr::WindLabel), (double)e.wx.maxWindMs, tr(Tr::Ms));
         if (e.wx.maxWindGustMs > 0)
-          appendf(body, sizeof body, "%s %.1f %s\n", tr(Tr::Gust), (double)e.wx.maxWindGustMs, tr(Tr::Ms));
+          appendf(body, n, "%s %.1f %s\n", tr(Tr::Gust), (double)e.wx.maxWindGustMs, tr(Tr::Ms));
       }
       // stormEtaHours carries the storm repeat interval in minutes; wind alone repeats every minute
-      appendf(body, sizeof body, "%s %u %s", tr(Tr::Repeat), e.wx.stormPossible ? (unsigned)e.wx.stormEtaHours : 1u, tr(Tr::Min));
+      appendf(body, n, "%s %u %s", tr(Tr::Repeat), e.wx.stormPossible ? (unsigned)e.wx.stormEtaHours : 1u, tr(Tr::Min));
       break;
     default:
-      return;
+      return false;
   }
+  return true;
+}
+
+static void show(const UiEvent& e) {
+  static char body[160];  // static: keeps 160 B off the UI task stack (UI task only)
+  const char* title;
+  const lv_image_dsc_t* wxImg = nullptr;
+  bool aprs = false;
+  AprsIcon bIcon = AprsIcon::None;
+  uint32_t secs = (uint32_t)cfg().alrt_scr_s;
+  if (!formatBody(e, body, sizeof body, title, wxImg, aprs, bIcon, secs)) return;
   if (secs < 1) secs = 1;
   if (secs > 60) secs = 60;
   deadline = millis() + secs * 1000;

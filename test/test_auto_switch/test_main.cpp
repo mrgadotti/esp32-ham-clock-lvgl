@@ -1,5 +1,5 @@
 #include <unity.h>
-#include "gesture.h"
+#include "carousel.h"
 void setUp() {} void tearDown() {}
 // Auto-switch never goes to Settings: after the last carousel screen it wraps to the first one.
 void test_auto_switch_wraps_past_settings() {

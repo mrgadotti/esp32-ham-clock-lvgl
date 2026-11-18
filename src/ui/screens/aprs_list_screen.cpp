@@ -23,15 +23,6 @@ struct Menu {
   int sort;
   bool flag[4];  // beacon, alert, range, led
 };
-Menu* menu = nullptr;
-
-void closeMenu() {
-  if (!menu) return;
-  lv_obj_delete_async(menu->panel);  // may run inside a widget's own callback
-  delete menu;
-  menu = nullptr;
-}
-
 class AprsListScreen : public Screen {
  public:
   ~AprsListScreen() override {
@@ -39,7 +30,7 @@ class AprsListScreen : public Screen {
     if (self_ == this) self_ = nullptr;
   }
   ScreenId id() const override { return ScreenId::AprsList; }
-  bool blocksSwipe() const override { return menu != nullptr; }
+  bool blocksSwipe() const override { return menu_ != nullptr; }
 
   void create(lv_obj_t* p) override {
     self_ = this;
@@ -75,26 +66,35 @@ class AprsListScreen : public Screen {
   size_t cachedRow_ = (size_t)-1;
   AprsStation cached_;
 
+  Menu* menu_ = nullptr;
+
+  void closeMenu() {
+    if (!menu_) return;
+    lv_obj_delete_async(menu_->panel);  // may run inside a widget's own callback
+    delete menu_;
+    menu_ = nullptr;
+  }
+
   static void refreshMenu() {
-    for (int i = 0; i < 3; i++) uiTilePaint(menu->tile[i], menu->sort == i);
+    for (int i = 0; i < 3; i++) uiTilePaint(self_->menu_->tile[i], self_->menu_->sort == i);
   }
 
   static void onTile(lv_event_t* e) {
-    if (!menu) return;
-    menu->sort = (int)(intptr_t)lv_event_get_user_data(e);
+    if (!self_ || !self_->menu_) return;
+    self_->menu_->sort = (int)(intptr_t)lv_event_get_user_data(e);
     refreshMenu();
   }
 
   static void onBox(lv_event_t* e) {
-    if (!menu) return;
+    if (!self_ || !self_->menu_) return;
     int i = (int)(intptr_t)lv_event_get_user_data(e);
-    menu->flag[i] = lv_obj_has_state(menu->box[i], LV_STATE_CHECKED);
+    self_->menu_->flag[i] = lv_obj_has_state(self_->menu_->box[i], LV_STATE_CHECKED);
   }
 
   static void onOk(lv_event_t*) {
-    if (!menu) return;
-    const Menu pend = *menu;  // closeMenu() frees *menu
-    closeMenu();
+    if (!self_ || !self_->menu_) return;
+    const Menu pend = *self_->menu_;  // closeMenu() frees the menu
+    self_->closeMenu();
     cfgUpdate([pend](Config& c) {
       c.aprs_sort = pend.sort;
       c.aprs_beacon = pend.flag[0];
@@ -105,42 +105,42 @@ class AprsListScreen : public Screen {
     if (self_) { self_->sort_ = pend.sort; self_->force_ = true; }
   }
 
-  static void onCancel(lv_event_t*) { closeMenu(); }
+  static void onCancel(lv_event_t*) { if (self_) self_->closeMenu(); }
 
   static void onBeacon(lv_event_t*) {
-    closeMenu();
+    if (self_) self_->closeMenu();
     aprsBeaconRequest();
   }
 
   static void onClear(lv_event_t*) {
-    closeMenu();
+    if (self_) self_->closeMenu();
     g_store.aprs.write([](AprsRing& r) { r.clear(); });
   }
 
   static void onMenu(lv_event_t*) {
-    if (menu) return;
+    if (self_->menu_) return;
     const Config& c = cfg();
-    menu = new Menu{};
-    menu->sort = self_->sort_;
-    menu->flag[0] = c.aprs_beacon;
-    menu->flag[1] = c.aprs_alert_en;
-    menu->flag[2] = c.aprs_al_near;
-    menu->flag[3] = c.led_al_en;
-    lv_obj_t* p = menu->panel = uiModalPanel();
+    self_->menu_ = new Menu{};
+    self_->menu_->sort = self_->sort_;
+    self_->menu_->flag[0] = c.aprs_beacon;
+    self_->menu_->flag[1] = c.aprs_alert_en;
+    self_->menu_->flag[2] = c.aprs_al_near;
+    self_->menu_->flag[3] = c.led_al_en;
+    lv_obj_t* p = self_->menu_->panel = uiModalPanel();
 
     uiLabel(p, &font_14, COL_GREY, tr(Tr::SortBy), 8, 6);
     const Tr sn[] = {Tr::SortTime, Tr::SortCall, Tr::SortDist};
-    for (int i = 0; i < 3; i++) menu->tile[i] = uiTile(p, tr(sn[i]), 8 + i * 96, 26, 92, 26, onTile, i);
+    for (int i = 0; i < 3; i++) self_->menu_->tile[i] = uiTile(p, tr(sn[i]), 8 + i * 96, 26, 92, 26, onTile, i);
     uiLabel(p, &font_14, COL_GREY, tr(Tr::AprsSetting), 8, 58);
     const Tr bn[] = {Tr::Beaconing, Tr::AprsAlert, Tr::RangeAlert, Tr::LedBuzzer};
     lv_obj_t* area = uiScrollArea(p, 0, 76, SCREEN_W, 92);  // 4 rows x 32 px = 128 px: scrolls
     for (int i = 0; i < 4; i++) {
-      lv_obj_t* cb = menu->box[i] = lv_checkbox_create(area);
+      lv_obj_t* cb = self_->menu_->box[i] = lv_checkbox_create(area);
       lv_checkbox_set_text(cb, tr(bn[i]));
       lv_obj_set_style_text_font(cb, &font_14, 0);
       lv_obj_set_height(cb, 30);  // 32 px pitch: touch areas never overlap
       lv_obj_set_pos(cb, 24, i * 32);
-      if (menu->flag[i]) lv_obj_add_state(cb, LV_STATE_CHECKED);
+      if (self_->menu_->flag[i]) lv_obj_add_state(cb, LV_STATE_CHECKED);
       lv_obj_add_event_cb(cb, onBox, LV_EVENT_VALUE_CHANGED, (void*)(intptr_t)i);
     }
     uiTilePaint(uiTile(p, tr(Tr::BeaconNow), 8, 172, 148, 26, onBeacon, 0), true);

@@ -7,6 +7,7 @@
 #include "aprs_symbol.h"
 #include "geo.h"
 #include "i18n.h"
+#include "radar_label.h"
 #include "radar_proj.h"
 #include "../../app/config_store.h"
 #include "../../app/data_store.h"
@@ -218,11 +219,6 @@ class AprsRadarScreen : public Screen {
     a.x2 += 4;  // slack so the label box never wraps the last glyph
     lv_draw_label(l, &d, &a);
   }
-  static void km(char* b, size_t n, float v) {
-    if (v >= 100) snprintf(b, n, "%dkm", (int)(v + 0.5f));
-    else if (v >= 10) snprintf(b, n, "%.1fkm", (double)v);
-    else snprintf(b, n, "%.2fkm", (double)v);
-  }
 
   static void onDraw(lv_event_t* e) {
     AprsRadarScreen* s = static_cast<AprsRadarScreen*>(lv_event_get_user_data(e));
@@ -241,9 +237,9 @@ class AprsRadarScreen : public Screen {
     lv_area_t used[MAXN + 8];
     int nu = 0;
     used[nu++] = {kBtnX - 8, kBtnY0 - 8, SCREEN_W, SCREEN_H};  // the zoom buttons (+, -, 1x)
-    km(b, sizeof b, range);
+    formatRadarKm(range, b, sizeof b);
     if (qy - rOut + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut + 2, txt, false, used, nu);
-    km(b, sizeof b, range / 2);
+    formatRadarKm(range / 2, b, sizeof b);
     if (qy - rOut / 2 + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut / 2 + 2, txt, false, used, nu);
     text(l, tr(Tr::RadarNorth), OX - 16, HEADER_H + 1, txt, false, used, nu, true);  // left of the km labels (at qx + 4)
     if (qx >= 0 && qx < SCREEN_W && qy >= HEADER_H && qy < SCREEN_H) arc(l, qx, qy, 4, 4, COL_ACCENT);
