@@ -26,6 +26,7 @@
 #include "svc/qrz.h"
 #include "svc/uart2.h"
 #include "svc/weather.h"
+#include "svc/weather_om.h"
 #include "ui/fonts/fonts.h"
 #include "ui/theme.h"
 #include "ui/ui_manager.h"
@@ -188,6 +189,7 @@ static void netTask(void*) {
     potaTick(now);
     qrzTick(now);
     weatherTick(now);
+    weatherOmTick(now);
     propTick(now);
     // The tick that sees a valid clock also ran the first propagation fetch, so the round is over at the end of it.
     now = millis();  // the HTTPS fetches above can take seconds
