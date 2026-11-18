@@ -159,8 +159,8 @@ void test_needs_restart() {
 void test_screen_bits_and_order() {
   Config c = defaults();
   TEST_ASSERT_TRUE(configApplyJson(c, "{\"scr_en\":65535,\"screen_order\":[1,1,11,14,2,12,0,0,13,3]}").ok);
-  TEST_ASSERT_EQUAL_HEX32(0x13FE, c.scr_en);
-  const uint8_t want[12] = {1, 0, 0, 0, 2, 12, 0, 0, 0, 3, 0, 0};  // slots 0..9 from the JSON, dups and out-of-range reset to 0
+  TEST_ASSERT_EQUAL_HEX32(0x1FFE, c.scr_en);
+  const uint8_t want[12] = {1, 0, 11, 0, 2, 12, 0, 0, 0, 3, 0, 0};  // slots 0..9 from the JSON, dups and out-of-range (>12) reset to 0
   uint8_t tail[12];
   memcpy(tail, c.screen_order, 12);
   TEST_ASSERT_EQUAL_MEMORY(want, tail, 10);
@@ -297,13 +297,25 @@ void test_last_scr_normalised_and_validated() {
 void test_removed_screens_cleared_by_clamp() {
   Config c = defaults();
   c.scr_en = 0xFFFF;
-  const uint8_t o[12] = {13, 10, 11, 2, 2, 0, 0, 0, 0, 0, 0, 0};
+  const uint8_t o[12] = {13, 10, 11, 14, 2, 2, 0, 0, 0, 0, 0, 0};
   memcpy(c.screen_order, o, 12);
   configClamp(c);
+  TEST_ASSERT_EQUAL_HEX32(0x1FFE, c.scr_en);
+  TEST_ASSERT_EQUAL_UINT8(0, c.screen_order[0]);   // 13 dropped
+  TEST_ASSERT_EQUAL_UINT8(10, c.screen_order[1]);  // Open-Meteo ids survive
+  TEST_ASSERT_EQUAL_UINT8(11, c.screen_order[2]);
+  TEST_ASSERT_EQUAL_UINT8(0, c.screen_order[3]);   // 14 dropped
+  TEST_ASSERT_EQUAL_UINT8(2, c.screen_order[4]);
+  TEST_ASSERT_EQUAL_UINT8(0, c.screen_order[5]);  // duplicate
+}
+
+void test_scr_en_clamp_keeps_open_meteo_bits() {
+  Config c = defaults();
+  c.scr_en = 0x3FFE;
+  configClamp(c);
+  TEST_ASSERT_EQUAL_HEX32(0x1FFE, c.scr_en);
+  TEST_ASSERT_TRUE(configApplyJson(c, "{\"scr_en\":5118}").ok);  // old backup value 0x13FE still imports
   TEST_ASSERT_EQUAL_HEX32(0x13FE, c.scr_en);
-  for (int i = 0; i < 3; ++i) TEST_ASSERT_EQUAL_UINT8(0, c.screen_order[i]);
-  TEST_ASSERT_EQUAL_UINT8(2, c.screen_order[3]);
-  TEST_ASSERT_EQUAL_UINT8(0, c.screen_order[4]);  // duplicate
 }
 
 void test_defaults_without_location() {
@@ -392,6 +404,7 @@ int main() {
   RUN_TEST(test_last_scr_13_rejected);
   RUN_TEST(test_invalid_tcal_rejected_untouched);
   RUN_TEST(test_old_backup_and_unknown_keys);
+  RUN_TEST(test_scr_en_clamp_keeps_open_meteo_bits);
   RUN_TEST(test_gps_module_migrates_to_none);
   RUN_TEST(test_old_backup_gps_keys_ignored);
   return UNITY_END();

@@ -72,6 +72,8 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   /* weather */ \
   X(Weather, "WEATHER", "CLIMA") \
   X(Forecast, "Weather forecast", "Previsão do tempo") \
+  X(WeatherOm, "Weather - Open-Meteo", "Clima - Open-Meteo") \
+  X(ForecastOm, "Forecast - Open-Meteo", "Previsão - Open-Meteo") \
   X(Temperature, "TEMPERATURE", "TEMPERATURA") \
   X(Humidity, "HUMIDITY", "UMIDADE") \
   X(Pressure, "PRESSURE", "PRESSÃO") \

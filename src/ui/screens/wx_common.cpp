@@ -78,3 +78,15 @@ void wxFooter(char* out, size_t n, const WeatherData& w, bool haveKey, bool fore
     snprintf(out, n, "%s%s  (%u %s)", tr(Tr::WeatherForLocation), w.cityName, mins, tr(Tr::Min));
   }
 }
+
+void wxFooterOm(char* out, size_t n, const WeatherData& w, bool forecast) {
+  bool ok = w.valid;
+  uint32_t at = w.fetchedAt;
+  if (forecast) {
+    ok = false;
+    for (int i = 0; i < WX_DETAIL_COLS; i++) ok |= w.detailValid[i];
+    at = w.forecastFetchedAt;
+  }
+  if (!ok) snprintf(out, n, "%s", (forecast ? w.forecastFetchFailed : w.fetchFailed) ? tr(forecast ? Tr::ForecastNoData : Tr::NoData) : tr(Tr::WaitingForData));
+  else snprintf(out, n, "Open-Meteo.com  (%u %s)", at ? (unsigned)((millis() - at) / 60000UL) : 0u, tr(Tr::Min));
+}

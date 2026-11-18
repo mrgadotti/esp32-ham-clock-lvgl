@@ -13,6 +13,7 @@
 #include "../widgets/header.h"
 #include "../widgets/ui_kit.h"
 #include "wx_map.h"
+#include "wx_open_meteo.h"
 
 namespace {
 #define CYAN lv_color_hex(0x00FFFF)
@@ -20,10 +21,11 @@ namespace {
 
 class WeatherScreen : public Screen {
  public:
-  ScreenId id() const override { return ScreenId::Weather; }
+  explicit WeatherScreen(bool om) : om_(om) {}
+  ScreenId id() const override { return om_ ? ScreenId::WeatherOm : ScreenId::Weather; }
 
   void create(lv_obj_t* p) override {
-    hdr_ = headerCreate(p, Tr::Weather);
+    hdr_ = headerCreate(p, om_ ? Tr::WeatherOm : Tr::Weather);
     tLbl_ = uiLabel(p, &font_14, GREY, tr(Tr::Temperature), 15, 32);
     temp_ = uiLabel(p, &font_24, CYAN, "", 15, 50);
     icon_ = wxIconCreate(p, 215, 32);
@@ -47,6 +49,7 @@ class WeatherScreen : public Screen {
 
  private:
   lv_obj_t *hdr_, *tLbl_, *temp_, *icon_, *desc_, *lbl_[3], *val_[3], *pm25_, *pm10_, *foot_;
+  const bool om_;
   uint32_t ver_ = ~0u;
   char clock_[8] = "", foot2_[96] = "";
   WeatherData w_;  // member, not a stack local (K-03)
@@ -59,20 +62,21 @@ class WeatherScreen : public Screen {
       headerSetClock(hdr_, clk);
       force = true;  // footer age follows the minute
     }
-    uint32_t v = g_store.weather.version();
+    uint32_t v = (om_ ? g_store.weatherOm : g_store.weather).version();
     if (!force && v == ver_) return;
     ver_ = v;
     WeatherData& w = w_;
-    g_store.weather.read([&](const WeatherData& s) { w = s; });
+    (om_ ? g_store.weatherOm : g_store.weather).read([&](const WeatherData& s) { w = s; });
     char b[96];
-    wxFooter(b, sizeof b, w, cfg().weather_key[0] != 0);
+    if (om_) wxFooterOm(b, sizeof b, w, false);
+    else wxFooter(b, sizeof b, w, cfg().weather_key[0] != 0);
     if (strcmp(b, foot2_) != 0) { strcpy(foot2_, b); lv_label_set_text(foot_, b); }
     lv_obj_t* body[] = {tLbl_, temp_, icon_, desc_, lbl_[0], lbl_[1], lbl_[2], val_[0], val_[1], val_[2], pm25_, pm10_};
     for (lv_obj_t* o : body) lv_obj_set_flag(o, LV_OBJ_FLAG_HIDDEN, !w.valid);
     if (!w.valid) return;
     lv_label_set_text_fmt(temp_, "%.1f \xC2\xB0""C", (double)w.tempC);
     wxIconSet(icon_, w.weatherId, isNightFromIcon(w.iconCode));
-    lv_label_set_text(desc_, w.description);
+    lv_label_set_text(desc_, om_ ? tr(wxOmDescTr(w.weatherId)) : w.description);
     lv_label_set_text_fmt(val_[0], "%d%%", w.humidity);
     lv_label_set_text_fmt(val_[1], "%d %s", w.pressure, tr(Tr::HPa));
     lv_label_set_text_fmt(val_[2], "%.1f %s", (double)w.windMs, tr(Tr::Ms));
@@ -85,4 +89,4 @@ class WeatherScreen : public Screen {
 };
 }  // namespace
 
-Screen* createWeatherScreen() { return new WeatherScreen(); }
+Screen* createWeatherScreen(bool openMeteo) { return new WeatherScreen(openMeteo); }

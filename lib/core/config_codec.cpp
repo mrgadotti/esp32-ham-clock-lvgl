@@ -101,7 +101,7 @@ const ConfigField kFields[] = {
 };
 const size_t kFieldCount = sizeof(kFields) / sizeof(kFields[0]);
 
-static const uint32_t kScrEnMask = 0x13FE;  // ScreenId bits 1..9 and 12
+static const uint32_t kScrEnMask = 0x1FFE;  // ScreenId bits 1..12
 static const uint8_t kDefaultOrder[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 0, 0};
 
 static void setStr(char* dst, size_t size, const char* src) {
@@ -141,7 +141,7 @@ void configDefaults(Config& c) {
   c.tft_rot = 1;
   c.tft_lang = 0;  // EN
   c.tft_sw_sec = 30;
-  c.scr_en = kScrEnMask;
+  c.scr_en = 0x13FE;
   memcpy(c.screen_order, kDefaultOrder, sizeof c.screen_order);
   setStr(c.ap_pass, sizeof c.ap_pass, "1234567890");
 }

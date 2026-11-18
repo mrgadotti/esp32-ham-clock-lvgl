@@ -21,10 +21,11 @@ constexpr int COLS = 4, COL_W = 79;
 
 class ForecastScreen : public Screen {
  public:
-  ScreenId id() const override { return ScreenId::Forecast; }
+  explicit ForecastScreen(bool om) : om_(om) {}
+  ScreenId id() const override { return om_ ? ScreenId::ForecastOm : ScreenId::Forecast; }
 
   void create(lv_obj_t* p) override {
-    hdr_ = headerCreate(p, Tr::Forecast);
+    hdr_ = headerCreate(p, om_ ? Tr::ForecastOm : Tr::Forecast);
     for (int c = 0; c < COLS; c++) {
       int x = 2 + c * COL_W;
       if (c) {  // column separator
@@ -53,6 +54,7 @@ class ForecastScreen : public Screen {
 
  private:
   lv_obj_t *hdr_, *head_[COLS], *temp_[COLS], *night_[COLS], *hum_[COLS], *wind_[COLS], *icon_[COLS], *msg_, *foot_;
+  const bool om_;
   uint32_t ver_ = ~0u;
   char clock_[8] = "", foot2_[96] = "";
   WeatherData w_;  // member, not a stack local (K-03)
@@ -66,14 +68,15 @@ class ForecastScreen : public Screen {
       headerSetClock(hdr_, clk);
       force = true;
     }
-    uint32_t v = g_store.weather.version();
+    uint32_t v = (om_ ? g_store.weatherOm : g_store.weather).version();
     if (!force && v == ver_) return;
     ver_ = v;
     WeatherData& w = w_;
-    g_store.weather.read([&](const WeatherData& s) { w = s; });
-    const bool haveKey = cfg().weather_key[0] != 0;
+    (om_ ? g_store.weatherOm : g_store.weather).read([&](const WeatherData& s) { w = s; });
+    const bool haveKey = om_ || cfg().weather_key[0] != 0;  // Open-Meteo needs no key
     char b[96];
-    wxFooter(b, sizeof b, w, haveKey, true);
+    if (om_) wxFooterOm(b, sizeof b, w, true);
+    else wxFooter(b, sizeof b, w, haveKey, true);
     if (strcmp(b, foot2_) != 0) { strcpy(foot2_, b); lv_label_set_text(foot_, b); }
 
     bool any = false;
@@ -115,4 +118,4 @@ class ForecastScreen : public Screen {
 };
 }  // namespace
 
-Screen* createForecastScreen() { return new ForecastScreen(); }
+Screen* createForecastScreen(bool openMeteo) { return new ForecastScreen(openMeteo); }

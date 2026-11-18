@@ -8,7 +8,7 @@ void test_auto_switch_wraps_past_settings() {
   TEST_ASSERT_EQUAL(3, nextAutoSwitchScreen(order, en, 2));
   TEST_ASSERT_EQUAL(1, nextAutoSwitchScreen(order, en, 3)); }
 void test_auto_switch_skips_disabled_and_removed() {
-  const uint8_t order[12] = {1, 10, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0}; uint16_t en = (1u << 1) | (1u << 3) | (1u << 10);
+  const uint8_t order[12] = {1, 13, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0}; uint16_t en = (1u << 1) | (1u << 3) | (1u << 10);
   TEST_ASSERT_EQUAL(3, nextAutoSwitchScreen(order, en, 1));
   TEST_ASSERT_EQUAL(1, nextAutoSwitchScreen(order, en, 3)); }
 // A disabled or unknown current screen (or Settings itself) restarts at the first carousel screen.

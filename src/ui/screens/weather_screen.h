@@ -1,4 +1,4 @@
 #pragma once
 #include "../screen.h"
 
-Screen* createWeatherScreen();
+Screen* createWeatherScreen(bool openMeteo = false);

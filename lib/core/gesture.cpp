@@ -6,7 +6,7 @@ Gesture classifyGesture(int dx, int dy) {
   return dx < 0 ? Gesture::SwipeLeft : Gesture::SwipeRight;
 }
 
-bool isCarouselScreen(uint8_t id) { return (id >= 1 && id <= 9) || id == 12; }
+bool isCarouselScreen(uint8_t id) { return id >= 1 && id <= 12; }
 
 // Enabled carousel screens in slot order, without Settings; the Clock is always included (it hosts the gear that opens Settings).
 static int carouselList(const uint8_t order[12], uint16_t enabledMask, uint8_t list[12]) {

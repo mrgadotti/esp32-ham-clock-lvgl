@@ -8,11 +8,11 @@ void test_gesture() {
   TEST_ASSERT_EQUAL(Gesture::SwipeRight, classifyGesture(45, 5)); TEST_ASSERT_EQUAL(Gesture::SwipeLeft, classifyGesture(-45, 5));
   TEST_ASSERT_EQUAL(Gesture::None, classifyGesture(60, 30)); TEST_ASSERT_EQUAL(Gesture::None, classifyGesture(40, 0)); }
 void test_removed_ids_are_not_carousel() {
-  for (uint8_t id : {0, 10, 11, 13, 14, 15, 200}) TEST_ASSERT_FALSE(isCarouselScreen(id));
-  for (uint8_t id : {1, 2, 3, 4, 5, 6, 7, 8, 9, 12}) TEST_ASSERT_TRUE(isCarouselScreen(id));
-  const uint8_t order[12] = {1, 10, 11, 13, 2, 0, 0, 0, 0, 0, 0, 0};
+  for (uint8_t id : {0, 13, 14, 15, 200}) TEST_ASSERT_FALSE(isCarouselScreen(id));
+  for (uint8_t id : {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}) TEST_ASSERT_TRUE(isCarouselScreen(id));
+  const uint8_t order[12] = {1, 13, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   TEST_ASSERT_EQUAL(2, nextScreen(order, 0xFFFF, 1, 1)); TEST_ASSERT_EQUAL(1, nextScreen(order, 0xFFFF, 2, 1));
-  for (uint8_t id : {13, 10, 11, 14}) TEST_ASSERT_EQUAL_UINT8(scr::HamClock, resolveStartScreen(id, 0xFFFF)); }
+  for (uint8_t id : {13, 14}) TEST_ASSERT_EQUAL_UINT8(scr::HamClock, resolveStartScreen(id, 0xFFFF)); }
 void test_next_skips_disabled_and_wraps() {
   const uint8_t order[12] = {1, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0}; uint16_t en = (1u << 1) | (1u << 3);
   TEST_ASSERT_EQUAL(3, nextScreen(order, en, 1, 1)); TEST_ASSERT_EQUAL(1, nextScreen(order, en, 3, 1));
@@ -31,4 +31,11 @@ static void test_resolve_start() {
   TEST_ASSERT_EQUAL_UINT8(scr::HamClock, resolveStartScreen(0, all));
   TEST_ASSERT_EQUAL_UINT8(scr::HamClock, resolveStartScreen(99, all));
 }
-int main() { UNITY_BEGIN(); RUN_TEST(test_gesture); RUN_TEST(test_next_skips_disabled_and_wraps); RUN_TEST(test_removed_ids_are_not_carousel); RUN_TEST(test_clock_always_enabled_and_never_settings); RUN_TEST(test_resolve_start); return UNITY_END(); }
+void test_open_meteo_screens_in_carousel() {
+  const uint8_t order[12] = {1, 10, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  TEST_ASSERT_EQUAL_UINT8(10, scr::WeatherOm); TEST_ASSERT_EQUAL_UINT8(11, scr::ForecastOm);
+  TEST_ASSERT_EQUAL(10, nextScreen(order, 0xFFFF, 1, 1)); TEST_ASSERT_EQUAL(11, nextScreen(order, 0xFFFF, 10, 1));
+  TEST_ASSERT_EQUAL(1, nextScreen(order, 0xFFFF, 11, 1));
+  TEST_ASSERT_EQUAL(1, nextScreen(order, 1u << 10, 10, 1)); TEST_ASSERT_EQUAL(10, nextScreen(order, 1u << 10, 1, 1));
+  TEST_ASSERT_EQUAL_UINT8(10, resolveStartScreen(10, 1u << 10)); }
+int main() { UNITY_BEGIN(); RUN_TEST(test_gesture); RUN_TEST(test_next_skips_disabled_and_wraps); RUN_TEST(test_removed_ids_are_not_carousel); RUN_TEST(test_clock_always_enabled_and_never_settings); RUN_TEST(test_resolve_start); RUN_TEST(test_open_meteo_screens_in_carousel); return UNITY_END(); }
