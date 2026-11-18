@@ -48,13 +48,6 @@ struct WeatherAlertInfo {
   float maxWindMs, maxWindGustMs;
 };
 
-struct GpsState {
-  bool active, fix; double lat, lon; float speedKmh;
-  uint8_t sats, satsGps, satsGlo, satsGal, satsBds;
-  uint32_t utc; uint32_t lastFixMs;
-  uint32_t date;  // ddmmyy, 0 = unknown (clock sync)
-};
-
 // potaFail: the last POTA fetch failed (cleared by the next success); roundDone: the first boot HTTPS round is over.
 struct NetStatus { bool sta; bool ap; char ip[16]; char ssid[33]; int8_t rssi; bool potaFail; bool roundDone; };
 

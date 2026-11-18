@@ -40,7 +40,6 @@ struct DataStore {
   Guarded<RingBuffer<AprsStation, 30>> aprs;
   Guarded<PropagationData> prop;
   Guarded<WeatherData> weather;
-  Guarded<GpsState> gps;
   Guarded<NetStatus> net;
 };
 // Heap-allocated at startup: ~28 KB of static DRAM would not fit next to WiFi and LVGL.

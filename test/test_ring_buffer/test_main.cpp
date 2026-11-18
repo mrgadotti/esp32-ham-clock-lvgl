@@ -45,7 +45,7 @@ template <size_t N> static void wrapCheck() {
 }
 void test_wrap_n3() { wrapCheck<3>(); }
 void test_wrap_n30() { wrapCheck<30>(); }
-void test_types_pod() { static_assert(__is_trivial(Spot) && __is_trivial(GpsState) && __is_trivial(PropagationData), "POD");
+void test_types_pod() { static_assert(__is_trivial(Spot) && __is_trivial(PropagationData), "POD");
   RingBuffer<Spot, 3> r; Spot s = {}; s.khz = 7074; r.pushFront(s); TEST_ASSERT_EQUAL_UINT32(7074, r.at(0).khz); }
 int main() { UNITY_BEGIN(); RUN_TEST(test_overflow); RUN_TEST(test_fill_and_wrap_many_times); RUN_TEST(test_capacity_one); RUN_TEST(test_clear_then_reuse);
   RUN_TEST(test_move_to_front); RUN_TEST(test_move_head); RUN_TEST(test_move_middle); RUN_TEST(test_move_tail); RUN_TEST(test_move_first_match_only);

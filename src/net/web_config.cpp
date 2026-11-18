@@ -108,19 +108,13 @@ void handleResetTouch() {
 
 void handleStatus() {
   NetStatus n;
-  GpsState g;
   g_store.net.read([&](const NetStatus& v) { n = v; });
-  g_store.gps.read([&](const GpsState& v) { g = v; });
   JsonDocument d;
   d["ip"] = n.ip;
   d["rssi"] = n.rssi;
   d["uptime_s"] = millis() / 1000;
   d["heap_free"] = ESP.getFreeHeap();
   d["version"] = FW_VERSION;
-  d["gps"]["active"] = g.active;
-  d["gps"]["fix"] = g.fix;
-  d["gps"]["lat"] = g.lat;
-  d["gps"]["lon"] = g.lon;
   d["qrz_status"] = qrzStatusStr();
   d["uart2_rx_pin"] = PIN_UART2_RX;
   d["uart2_tx_pin"] = PIN_UART2_TX;
@@ -130,12 +124,8 @@ void handleStatus() {
 void handleUartStatus() {
   Config c;
   cfgGet(c);
-  GpsState g;
-  g_store.gps.read([&](const GpsState& v) { g = v; });
   JsonDocument d;
   d["uart2_connected_module"] = c.uart2_cmod;
-  d["gps_active"] = g.active;
-  d["gps_fix"] = g.fix;
   d["bt_active"] = uart2BridgeEnabled();
   d["aprs_uart_active"] = !strncmp(c.uart2_cmod, "aprs_tnc", 8);
   sendDoc(200, d);

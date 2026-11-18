@@ -1,2 +1,2 @@
 #pragma once
-bool serviceCoords(double& lat, double& lon);  // GPS, then user lat/lon, then locator
+bool serviceCoords(double& lat, double& lon);  // user lat/lon, then locator

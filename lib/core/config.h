@@ -9,7 +9,7 @@ struct Config {
   // Station
   char user_callsign[16], user_locator[11];
   float user_lat, user_lon, timezone;
-  bool user_ll_ok, gps_auto_pos;
+  bool user_ll_ok;
   // DX cluster
   char cluster_host[64], cluster_filters[128], pota_api_url[96];
   int32_t cluster_port;
@@ -29,7 +29,7 @@ struct Config {
   // Third-party credentials
   char qrz_user[32], qrz_pass[32], weather_key[40];
   // UART2 / bridge
-  char uart2_mode[8], uart2_cmod[20], uart2_par[6], br_pair_addr[13], br_pair_name[41];
+  char uart2_cmod[20], uart2_par[6], br_pair_addr[13], br_pair_name[41];
   int32_t uart2_baud, uart2_dbits, uart2_stop;
   // Display / screens
   // tft_rot is 1 or 3 only. scr_en: bit index = ScreenId (bit 1 = HamClock ...);

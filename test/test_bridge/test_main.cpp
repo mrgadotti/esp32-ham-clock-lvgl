@@ -75,5 +75,7 @@ void test_bridge_pair_and_limits() {
   }
   TEST_ASSERT_EQUAL_INT(BRIDGE_MAX_DEVICES, f.deviceCount);
 }
-int main() { UNITY_BEGIN(); RUN_TEST(test_bridge_list); RUN_TEST(test_bridge_btspp_retry);
+void test_bridge_ignores_nmea_lines() {
+  TEST_ASSERT_EQUAL_INT(BR_NONE, bridgeParseLine("$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A")); }
+int main() { UNITY_BEGIN(); RUN_TEST(test_bridge_ignores_nmea_lines); RUN_TEST(test_bridge_list); RUN_TEST(test_bridge_btspp_retry);
   RUN_TEST(test_bridge_retry_stops_on_ack); RUN_TEST(test_bridge_scan_and_boot); RUN_TEST(test_bridge_pair_and_limits); return UNITY_END(); }

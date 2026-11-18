@@ -28,7 +28,6 @@ const ConfigField kFields[] = {
     F(FT_FLT, "user_lon", user_lon, -180, 180, false, false),
     F(FT_BOOL, "user_lat_lon_valid", user_ll_ok, 0, 0, false, false),
     F(FT_FLT, "timezone", timezone, -12, 14, false, false),
-    F(FT_BOOL, "use_gps_if_active", gps_auto_pos, 0, 0, false, false),
     // DX cluster
     F(FT_STR, "cluster_host", cluster_host, 0, 0, false, false),
     F(FT_INT, "cluster_port", cluster_port, 1, 65535, false, false),
@@ -73,7 +72,6 @@ const ConfigField kFields[] = {
     F(FT_STR, "qrz_pass", qrz_pass, 0, 0, true, false),
     F(FT_STR, "weather_key", weather_key, 0, 0, true, false),
     // UART2 / bridge
-    F(FT_STR, "uart2_mode", uart2_mode, 0, 0, false, true),
     F(FT_STR, "uart2_connected_module", uart2_cmod, 0, 0, false, true),
     F(FT_INT, "uart2_baud", uart2_baud, 300, 2000000, false, true),
     F(FT_INT, "uart2_data_bits", uart2_dbits, 7, 8, false, true),
@@ -134,7 +132,6 @@ void configDefaults(Config& c) {
   c.wx_w_thr = 12.0f;
   c.led_al_dur = 5000;
   c.led_al_blk = 500;
-  setStr(c.uart2_mode, sizeof c.uart2_mode, "gps");
   setStr(c.uart2_cmod, sizeof c.uart2_cmod, "none");
   c.uart2_baud = 9600;
   c.uart2_dbits = 8;
@@ -170,6 +167,7 @@ void configClamp(Config& c) {
     }
   }
   c.scr_en &= kScrEnMask;
+  if (!strcmp(c.uart2_cmod, "gps")) strcpy(c.uart2_cmod, "none");  // GPS support removed
   if (c.tft_rot != 1 && c.tft_rot != 3) c.tft_rot = 1;
   uint32_t seen = 0;
   for (uint8_t& o : c.screen_order) {

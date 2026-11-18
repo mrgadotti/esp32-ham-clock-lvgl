@@ -22,7 +22,6 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   /* clock */ \
   X(Clock, "HAM CLOCK", "RELÓGIO HAM") \
   X(OperatorStation, "OPERATOR STATION", "ESTAÇÃO DO OPERADOR") \
-  X(Gps, "GPS", "GPS") \
   /* table columns */ \
   X(ColCall, "CALL", "CALL") \
   X(ColMod, "MOD", "MOD") \

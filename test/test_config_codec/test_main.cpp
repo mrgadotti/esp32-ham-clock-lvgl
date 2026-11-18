@@ -346,6 +346,24 @@ void test_old_backup_and_unknown_keys() {
   TEST_ASSERT_EQUAL_FLOAT(0.5f, c.tcal[0]);  // absent tcal keeps the stored one
 }
 
+void test_gps_module_migrates_to_none() {
+  Config c = defaults();
+  strcpy(c.uart2_cmod, "gps");
+  configClamp(c);
+  TEST_ASSERT_EQUAL_STRING("none", c.uart2_cmod);
+  c = defaults();
+  ApplyResult r = configApplyJson(c, "{\"uart2_connected_module\":\"gps\"}");
+  TEST_ASSERT_TRUE_MESSAGE(r.ok, r.error);
+  TEST_ASSERT_EQUAL_STRING("none", c.uart2_cmod);
+}
+
+void test_old_backup_gps_keys_ignored() {
+  Config c = defaults();
+  ApplyResult r = configApplyJson(c, "{\"use_gps_if_active\":true,\"uart2_mode\":\"gps\",\"user_callsign\":\"PY2XYZ\"}");
+  TEST_ASSERT_TRUE_MESSAGE(r.ok, r.error);
+  TEST_ASSERT_EQUAL_STRING("PY2XYZ", c.user_callsign);
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_defaults_match_original);
@@ -374,5 +392,7 @@ int main() {
   RUN_TEST(test_last_scr_13_rejected);
   RUN_TEST(test_invalid_tcal_rejected_untouched);
   RUN_TEST(test_old_backup_and_unknown_keys);
+  RUN_TEST(test_gps_module_migrates_to_none);
+  RUN_TEST(test_old_backup_gps_keys_ignored);
   return UNITY_END();
 }

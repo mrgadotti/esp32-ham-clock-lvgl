@@ -55,8 +55,6 @@ class ClockScreen : public Screen {
     lv_obj_set_style_bg_opa(dot_, LV_OPA_COVER, 0);
     lv_obj_set_size(dot_, 10, 10);
     lv_obj_set_pos(dot_, 15, 207);
-    gps_ = uiLabel(p, &font_14, COL_MODE, tr(Tr::Gps), 30, 205);
-    lv_obj_add_flag(gps_, LV_OBJ_FLAG_HIDDEN);
     // Gear (Settings): 36x36 touch target around the FontAwesome gear carried by font_24.
     lv_obj_t* gear = lv_obj_create(p);
     lv_obj_remove_style_all(gear);
@@ -107,10 +105,10 @@ class ClockScreen : public Screen {
   static constexpr uint32_t kBarStartMs = 5000;
   HoldDetector hold_;
   lv_obj_t* bar_;
-  lv_obj_t *time_, *mode_, *date_, *ip_, *dot_, *gps_;
+  lv_obj_t *time_, *mode_, *date_, *ip_, *dot_;
   int lastSec_, lastDay_ = -1;
   char lastIp_[16] = "";
-  bool lastOk_ = false, lastGps_ = false;
+  bool lastOk_ = false;
 
   static void onTouch(lv_event_t* e) {
     auto* self = (ClockScreen*)lv_event_get_user_data(e);
@@ -170,11 +168,8 @@ class ClockScreen : public Screen {
     }
 
     NetStatus n;
-    GpsState g;
     g_store.net.read([&](const NetStatus& s) { n = s; });
-    g_store.gps.read([&](const GpsState& s) { g = s; });
     bool ok = n.sta || n.ap;
-    bool gpsFix = g.active && g.fix;
     if (ok != lastOk_ || strcmp(n.ip, lastIp_) != 0 || first_) {
       first_ = false;
       lastOk_ = ok;
@@ -182,10 +177,6 @@ class ClockScreen : public Screen {
       lv_label_set_text(ip_, ok ? n.ip : tr(Tr::NoConnection));
       lv_obj_set_style_text_color(ip_, ok ? lv_color_hex(0xC0C0C0) : COL_ERROR, 0);
       lv_obj_set_style_bg_color(dot_, ok ? COL_MODE : COL_ERROR, 0);
-    }
-    if (gpsFix != lastGps_) {
-      lastGps_ = gpsFix;
-      lv_obj_set_flag(gps_, LV_OBJ_FLAG_HIDDEN, !gpsFix);
     }
   }
   bool lastLocal_ = false, first_ = true;

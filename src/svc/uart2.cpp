@@ -5,30 +5,23 @@
 #include <atomic>
 #include <freertos/semphr.h>
 #include <string.h>
-#include <sys/time.h>
 
 #include "app/config_store.h"
-#include "app/data_store.h"
 #include "aprs_ingest.h"
 #include "ax25_kiss.h"
 #include "board.h"
 #include "bridge_proto.h"
-#include "gps_time.h"
-#include "nmea.h"
-#include "net/time_service.h"
 
 namespace {
-enum Mode : uint8_t { M_NONE, M_GPS, M_TNC, M_KISS, M_BRIDGE };
+enum Mode : uint8_t { M_NONE, M_TNC, M_KISS, M_BRIDGE };
 struct PortCfg { Mode mode; int32_t baud, dbits, stop; char par[6]; };
 
 SemaphoreHandle_t g_mu;             // guards g_fsm
 BridgeFsm* g_fsm;                   // heap, only in bridge mode
 std::atomic<Mode> g_mode{M_NONE};
 std::atomic<bool> g_pairPending{false};
-std::atomic<uint32_t> g_timeSetMs{0};  // millis() of the last settimeofday, 0 = never
 
 Mode modeOf(const char* c) {
-  if (!strcmp(c, "gps")) return M_GPS;
   if (!strcmp(c, "aprs_tnc")) return M_TNC;
   if (!strcmp(c, "aprs_tnc_kiss")) return M_KISS;
   if (!strcmp(c, "esp32_bridge")) return M_BRIDGE;
@@ -56,18 +49,6 @@ bool samePort(const PortCfg& a, const PortCfg& b) {
   return a.mode == b.mode && a.baud == b.baud && a.dbits == b.dbits && a.stop == b.stop && !strcmp(a.par, b.par);
 }
 
-void syncClock(const GpsState& g, uint32_t now) {
-  if (!g.fix || !g.date || !g.utc) return;
-  uint32_t set = g_timeSetMs;
-  if (set && now - set < 60000UL) return;
-  if (ntpSyncedWithin(2UL * 3600 * 1000)) return;
-  int64_t t;
-  if (!gpsToUnix(g.date, g.utc, t)) return;
-  struct timeval tv = {(time_t)t, 0};
-  settimeofday(&tv, nullptr);
-  g_timeSetMs = now | 1;
-}
-
 void saveBridgePair(const char* addr, const char* name) {
   cfgUpdate([addr, name](Config& c) {
     strlcpy(c.br_pair_addr, addr, sizeof c.br_pair_addr);
@@ -75,11 +56,6 @@ void saveBridgePair(const char* addr, const char* name) {
   });
 }
 }  // namespace
-
-bool gpsTimeValid() {
-  uint32_t t = g_timeSetMs;
-  return t && millis() - t < 180000UL;
-}
 
 bool uart2SendKiss(const uint8_t* frame, size_t len) {
   if (!g_mu || xSemaphoreTake(g_mu, pdMS_TO_TICKS(200)) != pdTRUE) return false;
@@ -157,11 +133,10 @@ void uart2Task(void*) {
   g_mu = xSemaphoreCreateMutex();
   configASSERT(g_mu != nullptr);
   PortCfg cur{};
-  GpsState gps{}, pub{};
   KissRx* kiss = nullptr;
   static char line[400];
   size_t ln = 0;
-  uint32_t lastCfg = 0, lastSentence = 0;
+  uint32_t lastCfg = 0;
   bool open = false, first = true;
 
   for (;;) {
@@ -179,7 +154,6 @@ void uart2Task(void*) {
         open = false;
         cur = n;
         ln = 0;
-        gps = GpsState{};
         xSemaphoreTake(g_mu, portMAX_DELAY);
         delete g_fsm;
         g_fsm = cur.mode == M_BRIDGE ? new BridgeFsm() : nullptr;
@@ -225,8 +199,6 @@ void uart2Task(void*) {
         ln = 0;
         if (cur.mode == M_TNC) {
           aprsIngestLine(line, 'T');
-        } else if (line[0] == '$') {
-          if (nmeaParse(line, gps, now)) lastSentence = now;
         } else if (cur.mode == M_BRIDGE) {
           xSemaphoreTake(g_mu, portMAX_DELAY);
           if (g_fsm) g_fsm->onLine(line);
@@ -257,17 +229,7 @@ void uart2Task(void*) {
         if (have) Serial2.println(cmd);
       }
 
-      if (cur.mode == M_GPS || cur.mode == M_BRIDGE) {
-        if (now - lastSentence > 5000) gps.active = false;
-        if (gps.fix && now - gps.lastFixMs > 15000) gps.fix = false;
-        syncClock(gps, now);
-      }
       vTaskDelay(pdMS_TO_TICKS(5));
-    }
-
-    if (memcmp(&pub, &gps, sizeof gps)) {
-      pub = gps;
-      g_store.gps.write([&](GpsState& g) { g = gps; });
     }
   }
 }
