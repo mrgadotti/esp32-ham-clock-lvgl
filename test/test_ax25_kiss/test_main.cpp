@@ -49,6 +49,14 @@ void test_format_position() {
   TEST_ASSERT_FALSE(formatAprsPosition(1, 1, '/', '-', "Test", b, 10));
 }
 
+void test_format_position_brazil() {
+  char b[64];
+  TEST_ASSERT_TRUE(formatAprsPosition(-26.8, -49.3, '/', '-', "", b, sizeof b));
+  TEST_ASSERT_EQUAL_STRING("!2648.00S/04918.00W-", b);
+  TEST_ASSERT_TRUE(formatAprsPosition(-26.999999, -49.999999, '/', '-', "", b, sizeof b));  // 59.9999' carries into the degree
+  TEST_ASSERT_EQUAL_STRING("!2700.00S/05000.00W-", b);
+}
+
 void test_tx_call_invalid() {
   TEST_ASSERT_FALSE(aprsTxCallValid("N0CALL"));
   TEST_ASSERT_FALSE(aprsTxCallValid("NOCALL-5"));
@@ -99,6 +107,7 @@ void test_hardening() {
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_kiss_escape); RUN_TEST(test_kiss_roundtrip); RUN_TEST(test_digi_hbit);
-  RUN_TEST(test_format_position); RUN_TEST(test_tx_call_invalid); RUN_TEST(test_hardening);
+  RUN_TEST(test_format_position);
+  RUN_TEST(test_format_position_brazil); RUN_TEST(test_tx_call_invalid); RUN_TEST(test_hardening);
   return UNITY_END();
 }

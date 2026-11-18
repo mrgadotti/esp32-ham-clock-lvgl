@@ -35,6 +35,7 @@ bool gotLine, up, connecting, filterSent, passOk;
 uint8_t fails;
 uint32_t nextTry, lastRx, lastFilterMs;
 double fLat, fLon;
+int32_t fRadius;  // radius in the filter last sent
 
 void refreshCfg() {
   uint32_t v = cfgVersion();
@@ -51,7 +52,7 @@ void refreshCfg() {
 }
 
 bool sameSession(const Cfg& a, const Cfg& b) {
-  return a.port == b.port && a.ssid == b.ssid && a.radius == b.radius && !strcmp(a.host, b.host) && !strcmp(a.call, b.call) &&
+  return a.port == b.port && a.ssid == b.ssid && !strcmp(a.host, b.host) && !strcmp(a.call, b.call) &&
          !strcmp(a.pass, b.pass);
 }
 
@@ -65,15 +66,16 @@ void drop(uint32_t now, bool failed) {
   filterSent = false;
 }
 
-// Login: appended to the login line. Later: "#filter" line when moved >= 1 km, at most every 30 s.
+// Login: appended to the login line. Later: "#filter" line when moved >= 1 km or the radius changed, at most every 30 s.
 bool sendFilter(uint32_t now, bool inLogin) {
   double lat, lon;
   if (!serviceCoords(lat, lon)) return false;
-  if (!inLogin && filterSent && (now - lastFilterMs < kFilterMinMs || distanceKm(fLat, fLon, lat, lon) < 1.f)) return false;
+  if (!inLogin && filterSent && (now - lastFilterMs < kFilterMinMs || (c.radius == fRadius && distanceKm(fLat, fLon, lat, lon) < 1.f))) return false;
   client.printf("%sfilter r/%.4f/%.4f/%d", inLogin ? " " : "#", lat, lon, (int)c.radius);
   if (!inLogin) client.print("\r\n");
   fLat = lat;
   fLon = lon;
+  fRadius = c.radius;
   lastFilterMs = now;
   filterSent = true;
   return true;
