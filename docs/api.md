@@ -76,7 +76,7 @@ Response `200`:
   "user_locator": "AA00aa",
   "user_lat": 0.0,
   "user_lon": 0.0,
-  "user_lat_lon_valid": false,
+  "user_lat_lon_valid": true,
   "timezone": -3.0,
   "tft_lang": "en",
   "tft_rotation": 1,
@@ -409,7 +409,7 @@ Sections follow the web page.
 | `user_locator` | str | empty | max 10 chars | no | no |
 | `user_lat` | float | 0 | -90 .. 90 | no | no |
 | `user_lon` | float | 0 | -180 .. 180 | no | no |
-| `user_lat_lon_valid` | bool | false | read-only (ignored on save) | no | no |
+| `user_lat_lon_valid` | bool | false | read-only (ignored on save); reported true when lat or lon is non-zero | no | no |
 | `timezone` | float | 0 | -12 .. 14 (hours) | no | no |
 
 ### DX Cluster

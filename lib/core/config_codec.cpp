@@ -201,7 +201,7 @@ static bool toJson(const Config& c, char* buf, size_t len, bool withSecrets, int
         break;
       case FT_INT: doc[f.jsonKey] = *(const int32_t*)p; break;
       case FT_FLT: doc[f.jsonKey] = *(const float*)p; break;
-      case FT_BOOL: doc[f.jsonKey] = *(const bool*)p; break;
+      case FT_BOOL: doc[f.jsonKey] = f.offset == OFS(user_ll_ok) ? (c.user_ll_ok || c.user_lat != 0 || c.user_lon != 0) : *(const bool*)p; break;  // same rule as serviceCoords
       case FT_LANG: doc[f.jsonKey] = *p == 1 ? "pt-br" : "en"; break;
       case FT_BYTES: {
         JsonArray a = doc[f.jsonKey].to<JsonArray>();
