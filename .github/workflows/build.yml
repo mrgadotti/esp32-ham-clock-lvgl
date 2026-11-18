@@ -26,7 +26,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        env: [cyd, esp32-38pin]
+        include:
+          - env: cyd
+            budget: 3145728 # huge_app.csv app partition
+          - env: esp32-38pin
+            budget: 3145728 # huge_app.csv app partition
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -42,7 +46,7 @@ jobs:
       - run: pio run -e ${{ matrix.env }}
       - name: Size gate
         env:
-          FLASH_BUDGET: 1550000 # bytes of firmware.bin; ~1.50 MB today, keep a little headroom
+          FLASH_BUDGET: ${{ matrix.budget }} # bytes; app partition size for this env
         run: |
           size=$(stat -c %s .pio/build/${{ matrix.env }}/firmware.bin)
           echo "firmware.bin: $size bytes (budget $FLASH_BUDGET)"
