@@ -35,16 +35,18 @@ Screens, in swipe order:
 Screenshots of each screen, captured from a running device with its stored
 settings and live data, so the UI is in Brazilian Portuguese (the device's
 language). Screens that were still waiting for data show their waiting
-message: DX Cluster and APRS list (no spots or stations yet), and HamAlert
-(no login configured). The Settings screen is opened from the gear icon on
-the Clock screen.
+message: APRS list (no stations yet), and HamAlert (no login configured).
+The two Open-Meteo screens are off by default; they must be enabled in Settings
+to appear in the carousel, and were enabled on the device for these images. The Settings screen is opened from the gear icon on the Clock
+screen.
 
 |   |   |   |
 |:---:|:---:|:---:|
 | <img src="docs/screenshots/01-clock.png" width="200"><br>Clock | <img src="docs/screenshots/02-dx.png" width="200"><br>DX Cluster | <img src="docs/screenshots/03-pota.png" width="200"><br>POTA |
 | <img src="docs/screenshots/04-hamalert.png" width="200"><br>HamAlert | <img src="docs/screenshots/05-aprs-list.png" width="200"><br>APRS list | <img src="docs/screenshots/06-aprs-radar.png" width="200"><br>APRS radar |
 | <img src="docs/screenshots/07-propagation.png" width="200"><br>Propagation | <img src="docs/screenshots/08-bands.png" width="200"><br>HF bands | <img src="docs/screenshots/09-weather.png" width="200"><br>Weather |
-| <img src="docs/screenshots/10-forecast.png" width="200"><br>Forecast | <img src="docs/screenshots/12-settings.png" width="200"><br>Settings | |
+| <img src="docs/screenshots/10-forecast.png" width="200"><br>Forecast | <img src="docs/screenshots/11-weather-om.png" width="200"><br>Weather - Open-Meteo | <img src="docs/screenshots/12-forecast-om.png" width="200"><br>Forecast - Open-Meteo |
+| <img src="docs/screenshots/13-settings.png" width="200"><br>Settings | | |
 
 ### Boot screen
 
@@ -52,12 +54,12 @@ While the board starts, the splash screen shows a live log of each boot step
 (display, touch, WiFi, time sync and the first data fetches). The WiFi network
 name is shown in the log; the password is never logged.
 
-<img src="docs/screenshots/13-boot-log.png" width="200"><br>
+<img src="docs/screenshots/14-boot-log.png" width="200"><br>
 Boot log on the splash screen while the WiFi connection starts.
 
 ### Menus
 
-<img src="docs/screenshots/14-dx-menu.png" width="200"> <img src="docs/screenshots/15-aprs-menu.png" width="200"><br>
+<img src="docs/screenshots/15-dx-menu.png" width="200"> <img src="docs/screenshots/16-aprs-menu.png" width="200"><br>
 DX Cluster menu (mode and band filters, Clear DX list) and APRS list menu
 (sort order, APRS settings, Beacon now, Clear APRS list), in Portuguese.
 
