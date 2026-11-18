@@ -110,6 +110,17 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(KmH, "km/h", "km/h") \
   X(WxTemp, "TEMP:", "TEMP:") \
   X(WxWind, "WIND:", "VENTO:") \
+  X(WxCondClear, "Clear sky", "Céu limpo") \
+  X(WxCondPartly, "Partly cloudy", "Parcialmente nublado") \
+  X(WxCondOvercast, "Overcast", "Nublado") \
+  X(WxCondFog, "Fog", "Neblina") \
+  X(WxCondDrizzle, "Drizzle", "Garoa") \
+  X(WxCondRain, "Rain", "Chuva") \
+  X(WxCondFreezingRain, "Freezing rain", "Chuva congelante") \
+  X(WxCondShowers, "Showers", "Pancadas de chuva") \
+  X(WxCondSnow, "Snow", "Neve") \
+  X(WxCondThunder, "Thunderstorm", "Trovoada") \
+  X(WxCondUnknown, "--", "--") \
   /* forecast, units, dates (day/month blocks must stay contiguous, Sunday/January first) */ \
   X(Plus3h, "+3h", "+3h") \
   X(Plus6h, "+6h", "+6h") \
