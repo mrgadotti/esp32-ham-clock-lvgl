@@ -75,7 +75,7 @@ def both(fmt, *keys):
 # ---------------- header (header.cpp: title at x=6 font_18, clock right-aligned at -6) ----------------
 CLK = width("font_18", "00:00 Z")
 HDR_FREE = 320 - 6 - 6 - 6  # title x=6, clock margin 6, 6 px gap
-titles = ["Propagation", "HfBands", "Weather", "Forecast", "Location", "Settings", "AprsRadar", "DxCluster", "Pota", "HamAlert"]
+titles = ["Propagation", "HfBands", "Weather", "Forecast", "Settings", "AprsRadar", "DxCluster", "Pota", "HamAlert"]
 add("Header", "title vs clock 'hh:mm Z'", "font_18", HDR_FREE - CLK, T(*titles))
 add("Header", "APRS list title (x=46) vs clock", "font_18", HDR_FREE - 40 - CLK, T("AprsIs", "AprsKiss", "AprsTnc2"))
 add("Header", "DX/POTA/HamAlert title (x=46) vs clock", "font_18", HDR_FREE - 40 - CLK, T("DxCluster", "Pota", "HamAlert"))
@@ -172,21 +172,7 @@ add("Clock", "date 'Weekday, 30 Month 2026' font_18 (3-letter weekday when the f
     [(lambda full, abbr: full if width("font_18", full) <= 296 else abbr)(
         "%s, 30 %s 2026" % (TR[w][i], TR[m][i]), "%s, 30 %s 2026" % (TR["Day" + w[7:10]][i], TR[m][i]))
      for i in (0, 1) for w in TR if w.startswith("Weekday") for m in TR if m.startswith("Month")])
-# ip row: dot x=15..25, GPS label x=30; centred text must stay right of the GPS label (ends ~ x=30+GPS)
-GPS_END = 30 + width("font_14", "GPS") + 6
-add("Clock", "IP / NO CONNECTION (centred, clear of GPS tag)", "font_18", 320 - 2 * GPS_END, ["255.255.255.255"] + T("NoConnection"))
-
-# ---------------- Location (location_screen.cpp: info font_18 x=8, width to button x=202 for last lines) ----------------
-LOC = []
-for i in (0, 1):
-    p = lambda k: TR[k][i]
-    LOC += ["%s %s  %s %s" % (p("GpsLabel"), p("GpsInactive"), p("Fix"), p("No")),
-            "%s %s  %s %s" % (p("GpsLabel"), p("GpsActive"), p("Fix"), p("Yes")),
-            "%s 99 (G99 R99 E99 B99)" % p("Sats"), "%s -123.45678" % p("Lat"), "%s -123.45678" % p("Lon"),
-            "%s 999.9 km/h" % p("Speed"), "%s AB12CD" % p("Locator")]
-add("Location", "info lines (font_18, 304 px)", "font_18", 304, LOC)
-add("Location", "SAVE button label (110 px)", "font_14", 110 - 16, T("Save"))
-add("Location", "toast SAVED/NO FIX (left of button)", "font_18", 202 - 8 - 8, T("Saved", "NoFix"))
+add("Clock", "IP / NO CONNECTION (centred)", "font_18", 296, ["255.255.255.255"] + T("NoConnection"))
 
 # ---------------- Settings (settings_screen.cpp: row 308 px; dropdown/slider widgets 120+) ----------------
 add("Settings", "label beside slider (308-152)", "font_14", 308 - 152 - 4, T("Brightness"))
@@ -196,7 +182,7 @@ add("Settings", "dropdown option text (120 px - arrow)", "font_14", 120 - 40, ["
 add("Settings", "Calibrate touch button (max 150 px - 16 pad)", "font_14", 150 - 16, T("CalibrateTouch"))
 add("Settings", "title right of back arrow (x=44) vs end of bar", "font_18", 320 - 44 - 6, T("Settings"))
 add("Settings", "section heading", "font_14", 300, T("EnabledScreens"))
-add("Settings", "screen checkbox names", "font_14", 300 - 30, T("Clock", "DxCluster", "Propagation", "HfBands", "Weather", "AprsIs", "Pota", "HamAlert", "AprsRadar", "Forecast", "Location"))
+add("Settings", "screen checkbox names", "font_14", 300 - 30, T("Clock", "DxCluster", "Propagation", "HfBands", "Weather", "AprsIs", "Pota", "HamAlert", "AprsRadar", "Forecast"))
 add("Settings", "info rows (300 px DOT)", "font_14", 300, ["SSID: " + "x" * 12, "IP: 255.255.255.255", "RSSI: -100 dBm", "%s: 999999 B" % TR["FreeHeap"][1], "%s: Nov 16 2026 12:00:00" % TR["Firmware"][1]])
 
 # ---------------- Boot (boot_screen.cpp) ----------------

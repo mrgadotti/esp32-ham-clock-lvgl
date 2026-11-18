@@ -21,7 +21,6 @@ Screens, in swipe order:
 - HF bands
 - Weather
 - Forecast
-- Location
 
 - Swipe left or right to change screen (wraps around).
 - Settings opens from the gear icon at the bottom right of the Clock screen; the left arrow in its header returns.
@@ -44,7 +43,7 @@ the Clock screen.
 | <img src="docs/screenshots/01-clock.png" width="200"><br>Clock | <img src="docs/screenshots/02-dx.png" width="200"><br>DX Cluster | <img src="docs/screenshots/03-pota.png" width="200"><br>POTA |
 | <img src="docs/screenshots/04-hamalert.png" width="200"><br>HamAlert | <img src="docs/screenshots/05-aprs-list.png" width="200"><br>APRS list | <img src="docs/screenshots/06-aprs-radar.png" width="200"><br>APRS radar |
 | <img src="docs/screenshots/07-propagation.png" width="200"><br>Propagation | <img src="docs/screenshots/08-bands.png" width="200"><br>HF bands | <img src="docs/screenshots/09-weather.png" width="200"><br>Weather |
-| <img src="docs/screenshots/10-forecast.png" width="200"><br>Forecast | <img src="docs/screenshots/11-location.png" width="200"><br>Location | <img src="docs/screenshots/12-settings.png" width="200"><br>Settings |
+| <img src="docs/screenshots/10-forecast.png" width="200"><br>Forecast | <img src="docs/screenshots/12-settings.png" width="200"><br>Settings | |
 
 ### Boot screen
 

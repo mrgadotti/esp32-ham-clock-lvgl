@@ -38,8 +38,8 @@ returns 404.
 | POST | `/api/save` | Partial update of settings | none |
 | GET | `/api/backup` | Full settings export, **secrets in plain text** | none |
 | POST | `/api/reset_touch` | Clear touch calibration, start it on the screen | none |
-| GET | `/api/status` | IP, RSSI, uptime, heap, version, GPS, QRZ status | none |
-| GET | `/api/uart_status` | UART2 module and GPS/BT state | none |
+| GET | `/api/status` | IP, RSSI, uptime, heap, version, QRZ status | none |
+| GET | `/api/uart_status` | UART2 module and BT state | none |
 | GET | `/api/bridge_bt_status` | Bluetooth bridge state and device list | none |
 | POST | `/api/bridge_bt_scan` | Start a Bluetooth scan (bridge mode only) | none |
 | POST | `/api/bridge_bt_pair` | Pair with a device (bridge mode only) | none |
@@ -80,7 +80,7 @@ Response `200`:
   "timezone": -3.0,
   "tft_lang": "en",
   "tft_rotation": 1,
-  "screen_order": [1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 13, 0]
+  "screen_order": [1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 0, 0]
 }
 ```
 
@@ -167,15 +167,15 @@ restoring on another board.
 
 Every persisted value (NVS namespace `hamclk`), nothing else is stored:
 
-- All 76 table fields (including `tcal` below): WiFi and AP (SSIDs, passwords), station (callsign,
-  locator, lat/lon, timezone, GPS auto-position), DX cluster, HamAlert, APRS-IS
+- All 74 table fields (including `tcal` below): WiFi and AP (SSIDs, passwords), station (callsign,
+  locator, lat/lon, timezone), DX cluster, HamAlert, APRS-IS
   and beacon, alert and LED settings, QRZ and OpenWeather credentials, UART2 and
   bridge settings, Bluetooth pairing, display (backlight, night dimming, invert,
   language, rotation, auto-switch), `screen_order`, `scr_en`, the per-screen
   filters (`s2_*`, `s7_*`, `s8_*`, `screen1_time`) and `aprs_sort`.
 - `tcal`, the touch calibration of the panel (per device, see below).
 - `last_scr`, the last manually selected screen (NVS key `last_scr`, not part of
-  the table). Always a valid screen id (never 0, Settings, Matrix or Game); on
+  the table). Always a valid screen id (never 0 or Settings); on
   import anything else is rejected with `400 bad_value:last_scr`.
 
 Before this, the backup lacked `tcal`, `last_scr`, `screen1_time`, `s2_*`,
@@ -224,7 +224,6 @@ Response `200`:
   "uptime_s": 1234,
   "heap_free": 150000,
   "version": "2.0.0-dev",
-  "gps": {"active": false, "fix": false, "lat": 0.0, "lon": 0.0},
   "qrz_status": "disabled",
   "uart2_rx_pin": 27,
   "uart2_tx_pin": 22
@@ -249,9 +248,7 @@ Response `200`:
 
 ```json
 {
-  "uart2_connected_module": "gps",
-  "gps_active": true,
-  "gps_fix": false,
+  "uart2_connected_module": "none",
   "bt_active": false,
   "aprs_uart_active": false
 }
@@ -414,7 +411,6 @@ Sections follow the web page.
 | `user_lon` | float | 0 | -180 .. 180 | no | no |
 | `user_lat_lon_valid` | bool | false | read-only (ignored on save) | no | no |
 | `timezone` | float | 0 | -12 .. 14 (hours) | no | no |
-| `use_gps_if_active` | bool | false | | no | no |
 
 ### DX Cluster
 
@@ -484,12 +480,11 @@ Sections follow the web page.
 | `qrz_user` | str | empty | max 31 chars | no | no |
 | `qrz_pass` | str | empty | max 31 chars | **yes** | no |
 
-### UART2 / GPS / bridge
+### UART2 / bridge
 
 | JSON key | Type | Default | Range / limits | Secret | Restart |
 |---|---|---|---|---|---|
-| `uart2_mode` | str | `gps` | max 7 chars (API only, not on the page) | no | yes |
-| `uart2_connected_module` | str | `none` | max 19 chars; page offers `none`, `gps`, `aprs_tnc`, `aprs_tnc_kiss`, `esp32_bridge` | no | yes |
+| `uart2_connected_module` | str | `none` | max 19 chars; page offers `none`, `aprs_tnc`, `aprs_tnc_kiss`, `esp32_bridge`; a stored `gps` value is converted to `none` | no | yes |
 | `uart2_baud` | int | 9600 | 300 .. 2000000 | no | yes |
 | `uart2_data_bits` | int | 8 | 7 .. 8 | no | yes |
 | `uart2_parity` | str | `none` | max 5 chars; page offers `none`, `even`, `odd` | no | yes |
@@ -506,12 +501,11 @@ Sections follow the web page.
 | `tft_rotation` | int | 1 | 1 or 3 (other values become 1) | no | no |
 | `tft_auto_switch` | bool | false | | no | no |
 | `tft_switch_time_sec` | int | 30 | 1 .. 3600 (s) | no | no |
-| `screen_order` | int[12] | `[1,2,6,9,4,3,5,12,7,8,13,0]` | each 0 .. 13; 0 = off; invalid or duplicate ids become 0 | no | no |
-| `scr_en` | int | 13310 (`0x33FE`) | bitmask, clamped to 0 .. 16382 (`0x3FFE`), bits 0, 10 and 11 always cleared | no | no |
+| `screen_order` | int[12] | `[1,2,6,9,4,3,5,12,7,8,0,0]` | each 0 .. 12; 0 = off; invalid or duplicate ids become 0 | no | no |
+| `scr_en` | int | 5118 (`0x13FE`) | bitmask, clamped to 0 .. 16382 (`0x3FFE`), bits outside `0x13FE` always cleared | no | no |
 
 `scr_en` bit = screen id: 1 HamClock, 2 DX Cluster, 3 Sunspots, 4 Band info,
-5 Weather, 6 APRS list, 7 POTA, 8 HamAlert, 9 APRS radar, 12 Forecast,
-13 Location.
+5 Weather, 6 APRS list, 7 POTA, 8 HamAlert, 9 APRS radar, 12 Forecast.
 
 ### Keys without a form field
 
