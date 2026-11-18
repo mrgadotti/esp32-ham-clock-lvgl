@@ -33,14 +33,14 @@ void test_parse_sample() {
   TEST_ASSERT_TRUE(parse(b, w));
   TEST_ASSERT_EQUAL_FLOAT(22.8f, w.tempC); TEST_ASSERT_EQUAL_INT(74, w.humidity);
   TEST_ASSERT_EQUAL_INT(930, w.pressure); TEST_ASSERT_EQUAL_FLOAT(1.3f, w.windMs);
-  TEST_ASSERT_EQUAL_INT(802, w.weatherId); TEST_ASSERT_EQUAL_STRING("01d", w.iconCode);
+  TEST_ASSERT_EQUAL_INT(802, w.weatherId); TEST_ASSERT_EQUAL_INT((int)WxDay::Day, (int)w.day);
   for (int i = 0; i < 4; i++) TEST_ASSERT_TRUE(w.detailValid[i]);
   TEST_ASSERT_FALSE(w.detailValid[4]);
   TEST_ASSERT_EQUAL_FLOAT(23.5f, w.detailTempC[0]); TEST_ASSERT_EQUAL_INT(500, w.detailWeatherId[0]);
   TEST_ASSERT_EQUAL_FLOAT(26.5f, w.detailTempC[1]); TEST_ASSERT_EQUAL_INT(211, w.detailWeatherId[1]);
   TEST_ASSERT_EQUAL_FLOAT(29.8f, w.detailTempC[2]); TEST_ASSERT_EQUAL_INT(66, w.detailHumidity[2]);
   TEST_ASSERT_EQUAL_FLOAT(5.0f, w.detailWindMs[3]); TEST_ASSERT_EQUAL_INT(600, w.detailWeatherId[3]);
-  TEST_ASSERT_EQUAL_STRING("01d", w.detailIconCode[2]);
+  TEST_ASSERT_FALSE(w.detailNight[2]);
   TEST_ASSERT_TRUE(w.nightTempValid[0]); TEST_ASSERT_TRUE(w.nightTempValid[1]);
   TEST_ASSERT_EQUAL_FLOAT(19.1f, w.nightTempC[0]); TEST_ASSERT_EQUAL_FLOAT(19.8f, w.nightTempC[1]);
   TEST_ASSERT_EQUAL_FLOAT(7.5f, w.fcWindMaxMs); TEST_ASSERT_EQUAL_FLOAT(11.2f, w.fcWindGustMs);
@@ -49,7 +49,7 @@ void test_parse_sample() {
 void test_parse_night_icon() {
   char b[1200]; sample(b, sizeof b, 0, HOURLY7);
   WeatherData w; memset(&w, 0, sizeof w);
-  TEST_ASSERT_TRUE(parse(b, w)); TEST_ASSERT_EQUAL_STRING("01n", w.iconCode);
+  TEST_ASSERT_TRUE(parse(b, w)); TEST_ASSERT_EQUAL_INT((int)WxDay::Night, (int)w.day);
 }
 void test_parse_error_body_rejected() {
   WeatherData w; memset(&w, 0, sizeof w); w.tempC = 5.0f;

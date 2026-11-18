@@ -8,4 +8,8 @@ bool weatherParseCurrent(JsonDocument& doc, WeatherData& out);  // /weather; doe
 // /forecast. nowUnix (UTC secs, 0 = clock unknown) and tzOffsetSec pick day slots and the 6 h alert window.
 bool weatherParseForecast(JsonDocument& doc, WeatherData& out, long nowUnix = 0, long tzOffsetSec = 0);
 bool weatherParseAir(JsonDocument& doc, WeatherData& out);      // /air_pollution
-bool isNightFromIcon(const char* iconCode);                     // icon code ends with 'n'
+// Night from UTC unix time t and sunrise/sunset (0 = unknown -> day). Works on time of day, so values from
+// another day still line up.
+bool wxNightAt(long t, long sunrise, long sunset);
+// Current night state: Open-Meteo is_day when present, else OpenWeather sunrise/sunset at `now` (0 = clock unknown).
+bool wxIsNight(const WeatherData& w, long now);

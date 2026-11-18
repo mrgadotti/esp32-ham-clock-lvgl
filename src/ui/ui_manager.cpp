@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <atomic>
+#include <time.h>
 
 #include "i18n.h"
 #include "../app/config_store.h"
@@ -9,6 +10,7 @@
 #include "../hal/display.h"
 #include "../hal/touch.h"
 #include "weather_json.h"
+#include "../net/time_service.h"
 #include "../hal/touch_cal_ui.h"
 #include "overlays/alert_overlay.h"
 #include "screens/boot_screen.h"
@@ -26,6 +28,7 @@ static bool pendingRebuild;
 static uint32_t bootStart, lastTick, lastSwitch;
 static lv_obj_t* bootObj;
 static bool night;
+static WeatherData wxSnap;  // copy of the OpenWeather store, refreshed on each new version
 static uint32_t lastWxVer = ~0u;
 static uint8_t lastSaved;  // last screen id written to NVS
 
@@ -127,10 +130,11 @@ void uiTick(uint32_t now) {
   }
   if (uint32_t v = g_store.weather.version(); v != lastWxVer) {
     lastWxVer = v;
-    char ic[8];
-    g_store.weather.read([&](const WeatherData& w) { memcpy(ic, w.iconCode, sizeof ic); });
-    ic[7] = 0;
-    night = isNightFromIcon(ic);
+    g_store.weather.read([](const WeatherData& w) { wxSnap = w; });
+  }
+  bool n = wxIsNight(wxSnap, timeValid() ? (long)time(nullptr) : 0);  // follows sunrise/sunset every tick, not only on fetch
+  if (n != night) {
+    night = n;
     applyNight();
   }
   if (booting) {

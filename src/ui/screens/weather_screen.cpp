@@ -75,7 +75,7 @@ class WeatherScreen : public Screen {
     for (lv_obj_t* o : body) lv_obj_set_flag(o, LV_OBJ_FLAG_HIDDEN, !w.valid);
     if (!w.valid) return;
     lv_label_set_text_fmt(temp_, "%.1f \xC2\xB0""C", (double)w.tempC);
-    wxIconSet(icon_, w.weatherId, isNightFromIcon(w.iconCode));
+    wxIconSet(icon_, w.weatherId, wxNightNow(w));
     lv_label_set_text(desc_, om_ ? tr(wxOmDescTr(w.weatherId)) : w.description);
     lv_label_set_text_fmt(val_[0], "%d%%", w.humidity);
     lv_label_set_text_fmt(val_[1], "%d %s", w.pressure, tr(Tr::HPa));

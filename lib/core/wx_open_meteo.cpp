@@ -51,7 +51,7 @@ bool openMeteoParse(JsonDocument& doc, WeatherData& out, bool airOnly) {
   t.pressure = (int)lroundf(cur["surface_pressure"] | 0.0f);
   t.windMs = cur["wind_speed_10m"] | 0.0f;
   t.weatherId = wmoToOwmId(cur["weather_code"] | 0);
-  strcpy(t.iconCode, (cur["is_day"] | 1) ? "01d" : "01n");
+  t.day = (cur["is_day"] | 1) ? WxDay::Day : WxDay::Night;
 
   JsonVariantConst h = root["hourly"], d = root["daily"];
   // Columns 0..1: hourly +3h / +6h; columns 2..3: daily tomorrow / day after. Column 4 is unused here.
@@ -66,7 +66,7 @@ bool openMeteoParse(JsonDocument& doc, WeatherData& out, bool airOnly) {
     t.detailHumidity[s] = (int)lroundf((hourly ? h["relative_humidity_2m"][i] : d["relative_humidity_2m_mean"][i]) | 0.0f);
     t.detailWindMs[s] = (hourly ? h["wind_speed_10m"][i] : d["wind_speed_10m_max"][i]) | 0.0f;
     t.detailWeatherId[s] = wmoToOwmId((hourly ? h : d)["weather_code"][i] | 0);
-    strcpy(t.detailIconCode[s], "01d");
+    t.detailNight[s] = false;  // hourly/daily is_day not requested
   }
   for (int n = 0; n < 2; n++) {
     JsonVariantConst m = d["temperature_2m_min"];

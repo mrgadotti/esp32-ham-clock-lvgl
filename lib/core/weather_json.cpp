@@ -18,9 +18,17 @@ static void copyText(char* dst, size_t cap, const char* src) {
   dst[n] = 0;
 }
 
-bool isNightFromIcon(const char* c) {
-  size_t n = c ? strlen(c) : 0;
-  return n > 0 && c[n - 1] == 'n';
+static long dayPos(long t) { return ((t % 86400L) + 86400L) % 86400L; }
+
+bool wxNightAt(long t, long sunrise, long sunset) {
+  if (t < 100000L || sunrise <= 0 || sunset <= 0) return false;
+  long span = dayPos(sunset - sunrise);
+  return span > 0 && dayPos(t - sunrise) >= span;
+}
+
+bool wxIsNight(const WeatherData& w, long now) {
+  if (w.day != WxDay::Unknown) return w.day == WxDay::Night;
+  return wxNightAt(now, (long)w.sunrise, (long)w.sunset);
 }
 
 bool weatherParseCurrent(JsonDocument& doc, WeatherData& out) {
@@ -32,12 +40,13 @@ bool weatherParseCurrent(JsonDocument& doc, WeatherData& out) {
   copyText(out.description, sizeof out.description, w["description"] | "");
   if (!out.description[0]) strcpy(out.description, "--");
   copyText(out.cityName, sizeof out.cityName, root["name"] | "");
-  copyText(out.iconCode, sizeof out.iconCode, w["icon"] | "");
   out.weatherId = w["id"] | 800;
   out.tempC = m["temp"] | 0.0f;
   out.humidity = m["humidity"] | 0;
   out.pressure = m["pressure"] | 0;
   out.windMs = root["wind"]["speed"] | 0.0f;
+  out.sunrise = (uint32_t)(root["sys"]["sunrise"] | 0L);
+  out.sunset = (uint32_t)(root["sys"]["sunset"] | 0L);
   out.valid = true;
   return true;
 }
@@ -62,6 +71,7 @@ bool weatherParseForecast(JsonDocument& doc, WeatherData& out, long nowUnix, lon
     if (list[k].is<JsonObjectConst>() && (list[k]["dt"] | 0L) > 0) vi[n++] = (int)k;
   if (n == 0) return false;
   const bool haveClock = nowUnix > 100000L;
+  const long sunrise = root["city"]["sunrise"] | 0L, sunset = root["city"]["sunset"] | 0L;
 
   // Next-6h storm / wind scan (feeds the alert scheduler).
   int stormEta = 0; float maxWind = 0, maxGust = 0;
@@ -98,10 +108,7 @@ bool weatherParseForecast(JsonDocument& doc, WeatherData& out, long nowUnix, lon
         long l = dt + tz;
         if ((l / 86400L) * 86400L != dayStart) continue;
         int h = (int)((l % 86400L) / 3600L);
-        const char* ic = list[vi[i]]["weather"][0]["icon"] | "";
-        size_t il = strlen(ic);
-        bool day = (h >= 9 && h <= 18) || (il && ic[il - 1] == 'd');
-        long score = labs(l - noon) + (day ? 0 : 12L * 3600L);
+        long score = labs(l - noon) + (h >= 9 && h <= 18 ? 0 : 12L * 3600L);
         if (score < best) { best = score; idx = i; }
       }
     }
@@ -120,7 +127,7 @@ bool weatherParseForecast(JsonDocument& doc, WeatherData& out, long nowUnix, lon
     t.detailHumidity[s] = em["humidity"] | 0;
     t.detailWindMs[s] = e["wind"]["speed"] | 0.0f;
     t.detailWeatherId[s] = ew["id"] | 800;
-    copyText(t.detailIconCode[s], sizeof t.detailIconCode[s], ew["icon"] | "");
+    t.detailNight[s] = haveClock && wxNightAt(e["dt"] | 0L, sunrise, sunset);
     t.detailValid[s] = true;
   }
 

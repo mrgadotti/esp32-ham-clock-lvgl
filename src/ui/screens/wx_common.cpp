@@ -9,6 +9,7 @@
 #include "wx_map.h"
 #include "../../app/config_store.h"
 #include "../../net/time_service.h"
+#include "weather_json.h"
 #include "../fonts/fonts.h"
 #include "../icons/weather_icons.h"
 #include "../theme.h"
@@ -34,6 +35,8 @@ lv_obj_t* wxIconCreate(lv_obj_t* p, int x, int y) {
   lv_obj_add_flag(im, LV_OBJ_FLAG_HIDDEN);
   return s;
 }
+
+bool wxNightNow(const WeatherData& w) { return wxIsNight(w, timeValid() ? (long)time(nullptr) : 0); }
 
 void wxIconSet(lv_obj_t* s, int id, bool night) {
   const lv_image_dsc_t* d = weatherIcon(id, night);

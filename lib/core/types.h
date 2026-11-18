@@ -29,12 +29,15 @@ struct PropagationData {
 };
 
 constexpr int WX_DETAIL_COLS = 5;
+enum class WxDay : uint8_t { Unknown, Day, Night };  // Open-Meteo current.is_day; Unknown for OpenWeather
 struct WeatherData {
-  char cityName[32], description[40], iconCode[8];
-  char detailIconCode[WX_DETAIL_COLS][8];
+  char cityName[32], description[40];
   int weatherId; float tempC, windMs, pm25, pm10; int humidity, pressure;
+  uint32_t sunrise, sunset;  // OpenWeather sys.sunrise/sunset, UTC unix seconds; 0 = unknown
+  WxDay day;
   float detailTempC[WX_DETAIL_COLS]; int detailHumidity[WX_DETAIL_COLS];
   float detailWindMs[WX_DETAIL_COLS]; int detailWeatherId[WX_DETAIL_COLS]; bool detailValid[WX_DETAIL_COLS];
+  bool detailNight[WX_DETAIL_COLS];  // forecast slot is after sunset (OpenWeather city sunrise/sunset)
   float nightTempC[2]; bool nightTempValid[2];
   bool valid; uint32_t fetchedAt;
   bool fetchFailed, forecastFetchFailed;  // set by the service; screens map them to translated text

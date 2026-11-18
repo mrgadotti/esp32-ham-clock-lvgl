@@ -10,19 +10,20 @@ void test_current_fixture() {
   deserializeJson(d,
     "{\"coord\":{\"lon\":-46.63,\"lat\":-23.55},\"weather\":[{\"id\":501,\"main\":\"Rain\","
     "\"description\":\"chuva moderada \xC3\xA0s \xE2\x82\xAC\",\"icon\":\"10n\"}],\"main\":{\"temp\":18.4,"
-    "\"pressure\":1012,\"humidity\":82},\"wind\":{\"speed\":3.6,\"deg\":200},\"name\":\"S\xC3\xA3o Paulo\",\"cod\":200}");
+    "\"pressure\":1012,\"humidity\":82},\"wind\":{\"speed\":3.6,\"deg\":200},\"sys\":{\"sunrise\":1794814200,\"sunset\":1794850200},"
+    "\"name\":\"S\xC3\xA3o Paulo\",\"cod\":200}");
   WeatherData w; memset(&w, 0, sizeof w);
   TEST_ASSERT_TRUE(weatherParseCurrent(d, w));
   TEST_ASSERT_TRUE(w.valid);
   TEST_ASSERT_EQUAL_FLOAT(18.4f, w.tempC);
   TEST_ASSERT_EQUAL_INT(82, w.humidity); TEST_ASSERT_EQUAL_INT(1012, w.pressure);
   TEST_ASSERT_EQUAL_FLOAT(3.6f, w.windMs); TEST_ASSERT_EQUAL_INT(501, w.weatherId);
-  TEST_ASSERT_EQUAL_STRING("10n", w.iconCode);
+  TEST_ASSERT_EQUAL_UINT32(1794814200u, w.sunrise); TEST_ASSERT_EQUAL_UINT32(1794850200u, w.sunset);
   TEST_ASSERT_EQUAL_STRING("S\xC3\xA3o Paulo", w.cityName);
   // Latin-1 kept as UTF-8, euro sign (outside Latin-1) dropped
   TEST_ASSERT_EQUAL_STRING("chuva moderada \xC3\xA0s ", w.description);
-  TEST_ASSERT_TRUE(isNightFromIcon(w.iconCode));
-  TEST_ASSERT_FALSE(isNightFromIcon("01d")); TEST_ASSERT_FALSE(isNightFromIcon(""));
+  TEST_ASSERT_FALSE(wxIsNight(w, NOW));       // 12:00 UTC, sun up
+  TEST_ASSERT_TRUE(wxIsNight(w, 1794852000));  // 18:00 UTC, after sunset
 }
 
 void test_forecast_fixture() {
@@ -35,11 +36,11 @@ void test_forecast_fixture() {
     "{\"dt\":1794949200,\"main\":{\"temp\":6.0,\"humidity\":70},\"weather\":[{\"id\":800,\"icon\":\"01n\"}],\"wind\":{\"speed\":1.0}},"
     "{\"dt\":1794970800,\"main\":{\"temp\":2.0,\"humidity\":90},\"weather\":[{\"id\":800,\"icon\":\"01n\"}],\"wind\":{\"speed\":1.0}},"
     "{\"dt\":1795003200,\"main\":{\"temp\":7.0,\"humidity\":55},\"weather\":[{\"id\":600,\"icon\":\"13d\"}],\"wind\":{\"speed\":5.5}}"
-    "],\"city\":{\"name\":\"Lisboa\"}}");
+    "],\"city\":{\"name\":\"Lisboa\",\"sunrise\":1794814200,\"sunset\":1794850200}}");
   WeatherData w; memset(&w, 0, sizeof w);
   TEST_ASSERT_TRUE(weatherParseForecast(d, w, NOW, 0));
   TEST_ASSERT_TRUE(w.detailValid[0]); TEST_ASSERT_EQUAL_FLOAT(10.0f, w.detailTempC[0]);
-  TEST_ASSERT_EQUAL_INT(211, w.detailWeatherId[0]); TEST_ASSERT_EQUAL_STRING("11d", w.detailIconCode[0]);
+  TEST_ASSERT_EQUAL_INT(211, w.detailWeatherId[0]); TEST_ASSERT_FALSE(w.detailNight[0]); TEST_ASSERT_TRUE(w.detailNight[1]);  // 15:00 day, 18:00 night
   TEST_ASSERT_EQUAL_FLOAT(8.0f, w.detailTempC[1]);                       // +6h
   TEST_ASSERT_EQUAL_FLOAT(9.0f, w.detailTempC[2]);                       // tomorrow noon
   TEST_ASSERT_EQUAL_INT(60, w.detailHumidity[2]);
@@ -93,6 +94,24 @@ void test_night_min_small_hours() {
   TEST_ASSERT_FALSE(weatherParseForecast(d, k, NOW, 0)); TEST_ASSERT_FALSE(k.detailValid[0]);
 }
 
+void test_night_from_sun() {
+  const long RISE = 1794814200L, SET = 1794850200L;  // 07:30 and 17:30 UTC
+  TEST_ASSERT_FALSE(wxNightAt(NOW, RISE, SET));                  // 12:00
+  TEST_ASSERT_TRUE(wxNightAt(NOW + 6L * 3600, RISE, SET));       // 18:00
+  TEST_ASSERT_TRUE(wxNightAt(RISE - 3600, RISE, SET));           // 06:30, before sunrise
+  TEST_ASSERT_FALSE(wxNightAt(RISE, RISE, SET));                 // sunrise itself is day
+  TEST_ASSERT_FALSE(wxNightAt(NOW + 86400L, RISE, SET));         // yesterday's times still line up (next day noon)
+  TEST_ASSERT_FALSE(wxNightAt(NOW, 0, 0));                       // unknown sun times (polar / missing) -> day
+  TEST_ASSERT_FALSE(wxNightAt(0, RISE, SET));                    // clock not set -> day
+  WeatherData w; memset(&w, 0, sizeof w);
+  w.sunrise = RISE; w.sunset = SET;
+  TEST_ASSERT_TRUE(wxIsNight(w, NOW + 6L * 3600));
+  w.day = WxDay::Day;  // Open-Meteo is_day wins over the sun times
+  TEST_ASSERT_FALSE(wxIsNight(w, NOW + 6L * 3600));
+  w.day = WxDay::Night;
+  TEST_ASSERT_TRUE(wxIsNight(w, NOW));
+}
+
 void test_text_sanitizing() {
   JsonDocument d;
   WeatherData w; memset(&w, 0, sizeof w);
@@ -129,6 +148,6 @@ int main() {
   UNITY_BEGIN();
   RUN_TEST(test_night_min_small_hours); RUN_TEST(test_text_sanitizing); RUN_TEST(test_text_drops_glyphs_missing_from_fonts); RUN_TEST(test_air_requires_pm);
   RUN_TEST(test_current_fixture); RUN_TEST(test_forecast_fixture);
-  RUN_TEST(test_air_fixture); RUN_TEST(test_weather_rejects_garbage);
+  RUN_TEST(test_air_fixture); RUN_TEST(test_weather_rejects_garbage); RUN_TEST(test_night_from_sun);
   return UNITY_END();
 }

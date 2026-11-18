@@ -112,7 +112,7 @@ class ForecastScreen : public Screen {
       lv_label_set_text_fmt(hum_[c], "%d%%", w.detailHumidity[c]);
       lv_label_set_text_fmt(wind_[c], "%.1f%s", (double)w.detailWindMs[c], tr(Tr::Ms));
       lv_obj_set_style_text_color(wind_[c], wxWindColor(w.detailWindMs[c]), 0);
-      wxIconSet(icon_[c], w.detailWeatherId[c], isNightFromIcon(w.detailIconCode[c]));
+      wxIconSet(icon_[c], w.detailWeatherId[c], w.detailNight[c]);
     }
   }
 };
