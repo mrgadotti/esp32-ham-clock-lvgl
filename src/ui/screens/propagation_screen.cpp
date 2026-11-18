@@ -13,7 +13,7 @@ class PropagationScreen : public Screen {
   void create(lv_obj_t* p) override {
     hdr_ = headerCreate(p, Tr::Propagation);
     static const Tr names[4] = {Tr::Sfi, Tr::KIndex, Tr::AIndex, Tr::Muf};
-    const lv_color_t grey = lv_color_hex(0xC0C0C0);
+    const lv_color_t grey = COL_GREY;
     for (int i = 0; i < 4; i++) {
       int y = HEADER_H + 4 + i * 38;
       uiLabel(p, &font_14, grey, tr(names[i]), 10, y + 12);
@@ -21,7 +21,7 @@ class PropagationScreen : public Screen {
     }
     uiLabel(p, &font_14, grey, tr(Tr::UpdatedUtc), 10, 186);
     upd_ = uiLabel(p, &font_14, COL_TEXT, "", 10, 204);
-    age_ = uiLabel(p, &font_14, lv_color_hex(0x808080), "", 10, 222);
+    age_ = uiLabel(p, &font_14, COL_DIM, "", 10, 222);
     err_ = uiLabel(p, &font_14, COL_ERROR, tr(Tr::NoData), 10, 172);
     refresh(0);
   }
@@ -38,7 +38,7 @@ class PropagationScreen : public Screen {
   void refresh(uint32_t now) {
     feed_.refresh(now, upd_, age_, err_, [&](const PropagationData& d) {
       const char* v[4] = {d.sfi, d.kindex, d.aindex, d.muf};
-      lv_color_t col[4] = {lv_color_hex(0x00FF00), kColor(d), lv_color_hex(0x00FFFF), lv_color_hex(0xFFFF00)};
+      lv_color_t col[4] = {lv_color_hex(0x00FF00), kColor(d), COL_CYAN, lv_color_hex(0xFFFF00)};
       for (int i = 0; i < 4; i++) {
         lv_label_set_text(val_[i], d.valid ? v[i] : "--");
         lv_obj_set_style_text_color(val_[i], col[i], 0);

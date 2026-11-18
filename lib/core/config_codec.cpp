@@ -6,7 +6,7 @@
 #include <string.h>
 #include <strings.h>
 
-#include "gesture.h"
+#include "carousel.h"
 #include "touch_cal.h"
 
 #define OFS(m) (uint16_t) offsetof(Config, m)

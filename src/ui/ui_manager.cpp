@@ -11,7 +11,7 @@
 #include "../hal/touch.h"
 #include "weather_json.h"
 #include "../net/time_service.h"
-#include "../hal/touch_cal_ui.h"
+#include "overlays/touch_cal_ui.h"
 #include "overlays/alert_overlay.h"
 #include "screens/boot_screen.h"
 
@@ -53,6 +53,15 @@ void uiInit() {
 
 static uint32_t memShowAt;
 static int memShowId;
+
+// Debug: logs the LV_MEM state once, 3 s after a screen was built (showForce arms it).
+static void memLogSettled(uint32_t now) {
+  if (!memShowAt || (int32_t)(now - memShowAt) < 0) return;
+  memShowAt = 0;
+  lv_mem_monitor_t m;
+  lv_mem_monitor(&m);
+  Serial.printf("[MEM] screen %d settled lvfree=%u big=%u\n", memShowId, (unsigned)m.free_size, (unsigned)m.free_biggest_size);
+}
 
 static void showForce(ScreenId id) {
   // Free the old screen BEFORE building the new one so LV_MEM peaks at max(old, new), not old + new.
@@ -121,30 +130,24 @@ void uiTick(uint32_t now) {
   if (touchCalActive()) return;  // calibration is modal: no screen switch, overlay or boot hand-over may cover it
 
   overlayTick(now);
-  if (memShowAt && (int32_t)(now - memShowAt) >= 0) {
-    memShowAt = 0;
-    lv_mem_monitor_t m;
-    lv_mem_monitor(&m);
-    Serial.printf("[MEM] screen %d settled lvfree=%u big=%u\n", memShowId, (unsigned)m.free_size,
-                  (unsigned)m.free_biggest_size);
-  }
+  memLogSettled(now);
   if (uint32_t v = g_store.weather.version(); v != lastWxVer) {
     lastWxVer = v;
     g_store.weather.read([](const WeatherData& w) { wxSnap = w; });
   }
-  bool n = wxIsNight(wxSnap, timeValid() ? (long)time(nullptr) : 0);  // follows sunrise/sunset every tick, not only on fetch
-  if (n != night) {
-    night = n;
+  bool isNight = wxIsNight(wxSnap, timeValid() ? (long)time(nullptr) : 0);  // follows sunrise/sunset every tick, not only on fetch
+  if (isNight != night) {
+    night = isNight;
     applyNight();
   }
   if (booting) {
-    NetStatus n;
-    g_store.net.read([&](const NetStatus& s) { n = s; });
+    NetStatus net;
+    g_store.net.read([&](const NetStatus& s) { net = s; });
     bootScreenUpdate();
     uint32_t el = now - bootStart;
     // Screen 1 shrinks the largest heap block below what a TLS handshake needs (M-06): hold it until the first HTTPS
     // round is over. No WiFi or a dead network: the caps (10 s / 20 s) release it anyway.
-    if (el < (n.sta ? BOOT_ROUND_MAX_MS : BOOT_MAX_MS) && (el < BOOT_MIN_MS || !(n.sta && n.roundDone))) return;
+    if (el < (net.sta ? BOOT_ROUND_MAX_MS : BOOT_MAX_MS) && (el < BOOT_MIN_MS || !(net.sta && net.roundDone))) return;
     booting = false;
     pendingDir = 0;
     pendingTarget = 0;

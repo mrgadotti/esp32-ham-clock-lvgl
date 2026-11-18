@@ -9,7 +9,7 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "src", "ui", "icons", "aprs")
-SIZES = [16, 24, 32, 48]
+SIZES = [16, 24, 32]  # the 48 px alert icon is the 32 px bitmap scaled 1.5x in alert_overlay.cpp
 # (enum name, primary-table code). Lora has no APRSdroid art: it reuses '&' (gateway).
 SYMS = [("House", "-"), ("Car", ">"), ("Human", "["), ("Digi", "#"), ("Repeater", "r"), ("Laptop", "l"), ("Wx", "_"),
         ("Ship", "s"), ("Ambulance", "a"), ("Bike", "b"), ("Icp", "c"), ("Fire", "d"), ("Firetruck", "f"),

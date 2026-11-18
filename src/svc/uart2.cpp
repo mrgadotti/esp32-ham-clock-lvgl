@@ -36,13 +36,13 @@ uint32_t serialCfg(const PortCfg& p) {
 }
 
 void readPortCfg(PortCfg& p) {
-  static Config c;  // uart task only; too big for its stack
-  cfgGet(c);
-  p.mode = modeOf(c.uart2_cmod);
-  p.baud = c.uart2_baud;
-  p.dbits = c.uart2_dbits;
-  p.stop = c.uart2_stop;
-  strlcpy(p.par, c.uart2_par, sizeof p.par);
+  cfgRead([&](const Config& c) {
+    p.mode = modeOf(c.uart2_cmod);
+    p.baud = c.uart2_baud;
+    p.dbits = c.uart2_dbits;
+    p.stop = c.uart2_stop;
+    strlcpy(p.par, c.uart2_par, sizeof p.par);
+  });
 }
 
 bool samePort(const PortCfg& a, const PortCfg& b) {
@@ -136,13 +136,13 @@ void uart2Task(void*) {
   KissRx* kiss = nullptr;
   static char line[400];
   size_t ln = 0;
-  uint32_t lastCfg = 0;
+  uint32_t cfgVer = ~0u;
   bool open = false, first = true;
 
   for (;;) {
     uint32_t now = millis();
-    if (first || now - lastCfg >= 2000) {
-      lastCfg = now;
+    if (first || cfgVersion() != cfgVer) {
+      cfgVer = cfgVersion();  // read before the config: a racing update only costs one extra refresh
       PortCfg n;
       readPortCfg(n);
       if (first || !samePort(n, cur)) {

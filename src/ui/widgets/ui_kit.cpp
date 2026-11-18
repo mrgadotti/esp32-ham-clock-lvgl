@@ -34,12 +34,12 @@ lv_obj_t* uiTile(lv_obj_t* p, const char* txt, int x, int y, int w, int h, lv_ev
 }
 
 void uiTilePaint(lv_obj_t* tile, bool on) {
-  lv_obj_set_style_bg_color(tile, on ? COL_ACCENT : lv_color_hex(0x808080), 0);
+  lv_obj_set_style_bg_color(tile, on ? COL_ACCENT : COL_DIM, 0);
   lv_obj_set_style_text_color(tile, on ? COL_BG : COL_TEXT, 0);
 }
 
 lv_obj_t* uiHamburger(lv_obj_t* header, lv_event_cb_t cb) {
-  lv_obj_align(lv_obj_get_child(header, 0), LV_ALIGN_LEFT_MID, 46, 0);  // headerCreate adds the title first
+  lv_obj_align(headerTitle(header), LV_ALIGN_LEFT_MID, 46, 0);  // headerCreate adds the title first
   lv_obj_t* btn = lv_obj_create(header);
   lv_obj_remove_style_all(btn);
   lv_obj_set_size(btn, 50, HEADER_H);
@@ -80,6 +80,6 @@ lv_obj_t* uiScrollArea(lv_obj_t* parent, int x, int y, int w, int h) {
   lv_obj_set_scrollbar_mode(c, LV_SCROLLBAR_MODE_AUTO);
   lv_obj_set_style_width(c, 3, LV_PART_SCROLLBAR);
   lv_obj_set_style_bg_opa(c, LV_OPA_COVER, LV_PART_SCROLLBAR);
-  lv_obj_set_style_bg_color(c, lv_color_hex(0x808080), LV_PART_SCROLLBAR);
+  lv_obj_set_style_bg_color(c, COL_DIM, LV_PART_SCROLLBAR);
   return c;
 }

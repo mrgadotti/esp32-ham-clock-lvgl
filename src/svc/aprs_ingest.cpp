@@ -21,25 +21,26 @@ AlertRules rules;
 SemaphoreHandle_t mu;  // guards rules + the cached config below
 AlertCfg lastCfg;
 bool ledEn, cfgSeen;
-uint32_t ledDur, ledBlk, lastRead;
+uint32_t ledDur, ledBlk, lastVer;
 
-// Caller holds mu. Config has no change sequence, so re-read at most every 2 s instead of copying it per line.
-void refreshRules(uint32_t now) {
-  if (cfgSeen && now - lastRead < 2000) return;
-  lastRead = now;
-  Config c;
-  cfgGet(c);
+// Caller holds mu. Re-read the config only when cfgVersion() moves, not per line.
+void refreshRules(uint32_t) {
+  uint32_t ver = cfgVersion();  // read before the config: a racing update only costs one extra refresh
+  if (cfgSeen && ver == lastVer) return;
+  lastVer = ver;
   AlertCfg a{};
-  strncpy(a.watchList, c.aprs_alert, sizeof a.watchList - 1);
-  a.alertEnabled = c.aprs_alert_en;
-  a.rangeEnabled = c.aprs_al_near;
-  a.wxEnabled = c.alrt_wx_en;
-  a.ledEnabled = c.led_al_en;
-  a.alertKm = c.alrt_dst_km;
-  a.minSeconds = (uint16_t)c.aprs_alrt_sec;
-  ledEn = c.led_al_en;
-  ledDur = (uint32_t)c.led_al_dur;
-  ledBlk = (uint32_t)c.led_al_blk;
+  cfgRead([&](const Config& c) {
+    strncpy(a.watchList, c.aprs_alert, sizeof a.watchList - 1);
+    a.alertEnabled = c.aprs_alert_en;
+    a.rangeEnabled = c.aprs_al_near;
+    a.wxEnabled = c.alrt_wx_en;
+    a.ledEnabled = c.led_al_en;
+    a.alertKm = c.alrt_dst_km;
+    a.minSeconds = (uint16_t)c.aprs_alrt_sec;
+    ledEn = c.led_al_en;
+    ledDur = (uint32_t)c.led_al_dur;
+    ledBlk = (uint32_t)c.led_al_blk;
+  });
   if (cfgSeen && memcmp(&a, &lastCfg, sizeof a) == 0) return;
   lastCfg = a;
   cfgSeen = true;
@@ -59,7 +60,7 @@ void aprsIngestLine(const char* line, char source) {
     st.distKm = (int16_t)fminf(lroundf(distanceKm(lat, lon, st.lat, st.lon)), 32000.f);
     st.bearing = (int16_t)(lroundf(bearingDeg(lat, lon, st.lat, st.lon)) % 360);
   }
-  g_store.aprs.write([&](RingBuffer<AprsStation, 30>& r) {
+  g_store.aprs.write([&](AprsRing& r) {
     if (!r.moveToFrontIf([&](const AprsStation& a) { return strcmp(a.call, st.call) == 0; }, st)) r.pushFront(st);
   });
 

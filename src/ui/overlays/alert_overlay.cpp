@@ -21,6 +21,17 @@ static lv_obj_t* ov;
 static uint32_t deadline;
 static bool closeReq;
 static lv_obj_t* frame;
+static lv_obj_t* edge[4];  // children of frame: top, bottom, left, right
+
+static void setBorder(lv_color_t c, int w) {
+  constexpr int W = 308, H = 190;
+  const lv_area_t r[4] = {{0, 0, W - 1, w - 1}, {0, H - w, W - 1, H - 1}, {0, 0, w - 1, H - 1}, {W - w, 0, W - 1, H - 1}};
+  for (int i = 0; i < 4; i++) {
+    lv_obj_set_pos(edge[i], r[i].x1, r[i].y1);
+    lv_obj_set_size(edge[i], r[i].x2 - r[i].x1 + 1, r[i].y2 - r[i].y1 + 1);
+    lv_obj_set_style_bg_color(edge[i], c, 0);
+  }
+}
 static int lastPulse = -1;
 static FifoQueue<UiEvent, 4> pending;  // alerts that arrived while an overlay was showing (UI task only)
 static void show(const UiEvent&);
@@ -68,8 +79,9 @@ void line(lv_layer_t* ly, int x1, int y1, int x2, int y2, lv_color_t c, int w) {
 
 void aprsImage(AprsIcon ik, int x, int y) {
   lv_obj_t* im = lv_image_create(ov);
-  lv_image_set_src(im, aprsIconImage(ik, 48));
-  lv_obj_set_pos(im, x, y);
+  lv_image_set_src(im, aprsIconImage(ik, 32));
+  lv_image_set_scale(im, 384);  // 32 px bitmap drawn at 48 px (1.5x) around its centre; the 32 px widget box stays put
+  lv_obj_set_pos(im, x + 8, y + 8);
 }
 
 void onCompassDraw(lv_event_t* e) {
@@ -80,7 +92,7 @@ void onCompassDraw(lv_event_t* e) {
   int cx = a.x1 + 30, cy = a.y1 + 33;
   lv_draw_arc_dsc_t ad;
   lv_draw_arc_dsc_init(&ad);
-  ad.color = lv_color_hex(0x808080);
+  ad.color = COL_DIM;
   ad.width = 1;
   ad.center.x = cx; ad.center.y = cy;
   ad.start_angle = 0; ad.end_angle = 360;
@@ -90,14 +102,14 @@ void onCompassDraw(lv_event_t* e) {
   lv_draw_arc(ly, &ad);
   for (int i = 0; i < 4; i++) {  // N/E/S/W ticks
     int dx = (i == 1) - (i == 3), dy = (i == 2) - (i == 0);
-    line(ly, cx + dx * 20, cy + dy * 20, cx + dx * 24, cy + dy * 24, lv_color_hex(0xC0C0C0), 1);
+    line(ly, cx + dx * 20, cy + dy * 20, cx + dx * 24, cy + dy * 24, COL_GREY, 1);
   }
   int b = (int)(intptr_t)lv_obj_get_user_data(o);
   if (b < 0) return;
   float r = b * (float)M_PI / 180.f;
   int tx = cx + (int)lroundf(20 * sinf(r)), ty = cy - (int)lroundf(20 * cosf(r));
-  line(ly, cx, cy, tx, ty, lv_color_hex(0x00FFFF), 2);
-  box(ly, tx - 2, ty - 2, tx + 2, ty + 2, lv_color_hex(0x00FFFF), LV_RADIUS_CIRCLE);
+  line(ly, cx, cy, tx, ty, COL_CYAN, 2);
+  box(ly, tx - 2, ty - 2, tx + 2, ty + 2, COL_CYAN, LV_RADIUS_CIRCLE);
 }
 
 lv_obj_t* drawObj(lv_obj_t* p, int x, int y, int w, int h, lv_event_cb_t cb, intptr_t ud) {
@@ -111,15 +123,19 @@ lv_obj_t* drawObj(lv_obj_t* p, int x, int y, int w, int h, lv_event_cb_t cb, int
 }
 
 void buildAprs(lv_obj_t* ov, const AprsStation& st) {
-  const lv_color_t white = COL_TEXT, grey = lv_color_hex(0xC0C0C0), cyan = lv_color_hex(0x00FFFF);
+  const lv_color_t white = COL_TEXT, grey = COL_GREY, cyan = COL_CYAN;
   frame = lv_obj_create(ov);
   lv_obj_remove_style_all(frame);
   lv_obj_set_pos(frame, 6, 44);
   lv_obj_set_size(frame, 308, 190);
-  lv_obj_set_style_radius(frame, 8, 0);
-  lv_obj_set_style_border_width(frame, 3, 0);
-  lv_obj_set_style_border_color(frame, white, 0);
   lv_obj_remove_flag(frame, LV_OBJ_FLAG_CLICKABLE);
+  for (lv_obj_t*& e : edge) {  // four thin bars instead of one bordered box: a pulse repaints only the border
+    e = lv_obj_create(frame);
+    lv_obj_remove_style_all(e);
+    lv_obj_set_style_bg_opa(e, LV_OPA_COVER, 0);
+    lv_obj_remove_flag(e, LV_OBJ_FLAG_CLICKABLE);
+  }
+  setBorder(white, 3);
 
   char b[48];
   uiLabel(ov, &font_24, white, st.call[0] ? st.call : "-", 18, 52);
@@ -140,9 +156,20 @@ void buildAprs(lv_obj_t* ov, const AprsStation& st) {
   AprsWx wx{};
   if (st.isWx && aprsDecodeWx(st.comment, wx)) {
     int y = 106;
-    if (wx.hasTempC) { snprintf(b, sizeof b, "%s %.1f C", tr(Tr::WxTemp), (double)wx.tempC); uiLabel(ov, &font_14, lv_color_hex(0x4080FF), b, 18, y); y += 18; }
-    if (wx.hasHumidity) { snprintf(b, sizeof b, "%s %d %%", tr(Tr::HumidityLabel), wx.humidityPct); uiLabel(ov, &font_14, white, b, 18, y); y += 18; }
-    if (wx.hasPressure) { snprintf(b, sizeof b, "%s %.1f %s", tr(Tr::PressureLabel), (double)wx.pressureHpa, tr(Tr::HPa)); uiLabel(ov, &font_14, white, b, 18, y); }
+    if (wx.hasTempC) {
+      snprintf(b, sizeof b, "%s %.1f C", tr(Tr::WxTemp), (double)wx.tempC);
+      uiLabel(ov, &font_14, lv_color_hex(0x4080FF), b, 18, y);
+      y += 18;
+    }
+    if (wx.hasHumidity) {
+      snprintf(b, sizeof b, "%s %d %%", tr(Tr::HumidityLabel), wx.humidityPct);
+      uiLabel(ov, &font_14, white, b, 18, y);
+      y += 18;
+    }
+    if (wx.hasPressure) {
+      snprintf(b, sizeof b, "%s %.1f %s", tr(Tr::PressureLabel), (double)wx.pressureHpa, tr(Tr::HPa));
+      uiLabel(ov, &font_14, white, b, 18, y);
+    }
     if (wx.hasWindSpeed) {
       if (wx.hasWindDir) snprintf(b, sizeof b, "%s %d\xC2\xB0 %.1f %s", tr(Tr::WxWind), wx.windDirDeg, (double)wx.windSpeedKmh, tr(Tr::KmH));
       else snprintf(b, sizeof b, "%s %.1f %s", tr(Tr::WxWind), (double)wx.windSpeedKmh, tr(Tr::KmH));
@@ -171,13 +198,9 @@ void overlayShow(const UiEvent& e) {
   else show(e);
 }
 
-static void show(const UiEvent& e) {
-  static char body[160];  // static: keeps 160 B off the UI task stack (UI task only)
-  const char* title;
-  const lv_image_dsc_t* wxImg = nullptr;
-  bool aprs = false;
-  AprsIcon bIcon = AprsIcon::None;
-  uint32_t secs = (uint32_t)cfg().alrt_scr_s;
+// Fills body and picks title, icon and on-screen seconds; false for event kinds that have no overlay.
+static bool formatBody(const UiEvent& e, char* body, size_t n, const char*& title, const lv_image_dsc_t*& wxImg,
+                       bool& aprs, AprsIcon& bIcon, uint32_t& secs) {
   body[0] = 0;
   switch (e.kind) {
     case EventKind::AprsAlert:
@@ -188,8 +211,8 @@ static void show(const UiEvent& e) {
       title = tr(Tr::AprsBeaconing);
       Tr d;
       aprsSymbolInfo(e.beacon.sym, bIcon, d);
-      if (bIcon == AprsIcon::None) appendf(body, sizeof body, "%s\n", tr(d));
-      appendf(body, sizeof body, "%s\n%s\n%s", e.beacon.call, e.beacon.position, e.beacon.path);
+      if (bIcon == AprsIcon::None) appendf(body, n, "%s\n", tr(d));
+      appendf(body, n, "%s\n%s\n%s", e.beacon.call, e.beacon.position, e.beacon.path);
       secs = 30;  // fixed, not configurable
       break;
     }
@@ -197,32 +220,36 @@ static void show(const UiEvent& e) {
       title = tr(Tr::WeatherAlert);
       if (e.wx.stormPossible) {
         wxImg = &wxicon_200;
-        appendf(body, sizeof body, "%s\n", tr(e.wx.stormNow ? Tr::StormNow : Tr::PossibleStorm));
+        appendf(body, n, "%s\n", tr(e.wx.stormNow ? Tr::StormNow : Tr::PossibleStorm));
       }
       if (e.wx.windPossible) {
         if (!wxImg) wxImg = &wxicon_wind;
-        appendf(body, sizeof body, "%s\n%s %.1f %s\n", tr(Tr::StrongWind), tr(Tr::WindLabel), (double)e.wx.maxWindMs, tr(Tr::Ms));
+        appendf(body, n, "%s\n%s %.1f %s\n", tr(Tr::StrongWind), tr(Tr::WindLabel), (double)e.wx.maxWindMs, tr(Tr::Ms));
         if (e.wx.maxWindGustMs > 0)
-          appendf(body, sizeof body, "%s %.1f %s\n", tr(Tr::Gust), (double)e.wx.maxWindGustMs, tr(Tr::Ms));
+          appendf(body, n, "%s %.1f %s\n", tr(Tr::Gust), (double)e.wx.maxWindGustMs, tr(Tr::Ms));
       }
       // stormEtaHours carries the storm repeat interval in minutes; wind alone repeats every minute
-      appendf(body, sizeof body, "%s %u %s", tr(Tr::Repeat), e.wx.stormPossible ? (unsigned)e.wx.stormEtaHours : 1u, tr(Tr::Min));
+      appendf(body, n, "%s %u %s", tr(Tr::Repeat), e.wx.stormPossible ? (unsigned)e.wx.stormEtaHours : 1u, tr(Tr::Min));
       break;
     default:
-      return;
+      return false;
   }
+  return true;
+}
+
+static void show(const UiEvent& e) {
+  static char body[160];  // static: keeps 160 B off the UI task stack (UI task only)
+  const char* title;
+  const lv_image_dsc_t* wxImg = nullptr;
+  bool aprs = false;
+  AprsIcon bIcon = AprsIcon::None;
+  uint32_t secs = (uint32_t)cfg().alrt_scr_s;
+  if (!formatBody(e, body, sizeof body, title, wxImg, aprs, bIcon, secs)) return;
   if (secs < 1) secs = 1;
   if (secs > 60) secs = 60;
   deadline = millis() + secs * 1000;
 
-  ov = lv_obj_create(lv_layer_top());
-  lv_obj_remove_style_all(ov);
-  lv_obj_set_size(ov, LV_PCT(100), LV_PCT(100));
-  lv_obj_set_style_bg_color(ov, COL_BG, 0);
-  lv_obj_set_style_bg_opa(ov, LV_OPA_COVER, 0);
-  lv_obj_set_style_text_color(ov, COL_TEXT, 0);
-  lv_obj_add_flag(ov, LV_OBJ_FLAG_CLICKABLE);  // swallows touches
-  lv_obj_remove_flag(ov, LV_OBJ_FLAG_SCROLLABLE);
+  ov = uiModalPanel();
 
   lv_obj_t* t = uiLabel(ov, &font_24, COL_ACCENT, title);
   lv_obj_align(t, LV_ALIGN_TOP_MID, 0, aprs ? 8 : 42);  // non-APRS titles can be wide: stay below the X button (y<=40)
@@ -261,8 +288,7 @@ void overlayTick(uint32_t nowMs) {
     int p = (nowMs / 500) & 1;
     if (p != lastPulse) {
       lastPulse = p;
-      lv_obj_set_style_border_color(frame, p ? lv_color_hex(0xC0C0C0) : COL_TEXT, 0);
-      lv_obj_set_style_border_width(frame, p ? 1 : 3, 0);
+      setBorder(p ? COL_GREY : COL_TEXT, p ? 1 : 3);
     }
   }
   if (ov && (closeReq || (int32_t)(nowMs - deadline) >= 0)) {

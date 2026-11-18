@@ -1,4 +1,4 @@
-#include "gesture.h"
+#include "carousel.h"
 #include <stdlib.h>
 
 Gesture classifyGesture(int dx, int dy) {

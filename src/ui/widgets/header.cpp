@@ -49,3 +49,5 @@ void headerSetClock(lv_obj_t* header, const char* text) {
   lv_label_set_text(c, text);
   lv_obj_align(c, LV_ALIGN_RIGHT_MID, -6, 0);
 }
+
+lv_obj_t* headerTitle(lv_obj_t* hdr) { return lv_obj_get_child(hdr, 0); }

@@ -7,6 +7,7 @@ constexpr int HEADER_H = 26;
 // 26 px accent bar: title (left), free text such as "HH:MMZ" (right).
 lv_obj_t* headerCreate(lv_obj_t* parent, Tr title);
 void headerSetClock(lv_obj_t* header, const char* text);
+lv_obj_t* headerTitle(lv_obj_t* header);  // the title label (first child, added by headerCreate)
 // Offset in seconds that every screen adds to UTC for display: 0 for UTC, the configured timezone when the clock
 // screen is toggled to local (cfg().screen1_time). The single source of truth for UTC/Local.
 int32_t uiTimeOffsetSec();

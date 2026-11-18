@@ -36,18 +36,18 @@ class ClockScreen : public Screen {
     char up[16];
     snprintf(up, sizeof up, "%s", cfg().user_callsign[0] ? cfg().user_callsign : "SWL");
     for (char* c = up; *c; c++) if (*c >= 'a' && *c <= 'z') *c -= 32;
-    uiLabel(p, &font_24, COL_TEXT, up, 0, 18, 320, LV_TEXT_ALIGN_CENTER);
-    uiLabel(p, &font_14, COL_ACCENT, tr(Tr::OperatorStation), 0, 48, 320, LV_TEXT_ALIGN_CENTER);
+    uiLabel(p, &font_24, COL_TEXT, up, 0, 18, SCREEN_W, LV_TEXT_ALIGN_CENTER);
+    uiLabel(p, &font_14, COL_ACCENT, tr(Tr::OperatorStation), 0, 48, SCREEN_W, LV_TEXT_ALIGN_CENTER);
     // N-05: the per-second label is only as wide as its text (214 px + slack) so each tick invalidates less
     time_ = uiLabel(p, &font_clock_48, COL_TEXT, "", 48, 76, 224, LV_TEXT_ALIGN_CENTER);
     lv_label_set_long_mode(time_, LV_LABEL_LONG_CLIP);
-    mode_ = uiLabel(p, &font_14, COL_FREQ, "", 0, 124, 320, LV_TEXT_ALIGN_CENTER);
+    mode_ = uiLabel(p, &font_14, COL_FREQ, "", 0, 124, SCREEN_W, LV_TEXT_ALIGN_CENTER);
     lv_obj_add_flag(mode_, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_ext_click_area(mode_, 20);
     lv_obj_add_event_cb(mode_, onMode, LV_EVENT_CLICKED, nullptr);
-    date_ = uiLabel(p, &font_18, COL_TEXT, "", (320 - DATE_W) / 2, 142, DATE_W, LV_TEXT_ALIGN_CENTER);
+    date_ = uiLabel(p, &font_18, COL_TEXT, "", (SCREEN_W - DATE_W) / 2, 142, DATE_W, LV_TEXT_ALIGN_CENTER);
     lv_label_set_long_mode(date_, LV_LABEL_LONG_CLIP);
-    ip_ = uiLabel(p, &font_18, COL_TEXT, "", 0, 200, 320, LV_TEXT_ALIGN_CENTER);
+    ip_ = uiLabel(p, &font_18, COL_TEXT, "", 0, 200, SCREEN_W, LV_TEXT_ALIGN_CENTER);
 
     dot_ = lv_obj_create(p);
     lv_obj_remove_style_all(dot_);
@@ -97,7 +97,7 @@ class ClockScreen : public Screen {
     }
     uint32_t el = hold_.elapsed(now);
     if (el < kBarStartMs) return;
-    lv_obj_set_width(bar_, (int)((uint64_t)320 * (el - kBarStartMs) / (HoldDetector::kHoldMs - kBarStartMs)));
+    lv_obj_set_width(bar_, (int)((uint64_t)SCREEN_W * (el - kBarStartMs) / (HoldDetector::kHoldMs - kBarStartMs)));
     lv_obj_remove_flag(bar_, LV_OBJ_FLAG_HIDDEN);
   }
 
@@ -175,7 +175,7 @@ class ClockScreen : public Screen {
       lastOk_ = ok;
       snprintf(lastIp_, sizeof lastIp_, "%s", n.ip);
       lv_label_set_text(ip_, ok ? n.ip : tr(Tr::NoConnection));
-      lv_obj_set_style_text_color(ip_, ok ? lv_color_hex(0xC0C0C0) : COL_ERROR, 0);
+      lv_obj_set_style_text_color(ip_, ok ? COL_GREY : COL_ERROR, 0);
       lv_obj_set_style_bg_color(dot_, ok ? COL_MODE : COL_ERROR, 0);
     }
   }
