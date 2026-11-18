@@ -55,7 +55,7 @@ static void fetch(uint32_t now, double lat, double lon) {
 
 void weatherOmTick(uint32_t now) {
   if (!s_cfgOk || now - s_cfgAt >= 1000) { s_cfgOk = true; s_cfgAt = now; cfgGet(s_cfg); }  // throttled like weather.cpp
-  if (!(s_cfg.scr_en & ((1 << 10) | (1 << 11)))) return;
+  if (!(s_cfg.scr_en & ((1 << 10) | (1 << 11)))) { s_first = true; return; }  // re-enabling fetches immediately
   if (WiFi.status() != WL_CONNECTED || !reached(now, s_next, s_first) || !httpPollGate(now)) return;
   double lat, lon;
   if (serviceCoords(lat, lon)) fetch(now, lat, lon);
