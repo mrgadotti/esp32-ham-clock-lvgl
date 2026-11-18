@@ -160,7 +160,7 @@ void test_screen_bits_and_order() {
   Config c = defaults();
   TEST_ASSERT_TRUE(configApplyJson(c, "{\"scr_en\":65535,\"screen_order\":[1,1,11,14,2,12,0,0,13,3]}").ok);
   TEST_ASSERT_EQUAL_HEX32(0x1FFE, c.scr_en);
-  const uint8_t want[12] = {1, 4, 11, 5, 2, 12, 6, 7, 8, 3, 9, 10};  // JSON slots kept; dups and out-of-range (>12) reset to 0, then missing enabled ids fill the free slots in id order
+  const uint8_t want[12] = {1, 10, 11, 0, 2, 12, 0, 0, 0, 3, 0, 0};  // JSON slots kept; dups and out-of-range (>12) reset to 0; 10 (enabled, no slot) takes the first free one
   uint8_t tail[12];
   memcpy(tail, c.screen_order, 12);
   TEST_ASSERT_EQUAL_MEMORY(want, tail, 12);
@@ -299,8 +299,7 @@ void test_removed_screens_cleared_by_clamp() {
   memcpy(c.screen_order, o, 12);
   configClamp(c);
   TEST_ASSERT_EQUAL_HEX32(0x1FFE, c.scr_en);
-  // 13 and 14 dropped, the duplicate 2 reset; the freed slots take the missing enabled ids (1, 3, 4 ...)
-  const uint8_t want[12] = {1, 10, 11, 3, 2, 4, 5, 6, 7, 8, 9, 12};
+  const uint8_t want[12] = {0, 10, 11, 0, 2, 0, 0, 0, 0, 0, 0, 0};  // 13/14 dropped, duplicate 2 reset
   TEST_ASSERT_EQUAL_MEMORY(want, c.screen_order, 12);  // Open-Meteo ids survive
 }
 
@@ -331,6 +330,11 @@ void test_enabled_screens_are_appended_to_order() {
   configClamp(d);
   TEST_ASSERT_EQUAL_UINT8(11, d.screen_order[10]);
   TEST_ASSERT_EQUAL_UINT8(0, d.screen_order[11]);
+  Config f = defaults();
+  f.screen_order[4] = 0;  // id 4 removed from the order but still enabled: not brought back
+  configClamp(f);
+  TEST_ASSERT_EQUAL_UINT8(0, f.screen_order[4]);
+  for (uint8_t o : f.screen_order) TEST_ASSERT_NOT_EQUAL_UINT8(4, o);
   Config e = defaults();  // JSON path
   TEST_ASSERT_TRUE(configApplyJson(e, "{\"scr_en\":6142}").ok);  // 0x17FE: bit 10 set
   TEST_ASSERT_EQUAL_UINT8(10, e.screen_order[10]);
