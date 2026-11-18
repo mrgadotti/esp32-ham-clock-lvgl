@@ -160,12 +160,10 @@ void test_screen_bits_and_order() {
   Config c = defaults();
   TEST_ASSERT_TRUE(configApplyJson(c, "{\"scr_en\":65535,\"screen_order\":[1,1,11,14,2,12,0,0,13,3]}").ok);
   TEST_ASSERT_EQUAL_HEX32(0x1FFE, c.scr_en);
-  const uint8_t want[12] = {1, 0, 11, 0, 2, 12, 0, 0, 0, 3, 0, 0};  // slots 0..9 from the JSON, dups and out-of-range (>12) reset to 0
+  const uint8_t want[12] = {1, 4, 11, 5, 2, 12, 6, 7, 8, 3, 9, 10};  // JSON slots kept; dups and out-of-range (>12) reset to 0, then missing enabled ids fill the free slots in id order
   uint8_t tail[12];
   memcpy(tail, c.screen_order, 12);
-  TEST_ASSERT_EQUAL_MEMORY(want, tail, 10);
-  TEST_ASSERT_EQUAL_UINT8(0, tail[10]);
-  TEST_ASSERT_EQUAL_UINT8(0, tail[11]);
+  TEST_ASSERT_EQUAL_MEMORY(want, tail, 12);
 }
 
 void test_tft_rot_only_1_or_3() {
@@ -301,12 +299,9 @@ void test_removed_screens_cleared_by_clamp() {
   memcpy(c.screen_order, o, 12);
   configClamp(c);
   TEST_ASSERT_EQUAL_HEX32(0x1FFE, c.scr_en);
-  TEST_ASSERT_EQUAL_UINT8(0, c.screen_order[0]);   // 13 dropped
-  TEST_ASSERT_EQUAL_UINT8(10, c.screen_order[1]);  // Open-Meteo ids survive
-  TEST_ASSERT_EQUAL_UINT8(11, c.screen_order[2]);
-  TEST_ASSERT_EQUAL_UINT8(0, c.screen_order[3]);   // 14 dropped
-  TEST_ASSERT_EQUAL_UINT8(2, c.screen_order[4]);
-  TEST_ASSERT_EQUAL_UINT8(0, c.screen_order[5]);  // duplicate
+  // 13 and 14 dropped, the duplicate 2 reset; the freed slots take the missing enabled ids (1, 3, 4 ...)
+  const uint8_t want[12] = {1, 10, 11, 3, 2, 4, 5, 6, 7, 8, 9, 12};
+  TEST_ASSERT_EQUAL_MEMORY(want, c.screen_order, 12);  // Open-Meteo ids survive
 }
 
 void test_scr_en_clamp_keeps_open_meteo_bits() {
@@ -316,6 +311,29 @@ void test_scr_en_clamp_keeps_open_meteo_bits() {
   TEST_ASSERT_EQUAL_HEX32(0x1FFE, c.scr_en);
   TEST_ASSERT_TRUE(configApplyJson(c, "{\"scr_en\":5118}").ok);  // old backup value 0x13FE still imports
   TEST_ASSERT_EQUAL_HEX32(0x13FE, c.scr_en);
+}
+
+void test_enabled_screens_are_appended_to_order() {
+  Config c = defaults();
+  const uint8_t base[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 0, 0};
+  configClamp(c);
+  TEST_ASSERT_EQUAL_MEMORY(base, c.screen_order, 12);  // default unchanged
+  c.scr_en |= 1u << 10;
+  configClamp(c);
+  TEST_ASSERT_EQUAL_UINT8(10, c.screen_order[10]);
+  c.scr_en |= 1u << 11;
+  configClamp(c);
+  configClamp(c);  // idempotent: no duplicates
+  const uint8_t want[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 10, 11};
+  TEST_ASSERT_EQUAL_MEMORY(want, c.screen_order, 12);  // full order stays valid
+  Config d = defaults();
+  d.scr_en = 0x1FFE & ~(1u << 10);  // 10 disabled: not appended
+  configClamp(d);
+  TEST_ASSERT_EQUAL_UINT8(11, d.screen_order[10]);
+  TEST_ASSERT_EQUAL_UINT8(0, d.screen_order[11]);
+  Config e = defaults();  // JSON path
+  TEST_ASSERT_TRUE(configApplyJson(e, "{\"scr_en\":6142}").ok);  // 0x17FE: bit 10 set
+  TEST_ASSERT_EQUAL_UINT8(10, e.screen_order[10]);
 }
 
 void test_defaults_without_location() {
@@ -404,6 +422,7 @@ int main() {
   RUN_TEST(test_last_scr_13_rejected);
   RUN_TEST(test_invalid_tcal_rejected_untouched);
   RUN_TEST(test_old_backup_and_unknown_keys);
+  RUN_TEST(test_enabled_screens_are_appended_to_order);
   RUN_TEST(test_scr_en_clamp_keeps_open_meteo_bits);
   RUN_TEST(test_gps_module_migrates_to_none);
   RUN_TEST(test_old_backup_gps_keys_ignored);

@@ -174,6 +174,11 @@ void configClamp(Config& c) {
     if (o > 12 || !((kScrEnMask | 1) >> o & 1) || (o && (seen >> o & 1))) o = 0;
     seen |= 1u << o;
   }
+  // An enabled screen with no slot never shows in the carousel: give it the first free slot (12 slots fit all 12 ids).
+  for (uint8_t id = 1; id <= 12; id++) {
+    if (!(c.scr_en >> id & 1) || (seen >> id & 1)) continue;
+    for (uint8_t& o : c.screen_order) if (!o) { o = id; seen |= 1u << id; break; }
+  }
 }
 
 static bool toJson(const Config& c, char* buf, size_t len, bool withSecrets, int lastScr = -1) {
