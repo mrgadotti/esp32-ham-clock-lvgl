@@ -13,7 +13,7 @@ class BandsScreen : public Screen {
   ScreenId id() const override { return ScreenId::BandInfo; }
 
   void create(lv_obj_t* p) override {
-    const lv_color_t grey = lv_color_hex(0xC0C0C0);
+    const lv_color_t grey = COL_GREY;
     hdr_ = headerCreate(p, Tr::HfBands);
     uiLabel(p, &font_14, grey, tr(Tr::Band), COL_X[0], 34);
     uiLabel(p, &font_14, grey, tr(Tr::ColDay), COL_X[1], 34);
@@ -23,7 +23,7 @@ class BandsScreen : public Screen {
       if (i % 2 == 0) {  // zebra
         lv_obj_t* r = lv_obj_create(p);
         lv_obj_remove_style_all(r);
-        lv_obj_set_size(r, 320, 28);
+        lv_obj_set_size(r, SCREEN_W, 28);
         lv_obj_set_pos(r, 0, y);
         lv_obj_set_style_bg_color(r, lv_color_hex(0x181818), 0);
         lv_obj_set_style_bg_opa(r, LV_OPA_COVER, 0);
@@ -32,7 +32,7 @@ class BandsScreen : public Screen {
     }
     uiLabel(p, &font_14, grey, tr(Tr::UpdatedUtc), 10, 182);
     upd_ = uiLabel(p, &font_14, COL_TEXT, "--", 10, 200);
-    age_ = uiLabel(p, &font_14, lv_color_hex(0x808080), "", 10, 222);
+    age_ = uiLabel(p, &font_14, COL_DIM, "", 10, 222);
     err_ = uiLabel(p, &font_14, COL_ERROR, tr(Tr::NoData), 150, 182);
     refresh(0);
   }

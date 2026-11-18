@@ -25,10 +25,10 @@ lv_obj_t* wxIconCreate(lv_obj_t* p, int x, int y) {
   lv_obj_center(fb);
   lv_obj_set_style_radius(fb, LV_RADIUS_CIRCLE, 0);
   lv_obj_set_style_border_width(fb, 2, 0);
-  lv_obj_set_style_border_color(fb, lv_color_hex(0x808080), 0);
+  lv_obj_set_style_border_color(fb, COL_DIM, 0);
   lv_obj_t* q = lv_label_create(fb);
   lv_obj_set_style_text_font(q, &font_24, 0);
-  lv_obj_set_style_text_color(q, lv_color_hex(0x808080), 0);
+  lv_obj_set_style_text_color(q, COL_DIM, 0);
   lv_label_set_text(q, "?");
   lv_obj_center(q);
   lv_obj_t* im = lv_image_create(s);  // child 1

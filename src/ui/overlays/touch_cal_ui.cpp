@@ -7,7 +7,7 @@
 #include "app/config_store.h"
 #include "i18n.h"
 #include "ui/fonts/fonts.h"
-#include "touch.h"
+#include "hal/touch.h"
 
 static_assert(sizeof(TouchCal) == sizeof(Config::tcal), "tcal blob layout");
 

@@ -11,7 +11,9 @@ class Screen {
   virtual ScreenId id() const = 0;
   virtual void create(lv_obj_t* parent) = 0;  // build widgets
   virtual void tick(uint32_t nowMs) = 0;      // every 100 ms; refresh only if a store version changed
-  virtual bool blocksSwipe() const { return false; }  // true while a menu or overlay is active
+  // True while a menu or overlay is active. ui_manager polls it every 100 ms, before tick(), so a screen must keep it
+  // true until a tick() after the gesture ended (not clear it on the next press), or a quick tap can still switch screens.
+  virtual bool blocksSwipe() const { return false; }
 };
 
 Screen* createScreen(ScreenId);  // factory in src/ui/screens/registry.cpp

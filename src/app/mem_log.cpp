@@ -7,6 +7,7 @@ static TaskHandle_t hNet, hUi, hUart;
 void memLogSetTasks(void* n, void* u, void* x) { hNet = (TaskHandle_t)n; hUi = (TaskHandle_t)u; hUart = (TaskHandle_t)x; }
 
 uint32_t memLargest8() { return (uint32_t)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT); }
+uint32_t memFree() { return (uint32_t)ESP.getFreeHeap(); }
 
 static std::atomic<uint32_t> lvFree{0};
 

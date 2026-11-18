@@ -13,7 +13,7 @@
 #include "svc/uart2.h"
 #include "app/events.h"
 #include "board.h"
-#include "hal/touch_cal_ui.h"
+#include "ui/overlays/touch_cal_ui.h"
 #include "config_html.h"
 
 

@@ -98,7 +98,7 @@ lv_obj_t* spotTableCreate(lv_obj_t* parent, const SpotTableCols& cols) {
   lv_obj_remove_style_all(sep);
   lv_obj_set_style_bg_opa(sep, LV_OPA_COVER, 0);
   lv_obj_set_style_bg_color(sep, lv_color_hex(0xD3D3D3), 0);  // TFT_LIGHTGREY (dark-theme muted)
-  lv_obj_set_size(sep, 320, 1);
+  lv_obj_set_size(sep, SCREEN_W, 1);
   lv_obj_set_pos(sep, 0, HEADER_H + 17);
   lv_obj_set_user_data(t, st);
   lv_obj_add_event_cb(t, onDraw, LV_EVENT_DRAW_MAIN, nullptr);
@@ -159,7 +159,7 @@ SpotListUi spotListUiCreate(lv_obj_t* p, Tr title, const SpotTableCols& cols, co
   }
   ui.table = spotTableCreate(p, cols);
   lv_obj_set_pos(ui.table, 0, HEADER_H + 18);
-  lv_obj_set_height(ui.table, 240 - HEADER_H - 18);
+  lv_obj_set_height(ui.table, SCREEN_H - HEADER_H - 18);
   ui.wait = uiLabel(p, &font_18, COL_ERROR, tr(waitText));
   lv_obj_set_width(ui.wait, 300);  // long texts (PT) wrap onto a second line instead of being clipped
   lv_obj_set_style_text_align(ui.wait, LV_TEXT_ALIGN_CENTER, 0);

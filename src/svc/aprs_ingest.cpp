@@ -59,7 +59,7 @@ void aprsIngestLine(const char* line, char source) {
     st.distKm = (int16_t)fminf(lroundf(distanceKm(lat, lon, st.lat, st.lon)), 32000.f);
     st.bearing = (int16_t)(lroundf(bearingDeg(lat, lon, st.lat, st.lon)) % 360);
   }
-  g_store.aprs.write([&](RingBuffer<AprsStation, 30>& r) {
+  g_store.aprs.write([&](AprsRing& r) {
     if (!r.moveToFrontIf([&](const AprsStation& a) { return strcmp(a.call, st.call) == 0; }, st)) r.pushFront(st);
   });
 

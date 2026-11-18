@@ -16,7 +16,7 @@
 
 namespace {
 constexpr int COLS = 4, COL_W = 79;
-#define CYAN lv_color_hex(0x00FFFF)
+#define CYAN COL_CYAN
 #define GREY lv_color_hex(0x909090)
 
 class ForecastScreen : public Screen {
@@ -44,7 +44,7 @@ class ForecastScreen : public Screen {
       icon_[c] = wxIconCreate(p, x + (COL_W - 50) / 2, 158);
     }
     msg_ = uiLabel(p, &font_18, COL_ERROR, "", 12, 90, 296);
-    foot_ = uiLabel(p, &font_14, lv_color_hex(0x52AA52), "", 0, 222, 320, LV_TEXT_ALIGN_CENTER);
+    foot_ = uiLabel(p, &font_14, lv_color_hex(0x52AA52), "", 0, 222, SCREEN_W, LV_TEXT_ALIGN_CENTER);
     lv_label_set_long_mode(foot_, LV_LABEL_LONG_DOT);
     lv_obj_set_height(foot_, 18);
     refresh(true);

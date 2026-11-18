@@ -15,7 +15,7 @@ inline lv_color_t propCondColor(const char* s) {
     case PropCond::Good: return lv_color_hex(0x00FF00);
     case PropCond::Fair: return lv_color_hex(0xFFFF00);
     case PropCond::Poor: return lv_color_hex(0xFF0000);
-    default: return lv_color_hex(0xC0C0C0);
+    default: return COL_GREY;
   }
 }
 

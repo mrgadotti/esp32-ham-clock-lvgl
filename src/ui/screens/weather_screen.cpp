@@ -16,7 +16,7 @@
 #include "wx_open_meteo.h"
 
 namespace {
-#define CYAN lv_color_hex(0x00FFFF)
+#define CYAN COL_CYAN
 #define GREY lv_color_hex(0x909090)
 
 class WeatherScreen : public Screen {
@@ -37,7 +37,7 @@ class WeatherScreen : public Screen {
     }
     pm25_ = uiLabel(p, &font_18, COL_TEXT, "", 15, 198);
     pm10_ = uiLabel(p, &font_18, COL_TEXT, "", 165, 198);
-    foot_ = uiLabel(p, &font_14, lv_color_hex(0x52AA52), "", 0, 222, 320, LV_TEXT_ALIGN_CENTER);
+    foot_ = uiLabel(p, &font_14, lv_color_hex(0x52AA52), "", 0, 222, SCREEN_W, LV_TEXT_ALIGN_CENTER);
     lv_label_set_long_mode(foot_, LV_LABEL_LONG_DOT);  // long city names: ellipsis, never wrap
     lv_obj_set_height(foot_, 18);
     lv_label_set_long_mode(desc_, LV_LABEL_LONG_DOT);   // at most 2 lines (rows below start at y=124)

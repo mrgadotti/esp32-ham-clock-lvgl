@@ -80,7 +80,7 @@ void onCompassDraw(lv_event_t* e) {
   int cx = a.x1 + 30, cy = a.y1 + 33;
   lv_draw_arc_dsc_t ad;
   lv_draw_arc_dsc_init(&ad);
-  ad.color = lv_color_hex(0x808080);
+  ad.color = COL_DIM;
   ad.width = 1;
   ad.center.x = cx; ad.center.y = cy;
   ad.start_angle = 0; ad.end_angle = 360;
@@ -90,14 +90,14 @@ void onCompassDraw(lv_event_t* e) {
   lv_draw_arc(ly, &ad);
   for (int i = 0; i < 4; i++) {  // N/E/S/W ticks
     int dx = (i == 1) - (i == 3), dy = (i == 2) - (i == 0);
-    line(ly, cx + dx * 20, cy + dy * 20, cx + dx * 24, cy + dy * 24, lv_color_hex(0xC0C0C0), 1);
+    line(ly, cx + dx * 20, cy + dy * 20, cx + dx * 24, cy + dy * 24, COL_GREY, 1);
   }
   int b = (int)(intptr_t)lv_obj_get_user_data(o);
   if (b < 0) return;
   float r = b * (float)M_PI / 180.f;
   int tx = cx + (int)lroundf(20 * sinf(r)), ty = cy - (int)lroundf(20 * cosf(r));
-  line(ly, cx, cy, tx, ty, lv_color_hex(0x00FFFF), 2);
-  box(ly, tx - 2, ty - 2, tx + 2, ty + 2, lv_color_hex(0x00FFFF), LV_RADIUS_CIRCLE);
+  line(ly, cx, cy, tx, ty, COL_CYAN, 2);
+  box(ly, tx - 2, ty - 2, tx + 2, ty + 2, COL_CYAN, LV_RADIUS_CIRCLE);
 }
 
 lv_obj_t* drawObj(lv_obj_t* p, int x, int y, int w, int h, lv_event_cb_t cb, intptr_t ud) {
@@ -111,7 +111,7 @@ lv_obj_t* drawObj(lv_obj_t* p, int x, int y, int w, int h, lv_event_cb_t cb, int
 }
 
 void buildAprs(lv_obj_t* ov, const AprsStation& st) {
-  const lv_color_t white = COL_TEXT, grey = lv_color_hex(0xC0C0C0), cyan = lv_color_hex(0x00FFFF);
+  const lv_color_t white = COL_TEXT, grey = COL_GREY, cyan = COL_CYAN;
   frame = lv_obj_create(ov);
   lv_obj_remove_style_all(frame);
   lv_obj_set_pos(frame, 6, 44);
@@ -215,14 +215,7 @@ static void show(const UiEvent& e) {
   if (secs > 60) secs = 60;
   deadline = millis() + secs * 1000;
 
-  ov = lv_obj_create(lv_layer_top());
-  lv_obj_remove_style_all(ov);
-  lv_obj_set_size(ov, LV_PCT(100), LV_PCT(100));
-  lv_obj_set_style_bg_color(ov, COL_BG, 0);
-  lv_obj_set_style_bg_opa(ov, LV_OPA_COVER, 0);
-  lv_obj_set_style_text_color(ov, COL_TEXT, 0);
-  lv_obj_add_flag(ov, LV_OBJ_FLAG_CLICKABLE);  // swallows touches
-  lv_obj_remove_flag(ov, LV_OBJ_FLAG_SCROLLABLE);
+  ov = uiModalPanel();
 
   lv_obj_t* t = uiLabel(ov, &font_24, COL_ACCENT, title);
   lv_obj_align(t, LV_ALIGN_TOP_MID, 0, aprs ? 8 : 42);  // non-APRS titles can be wide: stay below the X button (y<=40)
@@ -261,7 +254,7 @@ void overlayTick(uint32_t nowMs) {
     int p = (nowMs / 500) & 1;
     if (p != lastPulse) {
       lastPulse = p;
-      lv_obj_set_style_border_color(frame, p ? lv_color_hex(0xC0C0C0) : COL_TEXT, 0);
+      lv_obj_set_style_border_color(frame, p ? COL_GREY : COL_TEXT, 0);
       lv_obj_set_style_border_width(frame, p ? 1 : 3, 0);
     }
   }

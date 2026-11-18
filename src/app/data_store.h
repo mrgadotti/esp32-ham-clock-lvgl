@@ -33,11 +33,13 @@ class Guarded {
 // DX ring size. The DX table keeps 5 LV_MEM cells per spot (8 B header + text, 4-aligned, + up to 8 B allocator
 // overhead: about 120-150 B per spot with the row arrays), so 75 spots stay under 12 KB of LV_MEM (100 would be 14 KB).
 constexpr size_t kDxSpots = 75;
+constexpr size_t kAprsStations = 30;
+using AprsRing = RingBuffer<AprsStation, kAprsStations>;
 
 struct DataStore {
   Guarded<RingBuffer<Spot, kDxSpots>> dx;
   Guarded<RingBuffer<Spot, 30>> pota, hamalert;
-  Guarded<RingBuffer<AprsStation, 30>> aprs;
+  Guarded<AprsRing> aprs;
   Guarded<PropagationData> prop;
   Guarded<WeatherData> weather;
   Guarded<WeatherData> weatherOm;

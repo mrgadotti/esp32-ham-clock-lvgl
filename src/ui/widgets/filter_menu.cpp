@@ -94,13 +94,13 @@ void filterMenuOpen(lv_obj_t*, const uint8_t* bands, uint8_t nBands, uint16_t* b
 
   if (extraLabel) uiTilePaint(uiTile(p, extraLabel, 164, 0, 148, 24, onExtra, 0), true);
 
-  uiLabel(p, &font_14, lv_color_hex(0xC0C0C0), tr(Tr::Mode), 8, 24);
+  uiLabel(p, &font_14, COL_GREY, tr(Tr::Mode), 8, 24);
   const char* names[4] = {tr(Tr::All), tr(Tr::FilterCw), tr(Tr::FilterSsb), tr(Tr::FilterDigi)};
   for (int i = 0; i < 4; i++) m->modeTile[i] = uiTile(p, names[i], 8 + i * 77, 42, 70, 24, onMode, i);
 
-  uiLabel(p, &font_14, lv_color_hex(0xC0C0C0), tr(Tr::Band), 8, 70);
+  uiLabel(p, &font_14, COL_GREY, tr(Tr::Band), 8, 70);
   // 4 columns, 34 px row pitch (28 px tiles); scrolls when the bands do not fit above OK/Cancel.
-  lv_obj_t* area = uiScrollArea(p, 0, 88, 320, 116);
+  lv_obj_t* area = uiScrollArea(p, 0, 88, SCREEN_W, 116);
   for (uint8_t i = 0; i <= m->nBands; i++) {
     int x = 8 + (i % 4) * 78, y = (i / 4) * 34;
     m->bandTile[i] = uiTile(area, i == 0 ? tr(Tr::All) : bandName((Band)m->bands[i - 1]), x, y, 72, 28, onBand, i);
