@@ -19,10 +19,13 @@ void test_info() {
   aprsSymbolInfo("/>", i, d); TEST_ASSERT_EQUAL(AprsIcon::Car, i);
   aprsSymbolInfo("/-", i, d); TEST_ASSERT_EQUAL(AprsIcon::House, i);
   aprsSymbolInfo("/[", i, d); TEST_ASSERT_EQUAL(AprsIcon::Human, i);
-  aprsSymbolInfo("/r", i, d); TEST_ASSERT_EQUAL(AprsIcon::None, i); TEST_ASSERT_EQUAL(Tr::DescRepeater, d);
-  aprsSymbolInfo("/u", i, d); TEST_ASSERT_EQUAL(Tr::DescTruck, d);
+  aprsSymbolInfo("/r", i, d); TEST_ASSERT_EQUAL(AprsIcon::Repeater, i); TEST_ASSERT_EQUAL(Tr::DescRepeater, d);
+  aprsSymbolInfo("/u", i, d); TEST_ASSERT_EQUAL(Tr::DescTruck, d); TEST_ASSERT_EQUAL(AprsIcon::BigTruck, i);
+  aprsSymbolInfo("/k", i, d); TEST_ASSERT_EQUAL(AprsIcon::Truck, i);
+  aprsSymbolInfo("L&", i, d); TEST_ASSERT_EQUAL(AprsIcon::Lora, i);
+  aprsSymbolInfo("/n", i, d); TEST_ASSERT_EQUAL(AprsIcon::Node, i);
   aprsSymbolInfo("Lx", i, d); TEST_ASSERT_EQUAL(AprsIcon::None, i); TEST_ASSERT_EQUAL(Tr::DescLora, d);  // any code in table L
-  aprsSymbolInfo("/L", i, d); TEST_ASSERT_EQUAL(Tr::DescOther, d);  // login: list name only
+  aprsSymbolInfo("/L", i, d); TEST_ASSERT_EQUAL(AprsIcon::None, i); TEST_ASSERT_EQUAL(Tr::DescOther, d);  // login: list name only
   aprsSymbolInfo("/!", i, d); TEST_ASSERT_EQUAL(AprsIcon::None, i); TEST_ASSERT_EQUAL(Tr::DescOther, d);
   aprsSymbolInfo("\\>", i, d); TEST_ASSERT_EQUAL(AprsIcon::None, i); TEST_ASSERT_EQUAL(Tr::DescOther, d); }
 int main() { UNITY_BEGIN(); RUN_TEST(test_name); RUN_TEST(test_info); return UNITY_END(); }
