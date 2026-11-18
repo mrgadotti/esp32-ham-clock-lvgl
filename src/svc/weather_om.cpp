@@ -14,14 +14,15 @@ constexpr int AIR_EVERY = 6;
 
 static Config s_cfg;  // static: keeps it off the net task stack
 static WeatherData s_w;
-static uint32_t s_next, s_cycles;
+static uint32_t s_next, s_cycles, s_cfgAt;
+static bool s_cfgOk;
 static bool s_first = true;  // first fetch fires immediately
 
 static bool reached(uint32_t now, uint32_t at, bool first) { return first || (int32_t)(now - at) >= 0; }
 
 static void fetch(uint32_t now, double lat, double lon) {
-  char u[400];  // the URL carries the coordinates: never log it
-  snprintf(u, sizeof u, "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&%s", lat, lon,
+  static char u[512];  // the URL carries the coordinates: never log it
+  int n = snprintf(u, sizeof u, "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&%s", lat, lon,
            OM_FORECAST_QUERY);
   JsonDocument f;
   f["error"] = true;
@@ -33,7 +34,7 @@ static void fetch(uint32_t now, double lat, double lon) {
     f["daily"][k] = true;
   JsonDocument doc;
   g_store.weatherOm.read([](const WeatherData& w) { s_w = w; });
-  bool ok = httpGetJson(u, doc, &f) && openMeteoParse(doc, s_w);
+  bool ok = n < (int)sizeof u && httpGetJson(u, doc, &f) && openMeteoParse(doc, s_w);
   if (ok) {
     s_w.fetchedAt = s_w.forecastFetchedAt = now | 1;
     if (s_cycles++ % AIR_EVERY == 0) {  // a failed air call never fails the cycle
@@ -53,7 +54,7 @@ static void fetch(uint32_t now, double lat, double lon) {
 }
 
 void weatherOmTick(uint32_t now) {
-  cfgGet(s_cfg);
+  if (!s_cfgOk || now - s_cfgAt >= 1000) { s_cfgOk = true; s_cfgAt = now; cfgGet(s_cfg); }  // throttled like weather.cpp
   if (!(s_cfg.scr_en & ((1 << 10) | (1 << 11)))) return;
   if (WiFi.status() != WL_CONNECTED || !reached(now, s_next, s_first) || !httpPollGate(now)) return;
   double lat, lon;
