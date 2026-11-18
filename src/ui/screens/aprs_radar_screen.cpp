@@ -22,7 +22,16 @@ constexpr int R_PX = 100, OX = 160, OY = HEADER_H + (SCREEN_H - HEADER_H) / 2, M
 // Zoom button column (right edge): + and - above the reset button
 constexpr int kBtnX = 272, kBtnW = 44, kBtnH = 28, kBtnY0 = 144, kBtnYStep = 32;
 
-struct Pt { float distKm, bearing; lv_color_t col; char call[10]; AprsIcon icon; };
+// x/y/img/lab are the screen layout, rebuilt by layout() whenever the view or the data changes (not per render strip)
+struct Pt {
+  float distKm, bearing; lv_color_t col; char call[10]; AprsIcon icon;
+  bool vis; int16_t x, y, lab;  // lab: index into labs_, -1 = no label
+  const lv_image_dsc_t* img;
+  lv_area_t box;  // icon (or dot) bounds
+};
+struct Lab { lv_area_t a; char s[16]; lv_color_t c; };
+
+bool hit(const lv_area_t& k, const lv_area_t& a) { return a.x1 <= k.x2 && k.x1 <= a.x2 && a.y1 <= k.y2 && k.y1 <= a.y2; }
 
 lv_color_t stationColor(const AprsStation& s) {  // as getAprsRadarColorForStation (dark theme)
   if (s.sym[0] == '/') {
@@ -53,6 +62,7 @@ class AprsRadarScreen : public Screen {
     zoomButton(p, kBtnY0 + kBtnYStep, "-", onZoomOut);
     lv_obj_t* b = zoomButton(p, kBtnY0 + 2 * kBtnYStep, tr(Tr::RadarZoomReset), onReset);
     lv_obj_set_ext_click_area(b, 8);
+    layout();
   }
 
   // Stays true from the start of a pan until tick() sees it end, so ui_manager (100 ms poll) still sees it after the release
@@ -81,6 +91,7 @@ class AprsRadarScreen : public Screen {
         snprintf(t.call, sizeof t.call, "%s", s.call);
       }
     });
+    layout();
     lv_obj_invalidate(cv_);
   }
 
@@ -95,16 +106,93 @@ class AprsRadarScreen : public Screen {
   int32_t rad_ = -1;
   bool panning_ = false, swipeBlock_ = false;
   lv_point_t last_ = {0, 0};
+  Lab labs_[MAXN + 3];
+  int nLab_ = 0, fixedLab_ = 0;
+  float hdrZoom_ = 1.0f;  // zoom the header text was last set for
 
   void viewChanged() {
-    if (view_.zoom > 1.0f) {
-      char b[8];
-      snprintf(b, sizeof b, "\xC3\x97%d", (int)view_.zoom);
-      headerSetClock(hdr_, b);
-    } else {
-      headerTickUtc(hdr_);
+    if (view_.zoom != hdrZoom_) {  // a pan keeps the zoom: leave the header alone
+      hdrZoom_ = view_.zoom;
+      if (view_.zoom > 1.0f) {
+        char b[8];
+        snprintf(b, sizeof b, "\xC3\x97%d", (int)view_.zoom);
+        headerSetClock(hdr_, b);
+      } else {
+        headerTickUtc(hdr_);
+      }
     }
+    layout();
     lv_obj_invalidate(cv_);
+  }
+
+  // Adds a label at (x, y) (centred on x when `center`) and returns its index, or -1 when it is optional and would
+  // overlap an earlier one, so text never overprints. Boxes of every label added so far (and the buttons) are in `used`.
+  int place(const char* str, int x, int y, lv_color_t c, bool center, lv_area_t* used, int& nu, bool optional = false) {
+    int w = 0;  // ASCII only
+    for (const char* q = str; *q; q++) w += lv_font_get_glyph_width(&font_14, (uint8_t)*q, 0);
+    if (center) x -= w / 2;
+    lv_area_t a = {x, y, x + w, y + 16};
+    for (int i = 0; i < nu; i++) {
+      if (hit(used[i], a)) {
+        if (optional) return -1;
+        break;
+      }
+    }
+    if (nu < MAXN + 8) used[nu++] = a;
+    Lab& b = labs_[nLab_];
+    b.a = a;
+    b.a.x2 += 4;  // slack so the label box never wraps the last glyph
+    strlcpy(b.s, str, sizeof b.s);
+    b.c = c;
+    return nLab_++;
+  }
+
+  // Projects the stations and decides which labels fit; onDraw (once per render strip) only replays the result.
+  void layout() {
+    const float range = (float)cfg().aprs_radius;
+    const RadarView& v = view_;
+    const float sc = R_PX / range * v.zoom;
+    const int qx = (int)lroundf(OX - v.cxKm * sc), qy = (int)lroundf(OY + v.cyKm * sc);  // QTH on screen
+    const int rOut = (int)(R_PX * v.zoom);
+    const lv_color_t txt = lv_color_hex(0xD3D3D3);
+    char b[16];
+    lv_area_t used[MAXN + 8];
+    int nu = 0;
+    nLab_ = 0;
+    used[nu++] = {kBtnX - 8, kBtnY0 - 8, SCREEN_W, SCREEN_H};  // the zoom buttons (+, -, 1x)
+    formatRadarKm(range, b, sizeof b);
+    if (qy - rOut + 2 >= HEADER_H) place(b, qx + 4, qy - rOut + 2, txt, false, used, nu);
+    formatRadarKm(range / 2, b, sizeof b);
+    if (qy - rOut / 2 + 2 >= HEADER_H) place(b, qx + 4, qy - rOut / 2 + 2, txt, false, used, nu);
+    place(tr(Tr::RadarNorth), OX - 16, HEADER_H + 1, txt, false, used, nu, true);  // left of the km labels (at qx + 4)
+    fixedLab_ = nLab_;
+
+    const bool labels = v.zoom >= 2 || n_ <= 11;
+    for (int i = 0; i < n_; i++) {
+      Pt& t = pts_[i];
+      t.vis = false;
+      t.lab = -1;
+      int16_t x, y;
+      if (t.distKm <= 0 || t.distKm > range) continue;
+      if (!radarProject(v, t.distKm, t.bearing, range, R_PX, OX, OY, x, y)) continue;
+      if (y < HEADER_H + 3 || y > SCREEN_H - 4) continue;
+      if (x > kBtnX - 16 && y > kBtnY0 - 16) continue;  // keep clear of the zoom buttons
+      t.vis = true; t.x = x; t.y = y;
+      t.img = aprsIconImage(t.icon, v.zoom <= 1.0f ? 16 : v.zoom < 8.0f ? 24 : 32);
+      const int h = t.img ? t.img->header.h : 0;
+      t.box = t.img ? lv_area_t{x - h / 2, y - h / 2, x + h / 2 - 1, y + h / 2 - 1} : lv_area_t{x - 4, y - 4, x + 4, y + 4};
+      const int up = t.img ? h / 2 + 17 : 18, dn = t.img ? h / 2 + 1 : 4;  // label box is 16 px tall
+      if (labels) t.lab = place(t.call, x, y - up < HEADER_H ? y + dn : y - up, t.col, true, used, nu, true);
+    }
+  }
+
+  static void drawLab(lv_layer_t* l, const Lab& b) {
+    if (!hit(l->_clip_area, b.a)) return;
+    lv_draw_label_dsc_t d;
+    lv_draw_label_dsc_init(&d);
+    d.color = b.c; d.font = &font_14; d.text = b.s;  // b.s lives in labs_, stable until the next layout()
+    lv_area_t a = b.a;
+    lv_draw_label(l, &d, &a);
   }
   lv_obj_t* zoomButton(lv_obj_t* p, int y, const char* txt, lv_event_cb_t cb) {
     lv_obj_t* b = lv_button_create(p);
@@ -141,6 +229,7 @@ class AprsRadarScreen : public Screen {
       s->panning_ = s->swipeBlock_ = true;
     } else if (c == LV_EVENT_PRESSING && s->panning_) {
       lv_indev_get_point(lv_indev_active(), &pt);
+      if (pt.x == s->last_.x && pt.y == s->last_.y) return;  // finger still: nothing to redraw
       const float k = cfg().aprs_radius / (float)R_PX / s->view_.zoom;  // km per pixel
       s->view_ = radarPan(s->view_, -(pt.x - s->last_.x) * k, (pt.y - s->last_.y) * k, (float)cfg().aprs_radius);
       s->last_ = pt;
@@ -197,29 +286,6 @@ class AprsRadarScreen : public Screen {
       vx = wx; vy = wy;
     }
   }
-  // Draws s at (x, y) (centred on x when `center`) and records its box in `used`. Optional labels
-  // (`optional`) are skipped when they would overlap an earlier one, so text never overprints.
-  static void text(lv_layer_t* l, const char* s, int x, int y, lv_color_t c, bool center, lv_area_t* used, int& nu,
-                   bool optional = false) {
-    int w = 0;  // ASCII only
-    for (const char* q = s; *q; q++) w += lv_font_get_glyph_width(&font_14, (uint8_t)*q, 0);
-    if (center) x -= w / 2;
-    lv_area_t a = {x, y, x + w, y + 16};
-    for (int i = 0; i < nu; i++) {
-      const lv_area_t& u = used[i];
-      if (a.x1 <= u.x2 && u.x1 <= a.x2 && a.y1 <= u.y2 && u.y1 <= a.y2) {
-        if (optional) return;
-        break;
-      }
-    }
-    if (nu < MAXN + 8) used[nu++] = a;
-    lv_draw_label_dsc_t d;
-    lv_draw_label_dsc_init(&d);
-    d.color = c; d.font = &font_14; d.text = s; d.text_local = 1;  // copied: s may be a stack buffer
-    a.x2 += 4;  // slack so the label box never wraps the last glyph
-    lv_draw_label(l, &d, &a);
-  }
-
   static void onDraw(lv_event_t* e) {
     AprsRadarScreen* s = static_cast<AprsRadarScreen*>(lv_event_get_user_data(e));
     lv_layer_t* l = lv_event_get_layer(e);
@@ -228,41 +294,27 @@ class AprsRadarScreen : public Screen {
     const float sc = R_PX / range * v.zoom;
     const int qx = (int)lroundf(OX - v.cxKm * sc), qy = (int)lroundf(OY + v.cyKm * sc);  // QTH on screen
     const int rOut = (int)(R_PX * v.zoom), rAlert = (int)lroundf(cfg().alrt_dst_km * sc);
-    const lv_color_t grey = COL_DIM, txt = lv_color_hex(0xD3D3D3);
+    const lv_color_t grey = COL_DIM;
 
     ring(l, qx, qy, rOut / 2, grey);
     ring(l, qx, qy, rOut, grey);
     if (rAlert >= 1 && rAlert <= 4000) ring(l, qx, qy, rAlert, lv_color_make(70, 130, 190));
-    char b[16];
-    lv_area_t used[MAXN + 8];
-    int nu = 0;
-    used[nu++] = {kBtnX - 8, kBtnY0 - 8, SCREEN_W, SCREEN_H};  // the zoom buttons (+, -, 1x)
-    formatRadarKm(range, b, sizeof b);
-    if (qy - rOut + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut + 2, txt, false, used, nu);
-    formatRadarKm(range / 2, b, sizeof b);
-    if (qy - rOut / 2 + 2 >= HEADER_H) text(l, b, qx + 4, qy - rOut / 2 + 2, txt, false, used, nu);
-    text(l, tr(Tr::RadarNorth), OX - 16, HEADER_H + 1, txt, false, used, nu, true);  // left of the km labels (at qx + 4)
+    for (int i = 0; i < s->fixedLab_; i++) drawLab(l, s->labs_[i]);
     if (qx >= 0 && qx < SCREEN_W && qy >= HEADER_H && qy < SCREEN_H) arc(l, qx, qy, 4, 4, COL_ACCENT);
 
-    const bool labels = v.zoom >= 2 || s->n_ <= 11;
     for (int i = 0; i < s->n_; i++) {
       const Pt& t = s->pts_[i];
-      int16_t x, y;
-      if (t.distKm <= 0 || t.distKm > range) continue;
-      if (!radarProject(v, t.distKm, t.bearing, range, R_PX, OX, OY, x, y)) continue;
-      if (y < HEADER_H + 3 || y > SCREEN_H - 4) continue;
-      if (x > kBtnX - 16 && y > kBtnY0 - 16) continue;  // keep clear of the zoom buttons
-      const lv_image_dsc_t* img = aprsIconImage(t.icon, v.zoom <= 1.0f ? 16 : v.zoom < 8.0f ? 24 : 32);
-      const int h = img ? img->header.h : 0;
-      if (img) {
-        lv_draw_image_dsc_t id;
-        lv_draw_image_dsc_init(&id);
-        id.src = img;
-        const lv_area_t ia = {x - h / 2, y - h / 2, x + h / 2 - 1, y + h / 2 - 1};
-        lv_draw_image(l, &id, &ia);
-      } else arc(l, x, y, 3, 3, t.col);
-      const int up = img ? h / 2 + 17 : 18, dn = img ? h / 2 + 1 : 4;  // label box is 16 px tall
-      if (labels) text(l, t.call, x, y - up < HEADER_H ? y + dn : y - up, t.col, true, used, nu, true);
+      if (!t.vis) continue;
+      if (hit(l->_clip_area, t.box)) {
+        if (t.img) {
+          lv_draw_image_dsc_t id;
+          lv_draw_image_dsc_init(&id);
+          id.src = t.img;
+          lv_area_t ia = t.box;
+          lv_draw_image(l, &id, &ia);
+        } else arc(l, t.x, t.y, 3, 3, t.col);
+      }
+      if (t.lab >= 0) drawLab(l, s->labs_[t.lab]);
     }
   }
 };

@@ -9,7 +9,6 @@ extern "C" {
 extern const lv_image_dsc_t* const aprs_icons_16[];
 extern const lv_image_dsc_t* const aprs_icons_24[];
 extern const lv_image_dsc_t* const aprs_icons_32[];
-extern const lv_image_dsc_t* const aprs_icons_48[];
 #ifdef __cplusplus
 }
 #endif

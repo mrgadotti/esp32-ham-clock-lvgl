@@ -27,7 +27,26 @@ uint32_t stamp = 0;
 uint32_t tryStamp = 0;  // start of the current WiFi.begin
 bool apUp = false;
 bool retryFromAp = false;
-Config c;
+struct WifiCfg {
+  char wifi_ssid[sizeof(Config::wifi_ssid)], wifi_pass[sizeof(Config::wifi_pass)];
+  char wifi_ssid2[sizeof(Config::wifi_ssid2)], wifi_pass2[sizeof(Config::wifi_pass2)];
+  char ap_pass[sizeof(Config::ap_pass)];
+} c;
+uint32_t cfgVer = ~0u;
+
+// Copies only the WiFi strings, and only when the config changed since the last copy.
+void loadCfg() {
+  uint32_t v = cfgVersion();  // read before the config: a racing update only costs one extra refresh
+  if (v == cfgVer) return;
+  cfgVer = v;
+  cfgRead([](const Config& s) {
+    strlcpy(c.wifi_ssid, s.wifi_ssid, sizeof c.wifi_ssid);
+    strlcpy(c.wifi_pass, s.wifi_pass, sizeof c.wifi_pass);
+    strlcpy(c.wifi_ssid2, s.wifi_ssid2, sizeof c.wifi_ssid2);
+    strlcpy(c.wifi_pass2, s.wifi_pass2, sizeof c.wifi_pass2);
+    strlcpy(c.ap_pass, s.ap_pass, sizeof c.ap_pass);
+  });
+}
 
 // Runs every second: no String temporaries (IPAddress::toString, WiFi.SSID) so the net task does not churn the heap
 // next to TLS. IP/SSID text is rebuilt only when the link or address changes.
@@ -103,7 +122,7 @@ bool beginSta(uint32_t now) {
 void wifiTick(uint32_t now) {
   switch (st) {
     case St::Init:
-      cfgGet(c);
+      loadCfg();
       WiFi.persistent(false);
       WiFi.onEvent([](arduino_event_id_t, arduino_event_info_t i) {
         Serial.printf("[WIFI] disconnected, reason %d\n", i.wifi_sta_disconnected.reason);
@@ -175,7 +194,7 @@ void wifiTick(uint32_t now) {
       break;
     case St::Backoff:
       if (now - stamp >= backoffMs(staFailures)) {
-        cfgGet(c);
+        loadCfg();
         failures = 0;
         if (beginSta(now)) {
           st = St::Connecting;
@@ -190,7 +209,7 @@ void wifiTick(uint32_t now) {
       // shortcut: AP_STA retry hops the radio channel, which can drop AP clients; skip while one is connected.
       if (now - stamp >= kApRetryMs) {
         if (WiFi.softAPgetStationNum() > 0) { stamp = now; break; }
-        cfgGet(c);
+        loadCfg();
         failures = 0;
         retryFromAp = true;
         if (beginSta(now)) st = St::Connecting;
