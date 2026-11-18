@@ -6,6 +6,6 @@
 
 const lv_image_dsc_t* aprsIconImage(AprsIcon icon, int px) {
   if (icon == AprsIcon::None) return nullptr;
-  const lv_image_dsc_t* const* set = px <= 16 ? aprs_icons_16 : px <= 24 ? aprs_icons_24 : px <= 32 ? aprs_icons_32 : aprs_icons_48;
+  const lv_image_dsc_t* const* set = px <= 16 ? aprs_icons_16 : px <= 24 ? aprs_icons_24 : aprs_icons_32;
   return set[(int)icon - 1];
 }

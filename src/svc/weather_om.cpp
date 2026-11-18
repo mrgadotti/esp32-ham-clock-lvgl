@@ -12,10 +12,9 @@
 constexpr uint32_t OM_MS = 10UL * 60000UL, OM_RETRY_MS = 5UL * 60000UL;
 constexpr int AIR_EVERY = 6;
 
-static Config s_cfg;  // static: keeps it off the net task stack
 static WeatherData s_w;
-static uint32_t s_next, s_cycles, s_cfgAt;
-static bool s_cfgOk;
+static uint32_t s_next, s_cycles, s_cfgVer = ~0u;
+static int32_t s_scrEn;  // net task only; refreshed when cfgVersion() moves
 static bool s_first = true;  // first fetch fires immediately
 
 static bool reached(uint32_t now, uint32_t at, bool first) { return first || (int32_t)(now - at) >= 0; }
@@ -59,8 +58,9 @@ static void fetch(uint32_t now, double lat, double lon) {
 }
 
 void weatherOmTick(uint32_t now) {
-  if (!s_cfgOk || now - s_cfgAt >= 1000) { s_cfgOk = true; s_cfgAt = now; cfgGet(s_cfg); }  // throttled like weather.cpp
-  if (!(s_cfg.scr_en & ((1 << 10) | (1 << 11)))) { s_first = true; return; }  // re-enabling fetches immediately
+  uint32_t cv = cfgVersion();
+  if (cv != s_cfgVer) { s_cfgVer = cv; cfgRead([](const Config& c) { s_scrEn = c.scr_en; }); }
+  if (!(s_scrEn & ((1 << 10) | (1 << 11)))) { s_first = true; return; }  // re-enabling fetches immediately
   if (WiFi.status() != WL_CONNECTED || !reached(now, s_next, s_first) || !httpPollGate(now)) return;
   double lat, lon;
   if (serviceCoords(lat, lon)) fetch(now, lat, lon);

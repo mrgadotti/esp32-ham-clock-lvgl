@@ -18,7 +18,13 @@
 constexpr uint32_t CUR_MS = 30UL * 60000UL, FC_MS = 30UL * 60000UL, RETRY_MS = 2UL * 60000UL;
 
 static WeatherAlertScheduler s_sched;
-static Config s_cfg;  // static: keeps it off the net task stack
+static struct {  // net task only; refreshed when cfgVersion() moves
+  char weather_key[sizeof(Config::weather_key)];
+  int32_t tft_lang;
+  float timezone, wx_w_thr;
+  bool wx_al_st, wx_al_wi;
+} s_cfg;
+static uint32_t s_cfgVer = ~0u;
 static WeatherData s_w;
 static uint32_t s_nextCur, s_nextFc, s_lastSched;
 static bool s_curFirst = true, s_fcFirst = true;  // first fetch fires immediately
@@ -97,9 +103,17 @@ static void fetchForecast(uint32_t now, double lat, double lon) {
 }
 
 void weatherTick(uint32_t now) {
+  uint32_t cv = cfgVersion();
+  if (cv != s_cfgVer) {
+    s_cfgVer = cv;
+    cfgRead([](const Config& c) {
+      strlcpy(s_cfg.weather_key, c.weather_key, sizeof s_cfg.weather_key);
+      s_cfg.tft_lang = c.tft_lang; s_cfg.timezone = c.timezone; s_cfg.wx_w_thr = c.wx_w_thr;
+      s_cfg.wx_al_st = c.wx_al_st; s_cfg.wx_al_wi = c.wx_al_wi;
+    });
+  }
   if (now - s_lastSched >= 1000) {  // alerts keep running on cached data
     s_lastSched = now;
-    cfgGet(s_cfg);
     g_store.weather.read([](const WeatherData& w) { s_w = w; });
     WxAlertCfg ac{s_cfg.wx_al_st, s_cfg.wx_al_wi, s_cfg.wx_w_thr};
     UiEvent e{};
@@ -111,7 +125,7 @@ void weatherTick(uint32_t now) {
   if (WiFi.status() != WL_CONNECTED) return;
   bool cd = reached(now, s_nextCur, s_curFirst), fd = reached(now, s_nextFc, s_fcFirst);
   if (!cd && !fd) return;
-  if (!s_cfg.weather_key[0] || !httpPollGate(now)) return;  // s_cfg was refreshed within the last second
+  if (!s_cfg.weather_key[0] || !httpPollGate(now)) return;  // s_cfg is current
   double lat, lon;
   if (!serviceCoords(lat, lon)) return;
   if (cd) fetchCurrent(now, lat, lon);

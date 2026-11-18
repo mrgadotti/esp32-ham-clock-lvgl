@@ -21,6 +21,17 @@ static lv_obj_t* ov;
 static uint32_t deadline;
 static bool closeReq;
 static lv_obj_t* frame;
+static lv_obj_t* edge[4];  // children of frame: top, bottom, left, right
+
+static void setBorder(lv_color_t c, int w) {
+  constexpr int W = 308, H = 190;
+  const lv_area_t r[4] = {{0, 0, W - 1, w - 1}, {0, H - w, W - 1, H - 1}, {0, 0, w - 1, H - 1}, {W - w, 0, W - 1, H - 1}};
+  for (int i = 0; i < 4; i++) {
+    lv_obj_set_pos(edge[i], r[i].x1, r[i].y1);
+    lv_obj_set_size(edge[i], r[i].x2 - r[i].x1 + 1, r[i].y2 - r[i].y1 + 1);
+    lv_obj_set_style_bg_color(edge[i], c, 0);
+  }
+}
 static int lastPulse = -1;
 static FifoQueue<UiEvent, 4> pending;  // alerts that arrived while an overlay was showing (UI task only)
 static void show(const UiEvent&);
@@ -68,8 +79,9 @@ void line(lv_layer_t* ly, int x1, int y1, int x2, int y2, lv_color_t c, int w) {
 
 void aprsImage(AprsIcon ik, int x, int y) {
   lv_obj_t* im = lv_image_create(ov);
-  lv_image_set_src(im, aprsIconImage(ik, 48));
-  lv_obj_set_pos(im, x, y);
+  lv_image_set_src(im, aprsIconImage(ik, 32));
+  lv_image_set_scale(im, 384);  // 32 px bitmap drawn at 48 px (1.5x) around its centre; the 32 px widget box stays put
+  lv_obj_set_pos(im, x + 8, y + 8);
 }
 
 void onCompassDraw(lv_event_t* e) {
@@ -116,10 +128,14 @@ void buildAprs(lv_obj_t* ov, const AprsStation& st) {
   lv_obj_remove_style_all(frame);
   lv_obj_set_pos(frame, 6, 44);
   lv_obj_set_size(frame, 308, 190);
-  lv_obj_set_style_radius(frame, 8, 0);
-  lv_obj_set_style_border_width(frame, 3, 0);
-  lv_obj_set_style_border_color(frame, white, 0);
   lv_obj_remove_flag(frame, LV_OBJ_FLAG_CLICKABLE);
+  for (lv_obj_t*& e : edge) {  // four thin bars instead of one bordered box: a pulse repaints only the border
+    e = lv_obj_create(frame);
+    lv_obj_remove_style_all(e);
+    lv_obj_set_style_bg_opa(e, LV_OPA_COVER, 0);
+    lv_obj_remove_flag(e, LV_OBJ_FLAG_CLICKABLE);
+  }
+  setBorder(white, 3);
 
   char b[48];
   uiLabel(ov, &font_24, white, st.call[0] ? st.call : "-", 18, 52);
@@ -272,8 +288,7 @@ void overlayTick(uint32_t nowMs) {
     int p = (nowMs / 500) & 1;
     if (p != lastPulse) {
       lastPulse = p;
-      lv_obj_set_style_border_color(frame, p ? COL_GREY : COL_TEXT, 0);
-      lv_obj_set_style_border_width(frame, p ? 1 : 3, 0);
+      setBorder(p ? COL_GREY : COL_TEXT, p ? 1 : 3);
     }
   }
   if (ov && (closeReq || (int32_t)(nowMs - deadline) >= 0)) {
