@@ -25,7 +25,7 @@ bool serviceCoords(double& lat, double& lon) {
   portEXIT_CRITICAL(&s_mux);
   if (!hit) {
     cfgRead([&](const Config& c) {
-      f.ok = c.user_ll_ok;
+      f.ok = c.user_ll_ok || c.user_lat != 0 || c.user_lon != 0;  // nothing sets user_ll_ok since the Location screen was removed; 0,0 means "unset"
       f.lat = c.user_lat;
       f.lon = c.user_lon;
       if (!f.ok) f.ok = locatorToLatLon(c.user_locator, f.lat, f.lon);
