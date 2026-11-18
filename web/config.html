@@ -137,7 +137,7 @@ function msg(t,e){const m=$("msg");m.textContent=t;m.className=e?"e":"";}
 async function load(){cfg=await (await fetch("/api/config")).json();render();}
 async function status(){
   try{const s=await (await fetch("/api/status")).json();
-  $("st").textContent="IP "+s.ip+" | RSSI "+s.rssi+" | "+T("Uptime")+" "+s.uptime_s+" s | "+T("Free heap")+" "+s.heap_free+" | v"+s.version+";}catch(e){}
+  $("st").textContent="IP "+s.ip+" | RSSI "+s.rssi+" | "+T("Uptime")+" "+s.uptime_s+" s | "+T("Free heap")+" "+s.heap_free+" | v"+s.version;}catch(e){}
 }
 $("save").onclick=async()=>{
   const o=collect();
