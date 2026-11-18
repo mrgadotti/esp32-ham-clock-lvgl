@@ -8,11 +8,8 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   /* shared */ \
   X(Utc, "UTC", "UTC") \
   X(LocalTime, "Local Time", "Hora Local") \
-  X(Save, "SAVE", "SALVAR") \
   X(Ok, "OK", "OK") \
   X(Cancel, "CANCEL", "CANCELAR") \
-  X(Yes, "YES", "SIM") \
-  X(No, "NO", "NÃO") \
   X(All, "ALL", "TODOS") \
   X(Mode, "MODE", "MODO") \
   X(Band, "BAND", "BANDA") \
@@ -83,19 +80,6 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(NoForecast, "No forecast", "Sem previsão") \
   X(ForecastNoData, "Forecast: no data from API", "Previsão: sem dados da API") \
   X(WeatherForLocation, "Weather for location: ", "Clima para localização: ") \
-  /* location */ \
-  X(Location, "LOCATION", "LOCALIZAÇÃO") \
-  X(GpsLabel, "GPS:", "GPS:") \
-  X(GpsActive, "ACTIVE", "ATIVO") \
-  X(GpsInactive, "INACTIVE", "INATIVO") \
-  X(Fix, "FIX:", "FIX:") \
-  X(Sats, "SATS:", "SATS:") \
-  X(Lat, "LAT:", "LAT:") \
-  X(Lon, "LON:", "LON:") \
-  X(Speed, "SPEED:", "VELOC:") \
-  X(Locator, "LOCATOR:", "LOCATOR:") \
-  X(Saved, "SAVED", "SALVO") \
-  X(NoFix, "NO FIX", "SEM FIX") \
   /* settings */ \
   X(Settings, "SETTINGS", "CONFIGURAÇÕES") \
   X(Brightness, "BRIGHTNESS", "BRILHO") \

@@ -21,9 +21,9 @@ int32_t lastNdim = 50;  // RAM only: restored when the night-dimming switch is t
 
 const ScreenId kScreens[] = {ScreenId::HamClock, ScreenId::DxCluster, ScreenId::SunSpots, ScreenId::BandInfo,
                              ScreenId::Weather, ScreenId::AprsList, ScreenId::Pota, ScreenId::HamAlert,
-                             ScreenId::AprsRadar, ScreenId::Forecast, ScreenId::Location};
+                             ScreenId::AprsRadar, ScreenId::Forecast};
 const Tr kScreenNames[] = {Tr::Clock, Tr::DxCluster, Tr::Propagation, Tr::HfBands, Tr::Weather, Tr::AprsIs,
-                           Tr::Pota, Tr::HamAlert, Tr::AprsRadar, Tr::Forecast, Tr::Location};
+                           Tr::Pota, Tr::HamAlert, Tr::AprsRadar, Tr::Forecast};
 static_assert(sizeof kScreens / sizeof *kScreens == sizeof kScreenNames / sizeof *kScreenNames,
               "kScreens and kScreenNames must list the same screens");
 const int32_t kSwSec[] = {10, 15, 30, 60, 120, 300};

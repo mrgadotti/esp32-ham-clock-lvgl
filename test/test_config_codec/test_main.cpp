@@ -26,9 +26,9 @@ void test_defaults_match_original() {
   TEST_ASSERT_EQUAL_INT(30, c.tft_sw_sec);
   TEST_ASSERT_EQUAL_INT(60, c.alrt_scr_s);  // deliberate deviation from the original 5 s
   TEST_ASSERT_EQUAL_STRING("0", c.aprs_passcode);
-  TEST_ASSERT_EQUAL_HEX32(0x33FE, c.scr_en);
+  TEST_ASSERT_EQUAL_HEX32(0x13FE, c.scr_en);
   TEST_ASSERT_EQUAL_STRING("1234567890", c.ap_pass);
-  const uint8_t order[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 13, 0};
+  const uint8_t order[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 0, 0};
   TEST_ASSERT_EQUAL_MEMORY(order, c.screen_order, 12);
 }
 
@@ -159,13 +159,13 @@ void test_needs_restart() {
 void test_screen_bits_and_order() {
   Config c = defaults();
   TEST_ASSERT_TRUE(configApplyJson(c, "{\"scr_en\":65535,\"screen_order\":[1,1,11,14,2,12,0,0,13,3]}").ok);
-  TEST_ASSERT_EQUAL_HEX32(0x33FE, c.scr_en);
-  const uint8_t want[12] = {1, 0, 0, 0, 2, 12, 0, 0, 13, 3, 0, 0};  // slots 0..9 from the JSON, dups and out-of-range reset to 0
+  TEST_ASSERT_EQUAL_HEX32(0x13FE, c.scr_en);
+  const uint8_t want[12] = {1, 0, 0, 0, 2, 12, 0, 0, 0, 3, 0, 0};  // slots 0..9 from the JSON, dups and out-of-range reset to 0
   uint8_t tail[12];
   memcpy(tail, c.screen_order, 12);
   TEST_ASSERT_EQUAL_MEMORY(want, tail, 10);
   TEST_ASSERT_EQUAL_UINT8(0, tail[10]);
-  TEST_ASSERT_EQUAL_UINT8(0, tail[11]);  // default 13 duplicates slot 8, reset to 0
+  TEST_ASSERT_EQUAL_UINT8(0, tail[11]);
 }
 
 void test_tft_rot_only_1_or_3() {
@@ -287,11 +287,37 @@ void test_last_scr_normalised_and_validated() {
   char buf[6144];
   TEST_ASSERT_TRUE(configToBackupJson(a, buf, sizeof buf, 0));  // never stored
   TEST_ASSERT_NOT_NULL(strstr(buf, "\"last_scr\":1"));
-  for (const char* bad : {"{\"last_scr\":0}", "{\"last_scr\":14}", "{\"last_scr\":300}", "{\"last_scr\":\"3\"}",
+  for (const char* bad : {"{\"last_scr\":0}", "{\"last_scr\":13}", "{\"last_scr\":14}", "{\"last_scr\":300}", "{\"last_scr\":\"3\"}",
                           "{\"last_scr\":2.5}", "{\"last_scr\":-1}"}) {
     Config c = defaults();
     TEST_ASSERT_FALSE_MESSAGE(configApplyJson(c, bad).ok, bad);
   }
+}
+
+void test_removed_screens_cleared_by_clamp() {
+  Config c = defaults();
+  c.scr_en = 0xFFFF;
+  const uint8_t o[12] = {13, 10, 11, 2, 2, 0, 0, 0, 0, 0, 0, 0};
+  memcpy(c.screen_order, o, 12);
+  configClamp(c);
+  TEST_ASSERT_EQUAL_HEX32(0x13FE, c.scr_en);
+  for (int i = 0; i < 3; ++i) TEST_ASSERT_EQUAL_UINT8(0, c.screen_order[i]);
+  TEST_ASSERT_EQUAL_UINT8(2, c.screen_order[3]);
+  TEST_ASSERT_EQUAL_UINT8(0, c.screen_order[4]);  // duplicate
+}
+
+void test_defaults_without_location() {
+  Config c = defaults();
+  TEST_ASSERT_EQUAL_HEX32(0x13FE, c.scr_en);
+  const uint8_t order[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 0, 0};
+  TEST_ASSERT_EQUAL_MEMORY(order, c.screen_order, 12);
+}
+
+void test_last_scr_13_rejected() {
+  Config c = defaults();
+  ApplyResult r = configApplyJson(c, "{\"last_scr\":13}");
+  TEST_ASSERT_FALSE(r.ok);
+  TEST_ASSERT_EQUAL_STRING("bad_value:last_scr", r.error);
 }
 
 void test_invalid_tcal_rejected_untouched() {
@@ -343,6 +369,9 @@ int main() {
   RUN_TEST(test_backup_has_every_key_tcal_and_last_scr);
   RUN_TEST(test_backup_roundtrip_reproduces_every_field);
   RUN_TEST(test_last_scr_normalised_and_validated);
+  RUN_TEST(test_removed_screens_cleared_by_clamp);
+  RUN_TEST(test_defaults_without_location);
+  RUN_TEST(test_last_scr_13_rejected);
   RUN_TEST(test_invalid_tcal_rejected_untouched);
   RUN_TEST(test_old_backup_and_unknown_keys);
   return UNITY_END();

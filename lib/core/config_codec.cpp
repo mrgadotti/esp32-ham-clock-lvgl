@@ -103,8 +103,8 @@ const ConfigField kFields[] = {
 };
 const size_t kFieldCount = sizeof(kFields) / sizeof(kFields[0]);
 
-static const uint32_t kScrEnMask = 0x33FE;  // ScreenId bits 1..13 except 10 (Matrix, removed) and 11 (Game, removed)
-static const uint8_t kDefaultOrder[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 13, 0};
+static const uint32_t kScrEnMask = 0x13FE;  // ScreenId bits 1..9 and 12
+static const uint8_t kDefaultOrder[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 0, 0};
 
 static void setStr(char* dst, size_t size, const char* src) {
   snprintf(dst, size, "%s", src);
@@ -173,7 +173,7 @@ void configClamp(Config& c) {
   if (c.tft_rot != 1 && c.tft_rot != 3) c.tft_rot = 1;
   uint32_t seen = 0;
   for (uint8_t& o : c.screen_order) {
-    if (o > 13 || !((kScrEnMask | 1) >> o & 1) || (o && (seen >> o & 1))) o = 0;
+    if (o > 12 || !((kScrEnMask | 1) >> o & 1) || (o && (seen >> o & 1))) o = 0;
     seen |= 1u << o;
   }
 }

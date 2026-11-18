@@ -3,9 +3,7 @@
 #include "lvgl.h"
 
 enum class ScreenId : uint8_t { HamClock=1, DxCluster=2, SunSpots=3, BandInfo=4, Weather=5, AprsList=6,
-  Pota=7, HamAlert=8, AprsRadar=9,
-  Matrix=10, Game=11,  // reserved (removed): ids kept so stored screen_order values stay valid; never created
-  Forecast=12, Location=13, Settings=14 };
+  Pota=7, HamAlert=8, AprsRadar=9, Forecast=12, Settings=14 };
 
 class Screen {
  public:

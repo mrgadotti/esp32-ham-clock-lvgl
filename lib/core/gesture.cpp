@@ -6,12 +6,14 @@ Gesture classifyGesture(int dx, int dy) {
   return dx < 0 ? Gesture::SwipeLeft : Gesture::SwipeRight;
 }
 
+bool isCarouselScreen(uint8_t id) { return (id >= 1 && id <= 9) || id == 12; }
+
 // Enabled carousel screens in slot order, without Settings; the Clock is always included (it hosts the gear that opens Settings).
 static int carouselList(const uint8_t order[12], uint16_t enabledMask, uint8_t list[12]) {
   int n = 0;
   for (int i = 0; i < 12; ++i) {
     uint8_t id = order[i];
-    if (id && id != scr::Settings && id != scr::Matrix && id != scr::Game && id < 16 && ((enabledMask | (1u << scr::HamClock)) & (1u << id))) list[n++] = id;
+    if (isCarouselScreen(id) && ((enabledMask | (1u << scr::HamClock)) & (1u << id))) list[n++] = id;
   }
   return n;
 }
@@ -34,7 +36,6 @@ uint8_t nextAutoSwitchScreen(const uint8_t order[12], uint16_t enabledMask, uint
 }
 
 uint8_t resolveStartScreen(uint8_t stored, uint16_t enabledMask) {
-  bool ok = stored && stored < 16 && stored != scr::Settings && stored != scr::Matrix && stored != scr::Game &&
-            (enabledMask & (1u << stored));
+  bool ok = isCarouselScreen(stored) && (enabledMask & (1u << stored));
   return ok ? stored : scr::HamClock;
 }

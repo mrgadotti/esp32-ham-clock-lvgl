@@ -35,12 +35,7 @@ static void onGesture(Gesture g) {  // indev callback: flag only
   pendingDir = (g == Gesture::SwipeLeft) ? 1 : -1;
 }
 
-// Reserved ids (Matrix/Game) have no screen; map them to the clock so cur->id() matches the request.
-static ScreenId normalise(ScreenId id) {
-  return (id == ScreenId::Matrix || id == ScreenId::Game) ? ScreenId::HamClock : id;
-}
-
-void uiRequest(ScreenId id) { pendingTarget = (uint8_t)normalise(id); }
+void uiRequest(ScreenId id) { pendingTarget = (uint8_t)id; }
 
 void uiInit() {
   lastLang = cfg().tft_lang;
@@ -84,7 +79,6 @@ static void showForce(ScreenId id) {
 }
 
 static void show(ScreenId id) {
-  id = normalise(id);
   if (cur && cur->id() == id) return;
   showForce(id);
 }
@@ -94,7 +88,7 @@ static ScreenId carouselNext(uint8_t from, int dir) {
   return (ScreenId)nextScreen(c.screen_order, (uint16_t)c.scr_en, from, dir);
 }
 
-// Manual navigation only (never auto-switch). Settings/Matrix/Game keep the previous value. Writes only on change.
+// Manual navigation only (never auto-switch). Settings keeps the previous value. Writes only on change.
 static void persistScreen() {
   uint8_t v = (uint8_t)cur->id();
   if (resolveStartScreen(v, 0xFFFF) != v || v == lastSaved) return;
