@@ -10,3 +10,5 @@ RadarView radarZoomStep(const RadarView& v, int dir);
 // x2 zoom (max 80), re-centred on the tapped point; unchanged at max zoom
 RadarView radarZoomAt(const RadarView& v, int16_t tapX, int16_t tapY, float rangeKm, int16_t radiusPx,
                       int16_t originX, int16_t originY);
+// Shifts the view centre by (dxKm, dyKm) and keeps |cx|, |cy| <= rangeKm so the outer ring stays reachable
+RadarView radarPan(const RadarView& v, float dxKm, float dyKm, float rangeKm);

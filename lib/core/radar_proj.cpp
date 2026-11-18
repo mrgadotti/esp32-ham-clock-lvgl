@@ -32,3 +32,9 @@ RadarView radarZoomAt(const RadarView& v, int16_t tapX, int16_t tapY, float rang
   n.zoom = v.zoom * 2 > 80 ? 80 : v.zoom * 2;
   return n;
 }
+RadarView radarPan(const RadarView& v, float dxKm, float dyKm, float rangeKm) {
+  RadarView n = v;
+  n.cxKm = fmaxf(-rangeKm, fminf(rangeKm, v.cxKm + dxKm));
+  n.cyKm = fmaxf(-rangeKm, fminf(rangeKm, v.cyKm + dyKm));
+  return n;
+}
