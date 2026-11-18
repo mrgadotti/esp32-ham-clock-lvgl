@@ -54,7 +54,7 @@ struct WeatherAlertInfo {
 // potaFail: the last POTA fetch failed (cleared by the next success); roundDone: the first boot HTTPS round is over.
 struct NetStatus { bool sta; bool ap; char ip[16]; char ssid[33]; int8_t rssi; bool potaFail; bool roundDone; };
 
-struct BeaconInfo { char call[12]; char position[24]; char path[32]; };
+struct BeaconInfo { char call[12]; char position[24]; char path[32]; char sym[2]; };
 
 struct QrzInfo { char grid[7]; char country[24]; float lat, lon; bool hasLatLon; };
 

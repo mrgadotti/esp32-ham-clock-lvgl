@@ -14,6 +14,7 @@
 #include "../fonts/fonts.h"
 #include "../icons/weather_icons.h"
 #include "../theme.h"
+#include "../widgets/aprs_icon.h"
 #include "../widgets/ui_kit.h"
 
 static lv_obj_t* ov;
@@ -65,47 +66,10 @@ void line(lv_layer_t* ly, int x1, int y1, int x2, int y2, lv_color_t c, int w) {
   lv_draw_line(ly, &d);
 }
 
-void onIconDraw(lv_event_t* e) {
-  lv_obj_t* o = lv_event_get_target_obj(e);
-  lv_layer_t* ly = lv_event_get_layer(e);
-  lv_area_t a;
-  lv_obj_get_coords(o, &a);
-  int x = a.x1, y = a.y1;
-  const lv_color_t grey = lv_color_hex(0x808080), red = lv_color_hex(0xFF0000), yel = lv_color_hex(0xFFFF00);
-  switch ((AprsIcon)(intptr_t)lv_obj_get_user_data(o)) {
-    case AprsIcon::Car:
-      box(ly, x + 2, y + 18, x + 61, y + 31, red, 4);
-      box(ly, x + 16, y + 9, x + 48, y + 18, red, 4);
-      box(ly, x + 56, y + 21, x + 61, y + 24, yel, 1);
-      box(ly, x + 2, y + 21, x + 6, y + 24, yel, 1);
-      box(ly, x + 8, y + 26, x + 20, y + 38, grey, LV_RADIUS_CIRCLE);
-      box(ly, x + 11, y + 29, x + 17, y + 35, lv_color_hex(0xC0C0C0), LV_RADIUS_CIRCLE);
-      box(ly, x + 44, y + 26, x + 56, y + 38, grey, LV_RADIUS_CIRCLE);
-      box(ly, x + 47, y + 29, x + 53, y + 35, lv_color_hex(0xC0C0C0), LV_RADIUS_CIRCLE);
-      break;
-    case AprsIcon::House: {
-      box(ly, x + 12, y + 16, x + 50, y + 39, yel, 0);
-      lv_draw_triangle_dsc_t t;
-      lv_draw_triangle_dsc_init(&t);
-      t.color = lv_color_hex(0x00C000);
-      t.p[0].x = x + 7; t.p[0].y = y + 16;
-      t.p[1].x = x + 55; t.p[1].y = y + 16;
-      t.p[2].x = x + 31; t.p[2].y = y + 1;
-      lv_draw_triangle(ly, &t);
-      box(ly, x + 28, y + 26, x + 34, y + 39, lv_color_hex(0x804000), 0);
-      box(ly, x + 16, y + 22, x + 23, y + 29, lv_color_hex(0x00A0FF), 0);
-      box(ly, x + 39, y + 22, x + 46, y + 29, lv_color_hex(0x00A0FF), 0);
-      break;
-    }
-    case AprsIcon::Human:
-      box(ly, x + 27, y + 1, x + 37, y + 11, lv_color_hex(0x3030FF), LV_RADIUS_CIRCLE);
-      line(ly, x + 32, y + 13, x + 32, y + 26, red, 3);
-      line(ly, x + 22, y + 18, x + 42, y + 18, red, 3);
-      line(ly, x + 32, y + 26, x + 24, y + 38, red, 3);
-      line(ly, x + 32, y + 26, x + 40, y + 38, red, 3);
-      break;
-    default: break;
-  }
+void aprsImage(AprsIcon ik, int x, int y) {
+  lv_obj_t* im = lv_image_create(ov);
+  lv_image_set_src(im, aprsIconImage(ik, 48));
+  lv_obj_set_pos(im, x, y);
 }
 
 void onCompassDraw(lv_event_t* e) {
@@ -188,7 +152,7 @@ void buildAprs(lv_obj_t* ov, const AprsStation& st) {
     AprsIcon ik;
     Tr d;
     aprsSymbolInfo(st.sym, ik, d);
-    if (ik != AprsIcon::None) drawObj(ov, 18, 106, 64, 42, onIconDraw, (intptr_t)ik);
+    if (ik != AprsIcon::None) aprsImage(ik, 18, 104);
     else uiLabel(ov, &font_18, white, tr(d), 18, 116);
   }
   if (st.comment[0] && !(st.isWx && wx.hasAny)) {
@@ -212,6 +176,7 @@ static void show(const UiEvent& e) {
   const char* title;
   const lv_image_dsc_t* wxImg = nullptr;
   bool aprs = false;
+  AprsIcon bIcon = AprsIcon::None;
   uint32_t secs = (uint32_t)cfg().alrt_scr_s;
   body[0] = 0;
   switch (e.kind) {
@@ -219,11 +184,15 @@ static void show(const UiEvent& e) {
       title = tr(Tr::AprsAlertTitle);
       aprs = true;
       break;
-    case EventKind::Beaconing:
+    case EventKind::Beaconing: {
       title = tr(Tr::AprsBeaconing);
+      Tr d;
+      aprsSymbolInfo(e.beacon.sym, bIcon, d);
+      if (bIcon == AprsIcon::None) appendf(body, sizeof body, "%s\n", tr(d));
       appendf(body, sizeof body, "%s\n%s\n%s", e.beacon.call, e.beacon.position, e.beacon.path);
       secs = 30;  // fixed, not configurable
       break;
+    }
     case EventKind::WeatherAlert:
       title = tr(Tr::WeatherAlert);
       if (e.wx.stormPossible) {
@@ -262,10 +231,14 @@ static void show(const UiEvent& e) {
     buildAprs(ov, e.station);
   } else {
     lv_obj_t* b = uiLabel(ov, &font_18, COL_TEXT, body, 0, 0, 290, LV_TEXT_ALIGN_CENTER);
-    if (wxImg) {  // weather alert: icon on the left, text left-aligned beside it
-      lv_obj_t* im = lv_image_create(ov);
-      lv_image_set_src(im, wxImg);
-      lv_obj_set_pos(im, 18, 90);
+    if (wxImg || bIcon != AprsIcon::None) {  // icon on the left, text left-aligned beside it
+      if (wxImg) {
+        lv_obj_t* im = lv_image_create(ov);
+        lv_image_set_src(im, wxImg);
+        lv_obj_set_pos(im, 18, 90);
+      } else {
+        aprsImage(bIcon, 18, 90);
+      }
       lv_obj_set_width(b, 226);
       lv_obj_set_style_text_align(b, LV_TEXT_ALIGN_LEFT, 0);
       lv_obj_align(b, LV_ALIGN_TOP_LEFT, 82, 76);  // top-anchored: up to 6 lines never reach the title

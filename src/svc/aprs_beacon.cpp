@@ -113,5 +113,6 @@ void aprsBeaconTick(uint32_t now) {
   snprintf(e.beacon.call, sizeof e.beacon.call, "%s", call);
   snprintf(e.beacon.position, sizeof e.beacon.position, "%.4f %.4f", lat, lon);
   snprintf(e.beacon.path, sizeof e.beacon.path, "%s", pathStr);
+  e.beacon.sym[0] = sym[0]; e.beacon.sym[1] = sym[1];
   postUiEvent(e);
 }

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "aprs_symbol.h"
 #include "geo.h"
 #include "i18n.h"
 #include "radar_proj.h"
@@ -12,12 +13,13 @@
 #include "../../app/service_coords.h"
 #include "../fonts/fonts.h"
 #include "../theme.h"
+#include "../widgets/aprs_icon.h"
 #include "../widgets/header.h"
 
 namespace {
 constexpr int R_PX = 100, OX = 160, OY = HEADER_H + (240 - HEADER_H) / 2, MAXN = 30;
 
-struct Pt { float distKm, bearing; lv_color_t col; char call[10]; };
+struct Pt { float distKm, bearing; lv_color_t col; char call[10]; AprsIcon icon; };
 
 lv_color_t stationColor(const AprsStation& s) {  // as getAprsRadarColorForStation (dark theme)
   if (s.sym[0] == '/') {
@@ -79,6 +81,7 @@ class AprsRadarScreen : public Screen {
         t.distKm = distanceKm(la, lo, s.lat, s.lon);
         t.bearing = bearingDeg(la, lo, s.lat, s.lon);
         t.col = stationColor(s);
+        AprsIcon ik; Tr dsc; aprsSymbolInfo(s.sym, ik, dsc); t.icon = ik;
         snprintf(t.call, sizeof t.call, "%s", s.call);
       }
     });
@@ -235,8 +238,17 @@ class AprsRadarScreen : public Screen {
       if (!radarProject(v, t.distKm, t.bearing, range, R_PX, OX, OY, x, y)) continue;
       if (y < HEADER_H + 3 || y > 236) continue;
       if (x > 256 && y > 128) continue;  // keep clear of the zoom buttons
-      arc(l, x, y, 3, 3, t.col);
-      if (labels) text(l, t.call, x, y - 18 < HEADER_H ? y + 4 : y - 18, t.col, true, used, nu, true);
+      const lv_image_dsc_t* img = aprsIconImage(t.icon, v.zoom <= 1.0f ? 16 : v.zoom < 8.0f ? 24 : 32);
+      const int h = img ? img->header.h : 0;
+      if (img) {
+        lv_draw_image_dsc_t id;
+        lv_draw_image_dsc_init(&id);
+        id.src = img;
+        const lv_area_t ia = {x - h / 2, y - h / 2, x + h / 2 - 1, y + h / 2 - 1};
+        lv_draw_image(l, &id, &ia);
+      } else arc(l, x, y, 3, 3, t.col);
+      const int up = img ? h / 2 + 17 : 18, dn = img ? h / 2 + 1 : 4;  // label box is 16 px tall
+      if (labels) text(l, t.call, x, y - up < HEADER_H ? y + dn : y - up, t.col, true, used, nu, true);
     }
   }
 };
