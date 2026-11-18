@@ -11,8 +11,8 @@ void test_alert_storm_now() {
   w.valid = true; w.weatherId = 211; w.fetchedAt = 1000;
   TEST_ASSERT_TRUE(s.due(w, 60000, CFG, o));
   TEST_ASSERT_TRUE(o.stormPossible); TEST_ASSERT_TRUE(o.stormNow); TEST_ASSERT_EQUAL_UINT8(1, o.stormEtaHours);
-  WeatherAlertScheduler s2;  // data older than 30 min
-  TEST_ASSERT_FALSE(s2.due(w, 1000 + 31UL * 60000UL, CFG, o));
+  WeatherAlertScheduler s2;  // data older than 45 min
+  TEST_ASSERT_FALSE(s2.due(w, 1000 + 46UL * 60000UL, CFG, o));
   WxAlertCfg off = {false, true, 15.0f};
   TEST_ASSERT_FALSE(s.due(w, 5UL * 60000UL, off, o));
 }
@@ -56,8 +56,8 @@ void test_storm_age_boundary() {
   WeatherData w = base(); WeatherAlertInfo o;
   w.valid = true; w.weatherId = 200; w.fetchedAt = 1000;
   WeatherAlertScheduler a, b;
-  TEST_ASSERT_TRUE(a.due(w, 1000 + 30UL * 60000UL, CFG, o));
-  TEST_ASSERT_FALSE(b.due(w, 1000 + 30UL * 60000UL + 1, CFG, o));
+  TEST_ASSERT_TRUE(a.due(w, 1000 + 45UL * 60000UL, CFG, o));
+  TEST_ASSERT_FALSE(b.due(w, 1000 + 45UL * 60000UL + 1, CFG, o));
 }
 
 void test_forecast_stamp_in_future() {
@@ -66,10 +66,23 @@ void test_forecast_stamp_in_future() {
   TEST_ASSERT_TRUE(s.due(w, 1000, CFG, o)); TEST_ASSERT_EQUAL_UINT8(3, o.stormEtaHours);
 }
 
+void test_storm_data_40min_old_still_alerts() {
+  WeatherData w = base(); WeatherAlertInfo o; WeatherAlertScheduler s;
+  w.valid = true; w.weatherId = 200; w.fetchedAt = 1000;
+  TEST_ASSERT_TRUE(s.due(w, 1000 + 40UL * 60000UL, CFG, o)); TEST_ASSERT_TRUE(o.stormNow);
+}
+
+void test_storm_data_50min_old_does_not_alert() {
+  WeatherData w = base(); WeatherAlertInfo o; WeatherAlertScheduler s;
+  w.valid = true; w.weatherId = 200; w.fetchedAt = 1000;
+  TEST_ASSERT_FALSE(s.due(w, 1000 + 50UL * 60000UL, CFG, o));
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_storm_age_boundary); RUN_TEST(test_forecast_stamp_in_future);
   RUN_TEST(test_alert_storm_now); RUN_TEST(test_alert_wind_gust);
+  RUN_TEST(test_storm_data_40min_old_still_alerts); RUN_TEST(test_storm_data_50min_old_does_not_alert);
   RUN_TEST(test_alert_repeat_minutes); RUN_TEST(test_alert_millis_wrap);
   return UNITY_END();
 }

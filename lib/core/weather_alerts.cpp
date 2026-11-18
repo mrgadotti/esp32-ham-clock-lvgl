@@ -1,7 +1,8 @@
 #include "weather_alerts.h"
 #include <string.h>
 
-static const uint32_t CURRENT_MAX_AGE_MS = 30UL * 60UL * 1000UL;
+// Refresh interval 30 min + slack for a retry.
+static const uint32_t CURRENT_MAX_AGE_MS = 45UL * 60UL * 1000UL;
 static const uint32_t WIND_REPEAT_MS = 60UL * 1000UL;
 
 static uint8_t repeatMinutesFromEta(int etaMin) {
