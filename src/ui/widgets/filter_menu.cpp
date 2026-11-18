@@ -92,7 +92,7 @@ void filterMenuOpen(lv_obj_t*, const uint8_t* bands, uint8_t nBands, uint16_t* b
   lv_obj_t* p = m->panel = uiModalPanel();
   uiLabel(p, &font_18, COL_ACCENT, tr(Tr::Filters), 8, 2);
 
-  if (extraLabel) uiTilePaint(uiTile(p, extraLabel, 164, 0, 148, 24, onExtra, 0), false);
+  if (extraLabel) uiTilePaint(uiTile(p, extraLabel, 164, 0, 148, 24, onExtra, 0), true);
 
   uiLabel(p, &font_14, lv_color_hex(0xC0C0C0), tr(Tr::Mode), 8, 24);
   const char* names[4] = {tr(Tr::All), tr(Tr::FilterCw), tr(Tr::FilterSsb), tr(Tr::FilterDigi)};
@@ -108,6 +108,6 @@ void filterMenuOpen(lv_obj_t*, const uint8_t* bands, uint8_t nBands, uint16_t* b
   lv_obj_t* ok = uiTile(p, tr(Tr::Ok), 40, 208, 100, 26, onOk, 0);
   lv_obj_t* cancel = uiTile(p, tr(Tr::Cancel), 180, 208, 100, 26, onCancel, 0);
   uiTilePaint(ok, true);
-  uiTilePaint(cancel, false);
+  uiTilePaint(cancel, true);
   refresh();
 }

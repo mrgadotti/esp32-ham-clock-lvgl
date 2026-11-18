@@ -144,12 +144,12 @@ class AprsListScreen : public Screen {
       if (menu->flag[i]) lv_obj_add_state(cb, LV_STATE_CHECKED);
       lv_obj_add_event_cb(cb, onBox, LV_EVENT_VALUE_CHANGED, (void*)(intptr_t)i);
     }
-    uiTilePaint(uiTile(p, tr(Tr::BeaconNow), 8, 172, 148, 26, onBeacon, 0), false);
-    uiTilePaint(uiTile(p, tr(Tr::ClearAprsList), 164, 172, 148, 26, onClear, 0), false);
+    uiTilePaint(uiTile(p, tr(Tr::BeaconNow), 8, 172, 148, 26, onBeacon, 0), true);
+    uiTilePaint(uiTile(p, tr(Tr::ClearAprsList), 164, 172, 148, 26, onClear, 0), true);
     lv_obj_t* ok = uiTile(p, tr(Tr::Ok), 40, 208, 100, 26, onOk, 0);
     lv_obj_t* cancel = uiTile(p, tr(Tr::Cancel), 180, 208, 100, 26, onCancel, 0);
     uiTilePaint(ok, true);
-    uiTilePaint(cancel, false);
+    uiTilePaint(cancel, true);
     refreshMenu();
   }
 
