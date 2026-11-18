@@ -44,6 +44,7 @@ class AprsRadarScreen : public Screen {
     lv_obj_add_flag(cv_, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(cv_, onDraw, LV_EVENT_DRAW_MAIN, this);
     lv_obj_add_event_cb(cv_, onTap, LV_EVENT_SHORT_CLICKED, this);
+    lv_obj_add_event_cb(cv_, onPan, LV_EVENT_ALL, this);
 
     zoomButton(p, 144, "+", onZoomIn);
     zoomButton(p, 176, "-", onZoomOut);
@@ -62,6 +63,9 @@ class AprsRadarScreen : public Screen {
     lv_label_set_text(l, tr(Tr::RadarZoomReset));
     lv_obj_center(l);
   }
+
+  // Held until the next press so the swipe a pan release produces is dropped (ui_manager reads this after the release)
+  bool blocksSwipe() const override { return swipeBlock_; }
 
   void tick(uint32_t) override {
     if (view_.zoom <= 1.0f) headerTickUtc(hdr_);
@@ -97,6 +101,8 @@ class AprsRadarScreen : public Screen {
   bool me_ = false;
   double la_ = 0, lo_ = 0;
   int32_t rad_ = -1;
+  bool panning_ = false, swipeBlock_ = false;
+  lv_point_t last_ = {0, 0};
 
   void viewChanged() {
     if (view_.zoom > 1.0f) {
@@ -129,6 +135,26 @@ class AprsRadarScreen : public Screen {
     lv_indev_get_point(lv_indev_active(), &pt);
     s->view_ = radarZoomAt(s->view_, pt.x, pt.y, (float)cfg().aprs_radius, R_PX, OX, OY);
     s->viewChanged();
+  }
+  // Long press (400 ms, LVGL default) starts a pan; LVGL then skips SHORT_CLICKED, so no tap zoom follows.
+  static void onPan(lv_event_t* e) {
+    AprsRadarScreen* s = static_cast<AprsRadarScreen*>(lv_event_get_user_data(e));
+    const lv_event_code_t c = lv_event_get_code(e);
+    lv_point_t pt;
+    if (c == LV_EVENT_PRESSED) {
+      s->swipeBlock_ = s->panning_ = false;
+    } else if (c == LV_EVENT_LONG_PRESSED) {
+      lv_indev_get_point(lv_indev_active(), &s->last_);
+      s->panning_ = s->swipeBlock_ = true;
+    } else if (c == LV_EVENT_PRESSING && s->panning_) {
+      lv_indev_get_point(lv_indev_active(), &pt);
+      const float k = cfg().aprs_radius / (float)R_PX / s->view_.zoom;  // km per pixel
+      s->view_ = radarPan(s->view_, -(pt.x - s->last_.x) * k, (pt.y - s->last_.y) * k, (float)cfg().aprs_radius);
+      s->last_ = pt;
+      s->viewChanged();
+    } else if (c == LV_EVENT_RELEASED || c == LV_EVENT_PRESS_LOST) {
+      s->panning_ = false;
+    }
   }
   static void step(lv_event_t* e, int dir) {
     AprsRadarScreen* s = static_cast<AprsRadarScreen*>(lv_event_get_user_data(e));

@@ -50,5 +50,12 @@ void test_invalid_inputs() {
   TEST_ASSERT_FALSE(radarProject({1, 0, 0}, 25, 90, 0, 100, 160, 128, x, y));
   TEST_ASSERT_FALSE(radarProject({1, 0, 0}, NAN, 90, 50, 100, 160, 128, x, y));
 }
+void test_pan_direction_and_clamp() {
+  RadarView v = radarPan({4, 1, 2}, 3, -5, 50);  // east of the QTH is +x, north is +y
+  TEST_ASSERT_EQUAL_FLOAT(4, v.zoom); TEST_ASSERT_EQUAL_FLOAT(4, v.cxKm); TEST_ASSERT_EQUAL_FLOAT(-3, v.cyKm);
+  v = radarPan({4, 40, -40}, 30, -30, 50);
+  TEST_ASSERT_EQUAL_FLOAT(50, v.cxKm); TEST_ASSERT_EQUAL_FLOAT(-50, v.cyKm);
+  v = radarPan(v, 0, 0, 50);
+  TEST_ASSERT_EQUAL_FLOAT(50, v.cxKm); }
 int main() { UNITY_BEGIN(); RUN_TEST(test_project_east); RUN_TEST(test_project_north); RUN_TEST(test_zoom_steps_and_caps_at_80); RUN_TEST(test_tap_zoom_recenters_and_caps_at_80); RUN_TEST(test_project_radius_150); RUN_TEST(test_outside_returns_false);
- RUN_TEST(test_project_west_south); RUN_TEST(test_invalid_inputs); return UNITY_END(); }
+ RUN_TEST(test_project_west_south); RUN_TEST(test_invalid_inputs); RUN_TEST(test_pan_direction_and_clamp); return UNITY_END(); }
