@@ -21,6 +21,7 @@ Screens, in swipe order:
 - HF bands
 - Weather
 - Forecast
+- Weather - Open-Meteo and Forecast - Open-Meteo (no API key, off by default, enable them in Settings)
 
 - Swipe left or right to change screen (wraps around).
 - Settings opens from the gear icon at the bottom right of the Clock screen; the left arrow in its header returns.
@@ -223,6 +224,12 @@ third-party components used here:
 - XPT2046_Touchscreen (MIT)
 - ArduinoJson (MIT)
 - Montserrat font (SIL Open Font License 1.1)
+
+Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC-BY 4.0), air quality
+from CAMS (Copernicus Atmosphere Monitoring Service). The Open-Meteo screens need
+no API key and refresh every 10 minutes. The free API is for non-commercial use
+only, with limits of 600 requests/min, 5000/h and 10000/day applied per IP address
+(devices behind one NAT share them).
 
 ## License
 

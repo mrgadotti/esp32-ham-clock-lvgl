@@ -75,7 +75,7 @@ def both(fmt, *keys):
 # ---------------- header (header.cpp: title at x=6 font_18, clock right-aligned at -6) ----------------
 CLK = width("font_18", "00:00 Z")
 HDR_FREE = 320 - 6 - 6 - 6  # title x=6, clock margin 6, 6 px gap
-titles = ["Propagation", "HfBands", "Weather", "Forecast", "Settings", "AprsRadar", "DxCluster", "Pota", "HamAlert"]
+titles = ["Propagation", "HfBands", "Weather", "Forecast", "Settings", "AprsRadar", "DxCluster", "Pota", "HamAlert", "WeatherOm", "ForecastOm"]
 add("Header", "title vs clock 'hh:mm Z'", "font_18", HDR_FREE - CLK, T(*titles))
 add("Header", "APRS list title (x=46) vs clock", "font_18", HDR_FREE - 40 - CLK, T("AprsIs", "AprsKiss", "AprsTnc2"))
 add("Header", "DX/POTA/HamAlert title (x=46) vs clock", "font_18", HDR_FREE - 40 - CLK, T("DxCluster", "Pota", "HamAlert"))
@@ -153,7 +153,7 @@ add("Weather", "PM2.5 (x=15 .. PM10 x=165)", "font_18", 165 - 15 - 4, ["PM2.5: 9
 add("Weather", "PM10 (x=165)", "font_18", 320 - 165 - 4, ["PM10: 999.9"])
 add("Weather", "description (160 px, 2 lines DOT)", "font_14", 160 * 2 - 12, ["thunderstorm with heavy drizzle"])
 FOOT = ["%s%s  (999 %s)" % (TR["WeatherForLocation"][i], "S\u00e3o Paulo", TR["Min"][i]) for i in (0, 1)]
-add("Weather", "footer (320 px)", "font_14", 320 - 4, FOOT + T("NoApiKey", "WaitingForData", "NoData", "ForecastNoData"))
+add("Weather", "footer (320 px)", "font_14", 320 - 4, FOOT + ["Open-Meteo.com  (999 %s)" % TR["Min"][i] for i in (0, 1)] + T("NoApiKey", "WaitingForData", "NoData", "ForecastNoData"))
 
 # ---------------- Forecast (forecast_screen.cpp: 4 columns of 79 px) ----------------
 add("Forecast", "col head font_18 (79 px)", "font_18", 79 - 2, T("Plus3h", "Plus6h", "DaySun", "DayMon", "DayTue", "DayWed", "DayThu", "DayFri", "DaySat") + ["D+3"])
@@ -182,7 +182,7 @@ add("Settings", "dropdown option text (120 px - arrow)", "font_14", 120 - 40, ["
 add("Settings", "Calibrate touch button (max 150 px - 16 pad)", "font_14", 150 - 16, T("CalibrateTouch"))
 add("Settings", "title right of back arrow (x=44) vs end of bar", "font_18", 320 - 44 - 6, T("Settings"))
 add("Settings", "section heading", "font_14", 300, T("EnabledScreens"))
-add("Settings", "screen checkbox names", "font_14", 300 - 30, T("Clock", "DxCluster", "Propagation", "HfBands", "Weather", "AprsIs", "Pota", "HamAlert", "AprsRadar", "Forecast"))
+add("Settings", "screen checkbox names", "font_14", 300 - 30, T("Clock", "DxCluster", "Propagation", "HfBands", "Weather", "AprsIs", "Pota", "HamAlert", "AprsRadar", "Forecast", "WeatherOm", "ForecastOm"))
 add("Settings", "info rows (300 px DOT)", "font_14", 300, ["SSID: " + "x" * 12, "IP: 255.255.255.255", "RSSI: -100 dBm", "%s: 999999 B" % TR["FreeHeap"][1], "%s: Nov 16 2026 12:00:00" % TR["Firmware"][1]])
 
 # ---------------- Boot (boot_screen.cpp) ----------------

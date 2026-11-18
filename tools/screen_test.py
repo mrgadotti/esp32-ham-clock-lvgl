@@ -20,7 +20,7 @@ MAGIC = bytes([0xA5, 0x5A, 0xC3, 0x3C])
 FAIL = re.compile(r"Guru Meditation|abort\(\)|Backtrace:|panic|rst:|assert failed|Brownout|watchdog|"
                   r"SSL.*(alloc|memory)|alloc.*fail|Memory allocation failed|ssl_setup|E \(\d+\)", re.I)
 SCREENS = [("hamclock", 1), ("dx", 2), ("sunspots", 3), ("bands", 4), ("weather", 5), ("aprslist", 6), ("pota", 7),
-           ("hamalert", 8), ("aprsradar", 9), ("forecast", 12), ("settings", 14)]
+           ("hamalert", 8), ("aprsradar", 9), ("weatherom", 10), ("forecastom", 11), ("forecast", 12), ("settings", 14)]
 
 
 class Board:

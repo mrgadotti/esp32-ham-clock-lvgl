@@ -501,11 +501,13 @@ Sections follow the web page.
 | `tft_rotation` | int | 1 | 1 or 3 (other values become 1) | no | no |
 | `tft_auto_switch` | bool | false | | no | no |
 | `tft_switch_time_sec` | int | 30 | 1 .. 3600 (s) | no | no |
-| `screen_order` | int[12] | `[1,2,6,9,4,3,5,12,7,8,0,0]` | each 0 .. 12; 0 = off; invalid or duplicate ids become 0 | no | no |
-| `scr_en` | int | 5118 (`0x13FE`) | bitmask, clamped to 0 .. 16382 (`0x3FFE`), bits outside `0x13FE` always cleared | no | no |
+| `screen_order` | int[12] | `[1,2,6,9,4,3,5,12,7,8,0,0]` | each 0 .. 12 (10 and 11 are the Open-Meteo screens); 0 = off; invalid or duplicate ids become 0 | no | no |
+| `scr_en` | int | 5118 (`0x13FE`) | bitmask, clamped to 0 .. 16382 (`0x3FFE`), bits outside `0x1FFE` always cleared | no | no |
 
 `scr_en` bit = screen id: 1 HamClock, 2 DX Cluster, 3 Sunspots, 4 Band info,
-5 Weather, 6 APRS list, 7 POTA, 8 HamAlert, 9 APRS radar, 12 Forecast.
+5 Weather, 6 APRS list, 7 POTA, 8 HamAlert, 9 APRS radar, 10 Weather - Open-Meteo, 11 Forecast - Open-Meteo, 12 Forecast.
+The Open-Meteo screens are off by default (they are not in the default mask). An
+enabled one missing from `screen_order` is appended to the first free slot.
 
 ### Keys without a form field
 
