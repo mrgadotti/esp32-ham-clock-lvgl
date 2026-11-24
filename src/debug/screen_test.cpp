@@ -82,12 +82,12 @@ static void fill(int n) {
   }
 }
 
-// "msg <FROM> <text...> [#<n>]": a TNC2 message addressed to us, as if it came from APRS-IS.
+// "msg <FROM> <text...> [@<n>]": a TNC2 message addressed to us, as if it came from APRS-IS.
 static void fakeMessage(char* from, char* text) {
   static int counter;
   int no = ++counter;
   char* t = text ? text : (char*)"";
-  char* h = strrchr(t, '#');
+  char* h = strrchr(t, '@');
   if (h && h > t && h[-1] == ' ' && h[1]) { no = atoi(h + 1); h[-1] = 0; }
   char me[24], out[160];
   if (cfg().aprs_ssid > 0) snprintf(me, sizeof me, "%s-%d", cfg().aprs_callsign, (int)cfg().aprs_ssid);
