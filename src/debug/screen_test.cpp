@@ -8,6 +8,7 @@
 #include "app/data_store.h"
 #include "app/mem_log.h"
 #include "i18n.h"
+#include "svc/aprs_ingest.h"
 #include "ui/ui_manager.h"
 
 static volatile bool capturing;
@@ -81,9 +82,29 @@ static void fill(int n) {
   }
 }
 
+// "msg <FROM> <text...> [#<n>]": a TNC2 message addressed to us, as if it came from APRS-IS.
+static void fakeMessage(char* from, char* text) {
+  static int counter;
+  int no = ++counter;
+  char* t = text ? text : (char*)"";
+  char* h = strrchr(t, '#');
+  if (h && h > t && h[-1] == ' ' && h[1]) { no = atoi(h + 1); h[-1] = 0; }
+  char me[24], out[160];
+  if (cfg().aprs_ssid > 0) snprintf(me, sizeof me, "%s-%d", cfg().aprs_callsign, (int)cfg().aprs_ssid);
+  else snprintf(me, sizeof me, "%s", cfg().aprs_callsign);
+  snprintf(out, sizeof out, "%s>APRS::%-9s:%s{%d", from, me, t, no);
+  aprsIngestLine(out, 'I');
+}
+
 static void run(char* line) {
   char* cmd = strtok(line, " \t\r");
   if (!cmd) return;
+  if (!strcmp(cmd, "msg")) {
+    char* from = strtok(nullptr, " \t\r");
+    if (from) fakeMessage(from, strtok(nullptr, "\r"));
+    Serial.printf("[ST] ok %s\n", cmd);
+    return;
+  }
   char* arg = strtok(nullptr, " \t\r");
   int v[5] = {0}, n = 0;
   for (char* p = arg; p && n < 5; p = strtok(nullptr, " \t\r")) v[n++] = atoi(p);
@@ -119,7 +140,7 @@ static void run(char* line) {
 }
 
 void screenTestPoll() {
-  static char buf[64];
+  static char buf[128];
   static uint8_t len;
   while (Serial.available()) {
     char c = Serial.read();

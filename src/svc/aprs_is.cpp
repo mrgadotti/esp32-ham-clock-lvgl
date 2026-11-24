@@ -71,7 +71,11 @@ bool sendFilter(uint32_t now, bool inLogin) {
   double lat, lon;
   if (!serviceCoords(lat, lon)) return false;
   if (!inLogin && filterSent && (now - lastFilterMs < kFilterMinMs || (c.radius == fRadius && distanceKm(fLat, fLon, lat, lon) < 1.f))) return false;
-  client.printf("%sfilter r/%.4f/%.4f/%d", inLogin ? " " : "#", lat, lon, (int)c.radius);
+  // g/ passes messages addressed to our call-SSID even when the server does not know our position
+  char me[20];
+  if (c.ssid > 0) snprintf(me, sizeof me, "%s-%d", c.call, (int)c.ssid);
+  else strlcpy(me, c.call, sizeof me);
+  client.printf("%sfilter r/%.4f/%.4f/%d g/%s", inLogin ? " " : "#", lat, lon, (int)c.radius, me);
   if (!inLogin) client.print("\r\n");
   fLat = lat;
   fLon = lon;
