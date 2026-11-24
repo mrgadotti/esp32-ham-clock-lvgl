@@ -41,7 +41,11 @@ class ClockScreen : public Screen {
     // N-05: the per-second label is only as wide as its text (214 px + slack) so each tick invalidates less
     time_ = uiLabel(p, &font_clock_48, COL_TEXT, "", 48, 76, 224, LV_TEXT_ALIGN_CENTER);
     lv_label_set_long_mode(time_, LV_LABEL_LONG_CLIP);
-    mode_ = uiLabel(p, &font_14, COL_FREQ, "", 0, 124, SCREEN_W, LV_TEXT_ALIGN_CENTER);
+    // Only as wide as its text (UTC / Local Time), so the pressed highlight sits behind the text and not across the row.
+    mode_ = uiLabel(p, &font_14, COL_FREQ, "");
+    lv_obj_set_style_pad_hor(mode_, 6, 0);
+    lv_obj_set_style_pad_ver(mode_, 2, 0);
+    lv_obj_align(mode_, LV_ALIGN_TOP_MID, 0, 122);  // 122 + 2 px padding keeps the text at y=124 as before
     lv_obj_add_flag(mode_, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_ext_click_area(mode_, 20);
     lv_obj_add_event_cb(mode_, onMode, LV_EVENT_CLICKED, nullptr);
