@@ -33,11 +33,11 @@ Screens, in swipe order:
 ## Screens
 
 Screenshots of each screen, captured from a running device with its stored
-settings and live data, so the UI is in Brazilian Portuguese (the device's
-language). Screens that were still waiting for data show their waiting
-message: APRS list (no stations yet), and HamAlert (no login configured).
-The two Open-Meteo screens are off by default; they must be enabled in Settings
-to appear in the carousel, and were enabled on the device for these images. The Settings screen is opened from the gear icon on the Clock
+settings and live data. The UI is in English. Screens that were still waiting
+for data show their waiting message: APRS list (no stations yet), and HamAlert
+(no login configured). The two Open-Meteo screens are off by default; they must
+be enabled in Settings to appear in the carousel, and were enabled on the device
+for these images. The Settings screen is opened from the gear icon on the Clock
 screen.
 
 |   |   |   |
@@ -59,9 +59,27 @@ Boot log on the splash screen while the WiFi connection starts.
 
 ### Menus
 
-<img src="docs/screenshots/15-dx-menu.png" width="200"> <img src="docs/screenshots/16-aprs-menu.png" width="200"><br>
-DX Cluster menu (mode and band filters, Clear DX list) and APRS list menu
-(sort order, APRS settings, Beacon now, Clear APRS list), in Portuguese.
+<img src="docs/screenshots/15-dx-menu.png" width="200"> <img src="docs/screenshots/16-aprs-menu.png" width="200"> <img src="docs/screenshots/17-aprs-menu-scrolled.png" width="200"><br>
+DX Cluster menu (mode and band filters, Clear DX list) and APRS menu, in
+English. The APRS menu lists, from the top: Beacon now, Clear APRS list,
+Messages, then the sort order, the APRS settings checkboxes and the beacon
+interval. The whole menu scrolls; OK and CANCEL stay at the bottom. The third
+image is the APRS menu scrolled down.
+
+### APRS messages
+
+<img src="docs/screenshots/18-aprs-message-alert.png" width="200"> <img src="docs/screenshots/19-aprs-messages-list.png" width="200"><br>
+A message addressed to your callsign opens an alert over any screen, showing
+the sender's symbol, callsign, distance and text for the configured APRS alert
+time. It closes with the X button. The last 10 messages are kept in RAM (lost
+on reboot; the oldest is dropped). The Messages button in the APRS menu lists
+them; tapping one re-opens its alert, the back arrow returns to the menu and the
+X closes the menu.
+
+An ACK is sent for every received message that has a message number, including
+retransmissions. It goes over APRS-IS when logged in with a valid passcode, or
+over KISS. The APRS-IS filter also asks the server for messages addressed to
+your callsign (`g/` filter).
 
 ### Web configuration page
 
