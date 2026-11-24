@@ -49,6 +49,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(AprsKiss, "APRS-TNC-KISS", "APRS-TNC-KISS") \
   X(AprsTnc2, "APRS-TNC2-UART", "APRS-TNC2-UART") \
   X(AprsRadar, "APRS RADAR", "RADAR APRS") \
+  X(AprsIsSta, "STATION", "ESTAÇÃO") \
   X(WaitingForAprs, "WAITING FOR APRS...", "AGUARDANDO APRS...") \
   X(SortBy, "SORT BY:", "ORDENAR POR:") \
   X(SortTime, "TIME", "HORA") \

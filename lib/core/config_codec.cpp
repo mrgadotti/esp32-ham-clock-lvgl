@@ -101,8 +101,8 @@ const ConfigField kFields[] = {
 };
 const size_t kFieldCount = sizeof(kFields) / sizeof(kFields[0]);
 
-static const uint32_t kScrEnMask = 0x1FFE;  // ScreenId bits 1..12
-static const uint8_t kDefaultOrder[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 0, 0};
+static const uint32_t kScrEnMask = 0x3FFE;  // ScreenId bits 1..13
+static const uint8_t kDefaultOrder[13] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 13, 0};
 
 static void setStr(char* dst, size_t size, const char* src) {
   snprintf(dst, size, "%s", src);
@@ -171,7 +171,7 @@ void configClamp(Config& c) {
   if (c.tft_rot != 1 && c.tft_rot != 3) c.tft_rot = 1;
   uint32_t seen = 0;
   for (uint8_t& o : c.screen_order) {
-    if (o > 12 || !((kScrEnMask | 1) >> o & 1) || (o && (seen >> o & 1))) o = 0;
+    if (o > 13 || !((kScrEnMask | 1) >> o & 1) || (o && (seen >> o & 1))) o = 0;
     seen |= 1u << o;
   }
   // Open-Meteo screens (10, 11) enabled in Settings have no slot in an older order: give them the first free one.
