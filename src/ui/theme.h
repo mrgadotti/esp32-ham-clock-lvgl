@@ -4,6 +4,7 @@
 #define COL_BG     lv_color_hex(0x000000)
 #define COL_TEXT   lv_color_hex(0xFFFFFF)
 #define COL_ACCENT lv_color_hex(0xFF8C00)
+#define COL_ACCENT_DARK lv_color_hex(0xB35A00)
 #define COL_FREQ   lv_color_hex(0xFFFF00)
 #define COL_MODE   lv_color_hex(0x00FF00)
 #define COL_ERROR  lv_color_hex(0xFF0000)

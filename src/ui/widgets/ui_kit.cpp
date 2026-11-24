@@ -16,20 +16,16 @@ lv_obj_t* uiLabel(lv_obj_t* parent, const lv_font_t* font, lv_color_t color, con
   return l;
 }
 
-void uiPressFx(lv_obj_t* obj, bool solid) {
-  static lv_style_t veil, fill;
+void uiPressFx(lv_obj_t* obj, bool /*solid*/) {
+  static lv_style_t press;
   static bool init = false;
   if (!init) {
     init = true;
-    lv_style_init(&veil);
-    lv_style_set_bg_color(&veil, COL_TEXT);
-    lv_style_set_bg_opa(&veil, LV_OPA_40);
-    lv_style_init(&fill);
-    lv_style_set_bg_color(&fill, COL_CYAN);  // a PRESSED style outranks the local default-state bg set by uiTilePaint
-    lv_style_set_bg_opa(&fill, LV_OPA_COVER);
-    lv_style_set_text_color(&fill, COL_BG);
+    lv_style_init(&press);
+    lv_style_set_bg_color(&press, COL_ACCENT_DARK);  // a PRESSED style outranks the local default-state bg set by uiTilePaint
+    lv_style_set_bg_opa(&press, LV_OPA_COVER);
   }
-  lv_obj_add_style(obj, solid ? &fill : &veil, LV_STATE_PRESSED);
+  lv_obj_add_style(obj, &press, LV_STATE_PRESSED);
 }
 
 lv_obj_t* uiTile(lv_obj_t* p, const char* txt, int x, int y, int w, int h, lv_event_cb_t cb, intptr_t id) {
