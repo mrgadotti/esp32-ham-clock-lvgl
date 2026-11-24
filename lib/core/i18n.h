@@ -95,6 +95,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(AlertTime, "Alert time", "Tempo do alerta") \
   X(AprsRadius, "APRS radius", "Raio APRS") \
   X(BeaconNow, "Beacon now", "Beacon agora") \
+  X(BeaconInterval, "Beacon interval", "Intervalo do beacon") \
   X(ClearAprsList, "Clear APRS list", "Limpar lista APRS") \
   X(ClearDxList, "Clear DX list", "Limpar lista DX") \
   X(Off, "Off", "Desligado") \

@@ -73,7 +73,13 @@ tap 294 22
 wait 0.8
 tap 35 13
 wait 0.8
-tap 82 187
+shot i_aprs_menu_top
+swipe 160 180 160 60 400
+wait 0.8
+shot i_aprs_menu_scrolled
+swipe 160 60 160 180 400
+wait 0.8
+tap 82 51
 wait 0.8
 shot i_aprs_msgs
 tap 160 50
@@ -84,7 +90,7 @@ wait 0.8
 tap 25 13
 wait 0.8
 shot i_aprs_menu_back
-tap 82 187
+tap 82 51
 wait 0.8
 tap 295 13
 wait 0.8

@@ -23,6 +23,8 @@ struct Menu {
   lv_obj_t* box[4];
   int sort;
   bool flag[4];  // beacon, alert, range, led
+  int intMin;    // beacon interval, 1..180 min (config range)
+  lv_obj_t* intLabel;
 };
 class AprsListScreen : public Screen {
  public:
@@ -101,6 +103,16 @@ class AprsListScreen : public Screen {
     self_->menu_->flag[i] = lv_obj_has_state(self_->menu_->box[i], LV_STATE_CHECKED);
   }
 
+  // Steps of 5 min snapped to multiples of 5 (default 29 -> 30 / 25), clamped to the config range 1..180.
+  static void onInt(lv_event_t* e) {
+    if (!self_ || !self_->menu_) return;
+    int& v = self_->menu_->intMin;
+    if ((intptr_t)lv_event_get_user_data(e) > 0) v = (v / 5 + 1) * 5;
+    else v = v % 5 ? v / 5 * 5 : v - 5;
+    v = v < 1 ? 1 : v > 180 ? 180 : v;
+    lv_label_set_text_fmt(self_->menu_->intLabel, "%d min", v);
+  }
+
   static void onOk(lv_event_t*) {
     if (!self_ || !self_->menu_) return;
     const Menu pend = *self_->menu_;  // closeMenu() frees the menu
@@ -111,6 +123,7 @@ class AprsListScreen : public Screen {
       c.aprs_alert_en = pend.flag[1];
       c.aprs_al_near = pend.flag[2];
       c.led_al_en = pend.flag[3];
+      c.aprs_int_min = pend.intMin;
     });
     if (self_) { self_->sort_ = pend.sort; self_->force_ = true; }
   }
@@ -160,24 +173,33 @@ class AprsListScreen : public Screen {
     self_->menu_->flag[3] = c.led_al_en;
     lv_obj_t* p = self_->menu_->panel = uiModalPanel();
 
-    uiLabel(p, &font_14, COL_GREY, tr(Tr::SortBy), 8, 6);
+    self_->menu_->intMin = c.aprs_int_min;
+    // One scroll area holds everything above the pinned OK/Cancel row; coordinates below are relative to it.
+    lv_obj_t* a = uiScrollArea(p, 0, 0, SCREEN_W, 204);
+    uiTilePaint(uiTile(a, tr(Tr::BeaconNow), 8, 6, 148, 26, onBeacon, 0), true);
+    uiTilePaint(uiTile(a, tr(Tr::ClearAprsList), 164, 6, 148, 26, onClear, 0), true);
+    uiTilePaint(uiTile(a, tr(Tr::Messages), 8, 38, 148, 26, onMessages, 0), true);
+    uiLabel(a, &font_14, COL_GREY, tr(Tr::SortBy), 8, 72);
     const Tr sn[] = {Tr::SortTime, Tr::SortCall, Tr::SortDist};
-    for (int i = 0; i < 3; i++) self_->menu_->tile[i] = uiTile(p, tr(sn[i]), 8 + i * 96, 26, 92, 26, onTile, i);
-    uiLabel(p, &font_14, COL_GREY, tr(Tr::AprsSetting), 8, 58);
+    for (int i = 0; i < 3; i++) self_->menu_->tile[i] = uiTile(a, tr(sn[i]), 8 + i * 96, 92, 92, 26, onTile, i);
+    uiLabel(a, &font_14, COL_GREY, tr(Tr::AprsSetting), 8, 124);
     const Tr bn[] = {Tr::Beaconing, Tr::AprsAlert, Tr::RangeAlert, Tr::LedBuzzer};
-    lv_obj_t* area = uiScrollArea(p, 0, 76, SCREEN_W, 62);  // 4 rows x 32 px = 128 px: scrolls
     for (int i = 0; i < 4; i++) {
-      lv_obj_t* cb = self_->menu_->box[i] = lv_checkbox_create(area);
+      lv_obj_t* cb = self_->menu_->box[i] = lv_checkbox_create(a);
       lv_checkbox_set_text(cb, tr(bn[i]));
       lv_obj_set_style_text_font(cb, &font_14, 0);
       lv_obj_set_height(cb, 30);  // 32 px pitch: touch areas never overlap
-      lv_obj_set_pos(cb, 24, i * 32);
+      lv_obj_set_pos(cb, 24, 142 + i * 32);
       if (self_->menu_->flag[i]) lv_obj_add_state(cb, LV_STATE_CHECKED);
       lv_obj_add_event_cb(cb, onBox, LV_EVENT_VALUE_CHANGED, (void*)(intptr_t)i);
     }
-    uiTilePaint(uiTile(p, tr(Tr::BeaconNow), 8, 142, 148, 26, onBeacon, 0), true);
-    uiTilePaint(uiTile(p, tr(Tr::ClearAprsList), 164, 142, 148, 26, onClear, 0), true);
-    uiTilePaint(uiTile(p, tr(Tr::Messages), 8, 174, 148, 26, onMessages, 0), true);
+    uiLabel(a, &font_14, COL_GREY, tr(Tr::BeaconInterval), 8, 274);
+    uiTilePaint(uiTile(a, "-", 8, 294, 60, 26, onInt, -1), true);
+    uiTilePaint(uiTile(a, "+", 252, 294, 60, 26, onInt, 1), true);
+    char buf[16];
+    snprintf(buf, sizeof buf, "%d min", self_->menu_->intMin);
+    self_->menu_->intLabel = uiLabel(a, &font_14, COL_TEXT, buf, 76, 299, 168, LV_TEXT_ALIGN_CENTER);
+    lv_obj_set_style_pad_bottom(a, 8, 0);  // last row clears the OK/Cancel edge when scrolled to the end
     lv_obj_t* ok = uiTile(p, tr(Tr::Ok), 40, 208, 100, 26, onOk, 0);
     lv_obj_t* cancel = uiTile(p, tr(Tr::Cancel), 180, 208, 100, 26, onCancel, 0);
     uiTilePaint(ok, true);
