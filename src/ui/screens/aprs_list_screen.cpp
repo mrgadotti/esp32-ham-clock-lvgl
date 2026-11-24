@@ -11,6 +11,7 @@
 #include "../../svc/aprs_beacon.h"
 #include "../fonts/fonts.h"
 #include "../theme.h"
+#include "../widgets/aprs_msg_list.h"
 #include "../widgets/header.h"
 #include "../widgets/spot_table.h"
 #include "../widgets/ui_kit.h"
@@ -77,6 +78,7 @@ class AprsListScreen : public Screen {
   Menu* menu_ = nullptr;
 
   void closeMenu() {
+    aprsMsgListClose();  // no-op when closed, so onMessagesExit -> closeMenu does not recurse
     if (!menu_) return;
     lv_obj_delete_async(menu_->panel);  // may run inside a widget's own callback
     delete menu_;
@@ -120,6 +122,10 @@ class AprsListScreen : public Screen {
     aprsBeaconRequest();
   }
 
+  // The menu stays open under the list so unsaved sort/flag edits survive the back arrow.
+  static void onMessages(lv_event_t*) { aprsMsgListOpen(onMessagesExit); }
+  static void onMessagesExit() { if (self_) self_->closeMenu(); }
+
   static void onClear(lv_event_t*) {
     if (self_) self_->closeMenu();
     g_store.aprs.write([](AprsRing& r) { r.clear(); });
@@ -159,7 +165,7 @@ class AprsListScreen : public Screen {
     for (int i = 0; i < 3; i++) self_->menu_->tile[i] = uiTile(p, tr(sn[i]), 8 + i * 96, 26, 92, 26, onTile, i);
     uiLabel(p, &font_14, COL_GREY, tr(Tr::AprsSetting), 8, 58);
     const Tr bn[] = {Tr::Beaconing, Tr::AprsAlert, Tr::RangeAlert, Tr::LedBuzzer};
-    lv_obj_t* area = uiScrollArea(p, 0, 76, SCREEN_W, 92);  // 4 rows x 32 px = 128 px: scrolls
+    lv_obj_t* area = uiScrollArea(p, 0, 76, SCREEN_W, 62);  // 4 rows x 32 px = 128 px: scrolls
     for (int i = 0; i < 4; i++) {
       lv_obj_t* cb = self_->menu_->box[i] = lv_checkbox_create(area);
       lv_checkbox_set_text(cb, tr(bn[i]));
@@ -169,8 +175,9 @@ class AprsListScreen : public Screen {
       if (self_->menu_->flag[i]) lv_obj_add_state(cb, LV_STATE_CHECKED);
       lv_obj_add_event_cb(cb, onBox, LV_EVENT_VALUE_CHANGED, (void*)(intptr_t)i);
     }
-    uiTilePaint(uiTile(p, tr(Tr::BeaconNow), 8, 172, 148, 26, onBeacon, 0), true);
-    uiTilePaint(uiTile(p, tr(Tr::ClearAprsList), 164, 172, 148, 26, onClear, 0), true);
+    uiTilePaint(uiTile(p, tr(Tr::BeaconNow), 8, 142, 148, 26, onBeacon, 0), true);
+    uiTilePaint(uiTile(p, tr(Tr::ClearAprsList), 164, 142, 148, 26, onClear, 0), true);
+    uiTilePaint(uiTile(p, tr(Tr::Messages), 8, 174, 148, 26, onMessages, 0), true);
     lv_obj_t* ok = uiTile(p, tr(Tr::Ok), 40, 208, 100, 26, onOk, 0);
     lv_obj_t* cancel = uiTile(p, tr(Tr::Cancel), 180, 208, 100, 26, onCancel, 0);
     uiTilePaint(ok, true);
