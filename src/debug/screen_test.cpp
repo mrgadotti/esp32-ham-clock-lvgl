@@ -105,6 +105,12 @@ static void run(char* line) {
     Serial.printf("[ST] ok %s\n", cmd);
     return;
   }
+  if (!strcmp(cmd, "raw")) {  // "raw <TNC2 line>": feeds one line to the APRS ingest, e.g. a position frame
+    char* l = strtok(nullptr, "\r");
+    if (l) aprsIngestLine(l, 'I');
+    Serial.printf("[ST] ok %s\n", cmd);
+    return;
+  }
   char* arg = strtok(nullptr, " \t\r");
   int v[5] = {0}, n = 0;
   for (char* p = arg; p && n < 5; p = strtok(nullptr, " \t\r")) v[n++] = atoi(p);
