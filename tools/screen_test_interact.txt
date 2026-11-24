@@ -58,3 +58,34 @@ shot i_radar_x8
 tap 295 222
 wait 0.8
 shot i_radar_reset
+goto 6
+wait 2
+msg A1B first @1
+msg C2D second @2
+msg E3F third @3
+wait 1
+# alerts stay up alrt_scr_s seconds and swallow taps: close each one with its X (294,22)
+tap 294 22
+wait 0.6
+tap 294 22
+wait 0.6
+tap 294 22
+wait 0.8
+tap 35 13
+wait 0.8
+tap 82 187
+wait 0.8
+shot i_aprs_msgs
+tap 160 50
+wait 0.8
+shot i_aprs_msg_alert
+tap 294 22
+wait 0.8
+tap 25 13
+wait 0.8
+shot i_aprs_menu_back
+tap 82 187
+wait 0.8
+tap 295 13
+wait 0.8
+shot i_aprs_after_x

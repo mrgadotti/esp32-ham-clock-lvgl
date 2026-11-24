@@ -122,8 +122,7 @@ lv_obj_t* drawObj(lv_obj_t* p, int x, int y, int w, int h, lv_event_cb_t cb, int
   return o;
 }
 
-void buildAprs(lv_obj_t* ov, const AprsStation& st) {
-  const lv_color_t white = COL_TEXT, grey = COL_GREY, cyan = COL_CYAN;
+void buildFrame(lv_obj_t* ov) {
   frame = lv_obj_create(ov);
   lv_obj_remove_style_all(frame);
   lv_obj_set_pos(frame, 6, 44);
@@ -135,7 +134,30 @@ void buildAprs(lv_obj_t* ov, const AprsStation& st) {
     lv_obj_set_style_bg_opa(e, LV_OPA_COVER, 0);
     lv_obj_remove_flag(e, LV_OBJ_FLAG_CLICKABLE);
   }
-  setBorder(white, 3);
+  setBorder(COL_TEXT, 3);
+}
+
+void buildMessage(lv_obj_t* ov, const AprsMessage& m) {
+  buildFrame(ov);
+  AprsIcon ik;
+  Tr d;
+  aprsSymbolInfo(m.sym, ik, d);
+  if (ik != AprsIcon::None) aprsImage(ik, 14, 50);
+  else if (m.sym[0] != ' ') uiLabel(ov, &font_18, COL_TEXT, tr(d), 18, 60);
+  uiLabel(ov, &font_24, COL_TEXT, m.from[0] ? m.from : "-", 82, 52);
+  char b[24];
+  if (m.hasLatLon && m.distKm >= 0) snprintf(b, sizeof b, "%d %s", (int)m.distKm, tr(Tr::Km));
+  else snprintf(b, sizeof b, "- %s", tr(Tr::Km));
+  uiLabel(ov, &font_14, COL_ACCENT, b, 82, 82);
+  lv_obj_t* t = uiLabel(ov, &font_18, COL_TEXT, m.text, 18, 112);
+  lv_obj_set_width(t, 284);
+  lv_label_set_long_mode(t, LV_LABEL_LONG_WRAP);
+  lv_obj_set_height(t, 100);
+}
+
+void buildAprs(lv_obj_t* ov, const AprsStation& st) {
+  const lv_color_t white = COL_TEXT, grey = COL_GREY, cyan = COL_CYAN;
+  buildFrame(ov);
 
   char b[48];
   uiLabel(ov, &font_24, white, st.call[0] ? st.call : "-", 18, 52);
@@ -207,6 +229,10 @@ static bool formatBody(const UiEvent& e, char* body, size_t n, const char*& titl
       title = tr(Tr::AprsAlertTitle);
       aprs = true;
       break;
+    case EventKind::AprsMessage:
+      title = tr(Tr::AprsMessageTitle);
+      aprs = true;
+      break;
     case EventKind::Beaconing: {
       title = tr(Tr::AprsBeaconing);
       Tr d;
@@ -254,7 +280,9 @@ static void show(const UiEvent& e) {
   lv_obj_t* t = uiLabel(ov, &font_24, COL_ACCENT, title);
   lv_obj_align(t, LV_ALIGN_TOP_MID, 0, aprs ? 8 : 42);  // non-APRS titles can be wide: stay below the X button (y<=40)
 
-  if (aprs) {
+  if (e.kind == EventKind::AprsMessage) {
+    buildMessage(ov, e.msg);
+  } else if (aprs) {
     buildAprs(ov, e.station);
   } else {
     lv_obj_t* b = uiLabel(ov, &font_18, COL_TEXT, body, 0, 0, 290, LV_TEXT_ALIGN_CENTER);

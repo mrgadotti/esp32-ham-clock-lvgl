@@ -1,13 +1,14 @@
 #pragma once
 #include "types.h"
 
-enum class EventKind : uint8_t { AprsAlert, Beaconing, WeatherAlert, ConfigChanged, StartTouchCal };
+enum class EventKind : uint8_t { AprsAlert, Beaconing, WeatherAlert, ConfigChanged, StartTouchCal, AprsMessage };
 struct UiEvent {
   EventKind kind;
   union {
     AprsStation station;
     BeaconInfo beacon;
     WeatherAlertInfo wx;
+    AprsMessage msg;
   };
 };
 
