@@ -69,3 +69,18 @@ bool aprsParseMessage(const char* tnc2, const char* myCall, AprsMessage& out) {
 bool aprsMsgSame(const AprsMessage& a, const AprsMessage& b) {
   return !strcmp(a.from, b.from) && !strcmp(a.msgNo, b.msgNo) && !strcmp(a.text, b.text);
 }
+
+bool aprsFormatAckInfo(const char* to, const char* msgNo, char* out, size_t cap) {
+  if (!to || !msgNo || !out) return false;
+  size_t tl = strlen(to), ml = strlen(msgNo);
+  if (!tl || tl > 9 || !ml) return false;
+  size_t need = 1 + 9 + 1 + 3 + ml;  // ':' + addressee + ':' + "ack" + msgNo
+  if (cap < need + 1) return false;
+  memset(out, ' ', 11);
+  out[0] = ':';
+  memcpy(out + 1, to, tl);
+  out[10] = ':';
+  memcpy(out + 11, "ack", 3);
+  memcpy(out + 14, msgNo, ml + 1);
+  return true;
+}

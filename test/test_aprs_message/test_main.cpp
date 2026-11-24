@@ -72,7 +72,33 @@ void test_msg_same() {
   TEST_ASSERT_TRUE(aprsParseMessage("A1C>APRS::PY2XX    :hi{1", "PY2XX", b));
   TEST_ASSERT_FALSE(aprsMsgSame(a, b));
 }
+void test_ack_info_padding() {
+  char o[32];
+  TEST_ASSERT_TRUE(aprsFormatAckInfo("PU1ABC", "123", o, sizeof o));
+  TEST_ASSERT_EQUAL_STRING(":PU1ABC   :ack123", o);
+}
+void test_ack_info_9char_call_5char_msgno() {
+  char o[32];
+  TEST_ASSERT_TRUE(aprsFormatAckInfo("PU1ABC-15", "AB123", o, sizeof o));
+  TEST_ASSERT_EQUAL_STRING(":PU1ABC-15:ackAB123", o);
+}
+void test_ack_info_rejects() {
+  char o[32] = "keep";
+  TEST_ASSERT_FALSE(aprsFormatAckInfo("PU1ABC", "", o, sizeof o));
+  TEST_ASSERT_FALSE(aprsFormatAckInfo("", "1", o, sizeof o));
+  TEST_ASSERT_FALSE(aprsFormatAckInfo("PU1ABC-123", "1", o, sizeof o));
+  TEST_ASSERT_EQUAL_STRING("keep", o);
+}
+void test_ack_info_cap_too_small() {
+  char o[18] = "keep";
+  TEST_ASSERT_FALSE(aprsFormatAckInfo("PU1ABC", "123", o, 17));  // needs 18 with NUL
+  TEST_ASSERT_EQUAL_STRING("keep", o);
+  TEST_ASSERT_TRUE(aprsFormatAckInfo("PU1ABC", "123", o, 18));
+}
+
 int main() { UNITY_BEGIN(); RUN_TEST(test_msg_for_me); RUN_TEST(test_msg_no_msgno);
   RUN_TEST(test_msg_case_insensitive); RUN_TEST(test_msg_not_for_me); RUN_TEST(test_msg_ack_rej_ignored);
   RUN_TEST(test_msg_empty_text); RUN_TEST(test_msg_not_a_message); RUN_TEST(test_msg_text_sanitized_truncated);
-  RUN_TEST(test_msg_same); return UNITY_END(); }
+  RUN_TEST(test_msg_same);
+  RUN_TEST(test_ack_info_padding); RUN_TEST(test_ack_info_9char_call_5char_msgno);
+  RUN_TEST(test_ack_info_rejects); RUN_TEST(test_ack_info_cap_too_small); return UNITY_END(); }

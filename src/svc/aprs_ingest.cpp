@@ -16,6 +16,7 @@
 #include "app/service_coords.h"
 #include "hal/rgb_led.h"
 #include "net/time_service.h"
+#include "svc/aprs_beacon.h"
 
 namespace {
 AlertRules rules;
@@ -60,6 +61,7 @@ bool ingestMessage(const char* line) {
   xSemaphoreGive(mu);
   AprsMessage m{};
   if (!me[0] || !aprsParseMessage(line, me, m)) return false;
+  if (m.msgNo[0]) aprsAckRequest(m.from, m.msgNo);  // every copy, retries included, so the sender stops
   m.utc = timeValid() ? (uint32_t)time(nullptr) : 0;
   g_store.aprs.read([&](const AprsRing& r) {
     for (size_t i = 0; i < r.size(); i++) {
