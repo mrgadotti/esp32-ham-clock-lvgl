@@ -60,6 +60,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(AprsAlert, "APRS Alert", "Alerta APRS") \
   X(RangeAlert, "Range Alert", "Alerta de alcance") \
   X(LedBuzzer, "LED / Buzzer", "LED / Buzzer") \
+  X(Messages, "Messages", "Mensagens") \
   /* propagation / HF bands */ \
   X(Propagation, "PROPAGATION", "PROPAGAÇÃO") \
   X(HfBands, "HF BAND INFO", "BANDAS HF") \
@@ -102,6 +103,7 @@ enum class Lang : uint8_t { EN = 0, PT_BR = 1 };
   X(Firmware, "Firmware", "Firmware") \
   /* overlays */ \
   X(AprsAlertTitle, "APRS ALERT", "ALERTA APRS") \
+  X(AprsMessageTitle, "APRS MESSAGE", "MENSAGEM APRS") \
   X(AprsBeaconing, "APRS BEACONING...", "APRS BEACON...") \
   X(WeatherAlert, "WEATHER ALERT", "ALERTA CLIMÁTICO") \
   X(PossibleStorm, "POSSIBLE STORM", "POSSÍVEL TEMPESTADE") \

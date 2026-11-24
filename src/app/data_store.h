@@ -35,11 +35,14 @@ class Guarded {
 constexpr size_t kDxSpots = 75;
 constexpr size_t kAprsStations = 30;
 using AprsRing = RingBuffer<AprsStation, kAprsStations>;
+constexpr size_t kAprsMessages = 20;
+using AprsMsgRing = RingBuffer<AprsMessage, kAprsMessages>;  // index 0 = newest
 
 struct DataStore {
   Guarded<RingBuffer<Spot, kDxSpots>> dx;
   Guarded<RingBuffer<Spot, 30>> pota, hamalert;
   Guarded<AprsRing> aprs;
+  Guarded<AprsMsgRing> aprsMsg;
   Guarded<PropagationData> prop;
   Guarded<WeatherData> weather;
   Guarded<WeatherData> weatherOm;

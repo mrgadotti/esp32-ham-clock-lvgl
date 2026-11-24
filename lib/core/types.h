@@ -16,6 +16,12 @@ struct AprsStation {
   char source;  // 'I' APRS-IS, 'T' TNC2, 'K' KISS
 };
 
+// APRS message addressed to us. sym is the sender's last known symbol (two spaces if unknown); distKm is -1 if unknown.
+struct AprsMessage {
+  uint32_t utc; char from[12]; char text[68]; char msgNo[8]; char sym[2];
+  bool hasLatLon; int16_t distKm;
+};
+
 // Decoded weather from an APRS comment (orig AprsWxDecoded L11870)
 struct AprsWx {
   bool hasAny, hasWindDir, hasWindSpeed, hasTempC, hasHumidity, hasPressure;
