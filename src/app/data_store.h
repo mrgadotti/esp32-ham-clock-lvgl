@@ -35,7 +35,7 @@ class Guarded {
 constexpr size_t kDxSpots = 75;
 constexpr size_t kAprsStations = 30;
 using AprsRing = RingBuffer<AprsStation, kAprsStations>;
-constexpr size_t kAprsMessages = 20;
+constexpr size_t kAprsMessages = 10;  // 20 left only 4 KB of LV_MEM with the APRS menu and the list open
 using AprsMsgRing = RingBuffer<AprsMessage, kAprsMessages>;  // index 0 = newest
 
 struct DataStore {
