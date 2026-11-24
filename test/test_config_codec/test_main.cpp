@@ -28,8 +28,8 @@ void test_defaults_match_original() {
   TEST_ASSERT_EQUAL_STRING("0", c.aprs_passcode);
   TEST_ASSERT_EQUAL_HEX32(0x13FE, c.scr_en);
   TEST_ASSERT_EQUAL_STRING("1234567890", c.ap_pass);
-  const uint8_t order[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 0, 0};
-  TEST_ASSERT_EQUAL_MEMORY(order, c.screen_order, 12);
+  const uint8_t order[13] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 13, 0, 0};
+  TEST_ASSERT_EQUAL_MEMORY(order, c.screen_order, 13);
 }
 
 void test_get_masks_secrets() {
@@ -159,11 +159,11 @@ void test_needs_restart() {
 void test_screen_bits_and_order() {
   Config c = defaults();
   TEST_ASSERT_TRUE(configApplyJson(c, "{\"scr_en\":65535,\"screen_order\":[1,1,11,14,2,12,0,0,13,3]}").ok);
-  TEST_ASSERT_EQUAL_HEX32(0x1FFE, c.scr_en);
-  const uint8_t want[12] = {1, 10, 11, 0, 2, 12, 0, 0, 0, 3, 0, 0};  // JSON slots kept; dups and out-of-range (>12) reset to 0; 10 (enabled, no slot) takes the first free one
-  uint8_t tail[12];
-  memcpy(tail, c.screen_order, 12);
-  TEST_ASSERT_EQUAL_MEMORY(want, tail, 12);
+  TEST_ASSERT_EQUAL_HEX32(0x3FFE, c.scr_en);
+  const uint8_t want[13] = {1, 10, 11, 0, 2, 12, 0, 0, 13, 3, 0, 0, 0};  // JSON slots kept; dups and ids not in the carousel (14) reset to 0; 10 (enabled, no slot) takes the first free one
+  uint8_t tail[13];
+  memcpy(tail, c.screen_order, 13);
+  TEST_ASSERT_EQUAL_MEMORY(want, tail, 13);
 }
 
 void test_tft_rot_only_1_or_3() {
@@ -285,7 +285,7 @@ void test_last_scr_normalised_and_validated() {
   char buf[6144];
   TEST_ASSERT_TRUE(configToBackupJson(a, buf, sizeof buf, 0));  // never stored
   TEST_ASSERT_NOT_NULL(strstr(buf, "\"last_scr\":1"));
-  for (const char* bad : {"{\"last_scr\":0}", "{\"last_scr\":13}", "{\"last_scr\":14}", "{\"last_scr\":300}", "{\"last_scr\":\"3\"}",
+  for (const char* bad : {"{\"last_scr\":0}", "{\"last_scr\":14}", "{\"last_scr\":15}", "{\"last_scr\":300}", "{\"last_scr\":\"3\"}",
                           "{\"last_scr\":2.5}", "{\"last_scr\":-1}"}) {
     Config c = defaults();
     TEST_ASSERT_FALSE_MESSAGE(configApplyJson(c, bad).ok, bad);
@@ -295,41 +295,41 @@ void test_last_scr_normalised_and_validated() {
 void test_removed_screens_cleared_by_clamp() {
   Config c = defaults();
   c.scr_en = 0xFFFF;
-  const uint8_t o[12] = {13, 10, 11, 14, 2, 2, 0, 0, 0, 0, 0, 0};
-  memcpy(c.screen_order, o, 12);
+  const uint8_t o[13] = {13, 10, 11, 14, 2, 2, 15, 0, 0, 0, 0, 0, 0};
+  memcpy(c.screen_order, o, 13);
   configClamp(c);
-  TEST_ASSERT_EQUAL_HEX32(0x1FFE, c.scr_en);
-  const uint8_t want[12] = {0, 10, 11, 0, 2, 0, 0, 0, 0, 0, 0, 0};  // 13/14 dropped, duplicate 2 reset
-  TEST_ASSERT_EQUAL_MEMORY(want, c.screen_order, 12);  // Open-Meteo ids survive
+  TEST_ASSERT_EQUAL_HEX32(0x3FFE, c.scr_en);
+  const uint8_t want[13] = {13, 10, 11, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0};  // 14/15 dropped, duplicate 2 reset
+  TEST_ASSERT_EQUAL_MEMORY(want, c.screen_order, 13);  // Open-Meteo ids survive
 }
 
 void test_scr_en_clamp_keeps_open_meteo_bits() {
   Config c = defaults();
-  c.scr_en = 0x3FFE;
+  c.scr_en = 0xFFFF;
   configClamp(c);
-  TEST_ASSERT_EQUAL_HEX32(0x1FFE, c.scr_en);
+  TEST_ASSERT_EQUAL_HEX32(0x3FFE, c.scr_en);  // bits above 13 cleared, 10..13 kept
   TEST_ASSERT_TRUE(configApplyJson(c, "{\"scr_en\":5118}").ok);  // old backup value 0x13FE still imports
   TEST_ASSERT_EQUAL_HEX32(0x13FE, c.scr_en);
 }
 
 void test_enabled_screens_are_appended_to_order() {
   Config c = defaults();
-  const uint8_t base[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 0, 0};
+  const uint8_t base[13] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 13, 0, 0};
   configClamp(c);
-  TEST_ASSERT_EQUAL_MEMORY(base, c.screen_order, 12);  // default unchanged
+  TEST_ASSERT_EQUAL_MEMORY(base, c.screen_order, 13);  // default unchanged
   c.scr_en |= 1u << 10;
   configClamp(c);
-  TEST_ASSERT_EQUAL_UINT8(10, c.screen_order[10]);
+  TEST_ASSERT_EQUAL_UINT8(10, c.screen_order[11]);
   c.scr_en |= 1u << 11;
   configClamp(c);
   configClamp(c);  // idempotent: no duplicates
-  const uint8_t want[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 10, 11};
-  TEST_ASSERT_EQUAL_MEMORY(want, c.screen_order, 12);  // full order stays valid
+  const uint8_t want[13] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 13, 10, 11};
+  TEST_ASSERT_EQUAL_MEMORY(want, c.screen_order, 13);  // full order stays valid
   Config d = defaults();
-  d.scr_en = 0x1FFE & ~(1u << 10);  // 10 disabled: not appended
+  d.scr_en = 0x3FFE & ~(1u << 10);  // 10 disabled: not appended
   configClamp(d);
-  TEST_ASSERT_EQUAL_UINT8(11, d.screen_order[10]);
-  TEST_ASSERT_EQUAL_UINT8(0, d.screen_order[11]);
+  TEST_ASSERT_EQUAL_UINT8(11, d.screen_order[11]);
+  TEST_ASSERT_EQUAL_UINT8(0, d.screen_order[12]);
   Config f = defaults();
   f.screen_order[4] = 0;  // id 4 removed from the order but still enabled: not brought back
   configClamp(f);
@@ -337,19 +337,19 @@ void test_enabled_screens_are_appended_to_order() {
   for (uint8_t o : f.screen_order) TEST_ASSERT_NOT_EQUAL_UINT8(4, o);
   Config e = defaults();  // JSON path
   TEST_ASSERT_TRUE(configApplyJson(e, "{\"scr_en\":6142}").ok);  // 0x17FE: bit 10 set
-  TEST_ASSERT_EQUAL_UINT8(10, e.screen_order[10]);
+  TEST_ASSERT_EQUAL_UINT8(10, e.screen_order[11]);
 }
 
 void test_defaults_without_location() {
   Config c = defaults();
   TEST_ASSERT_EQUAL_HEX32(0x13FE, c.scr_en);
-  const uint8_t order[12] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 0, 0};
-  TEST_ASSERT_EQUAL_MEMORY(order, c.screen_order, 12);
+  const uint8_t order[13] = {1, 2, 6, 9, 4, 3, 5, 12, 7, 8, 13, 0, 0};
+  TEST_ASSERT_EQUAL_MEMORY(order, c.screen_order, 13);
 }
 
-void test_last_scr_13_rejected() {
+void test_last_scr_14_rejected() {
   Config c = defaults();
-  ApplyResult r = configApplyJson(c, "{\"last_scr\":13}");
+  ApplyResult r = configApplyJson(c, "{\"last_scr\":14}");
   TEST_ASSERT_FALSE(r.ok);
   TEST_ASSERT_EQUAL_STRING("bad_value:last_scr", r.error);
 }
@@ -423,7 +423,7 @@ int main() {
   RUN_TEST(test_last_scr_normalised_and_validated);
   RUN_TEST(test_removed_screens_cleared_by_clamp);
   RUN_TEST(test_defaults_without_location);
-  RUN_TEST(test_last_scr_13_rejected);
+  RUN_TEST(test_last_scr_14_rejected);
   RUN_TEST(test_invalid_tcal_rejected_untouched);
   RUN_TEST(test_old_backup_and_unknown_keys);
   RUN_TEST(test_enabled_screens_are_appended_to_order);
