@@ -10,6 +10,10 @@
 lv_obj_t* uiLabel(lv_obj_t* parent, const lv_font_t* font, lv_color_t color, const char* text, int x = 0, int y = 0,
                   int w = 0, lv_text_align_t align = LV_TEXT_ALIGN_AUTO);
 
+// Pressed-state feedback (shared static styles, no per-object heap). solid=false: translucent white veil, for transparent
+// hit areas and list rows. solid=true: cyan fill + black text, for filled tiles/buttons (visible on orange and grey).
+void uiPressFx(lv_obj_t* obj, bool solid = false);
+
 // Clickable rounded tile with a centred font_14 label; `id` is passed to cb as user data (CLICKED).
 lv_obj_t* uiTile(lv_obj_t* parent, const char* text, int x, int y, int w, int h, lv_event_cb_t cb, intptr_t id);
 // Selected (accent) / unselected (grey) look of a uiTile.

@@ -306,6 +306,7 @@ static void show(const UiEvent& e) {
   lv_obj_set_size(x, 44, 36);
   lv_obj_align(x, LV_ALIGN_TOP_RIGHT, -4, 4);
   lv_obj_add_event_cb(x, onClose, LV_EVENT_CLICKED, nullptr);
+  uiPressFx(x, true);
   lv_obj_t* xl = lv_label_create(x);
   lv_label_set_text(xl, "X");
   lv_obj_center(xl);

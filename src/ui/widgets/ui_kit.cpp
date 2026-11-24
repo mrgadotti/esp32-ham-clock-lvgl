@@ -16,6 +16,22 @@ lv_obj_t* uiLabel(lv_obj_t* parent, const lv_font_t* font, lv_color_t color, con
   return l;
 }
 
+void uiPressFx(lv_obj_t* obj, bool solid) {
+  static lv_style_t veil, fill;
+  static bool init = false;
+  if (!init) {
+    init = true;
+    lv_style_init(&veil);
+    lv_style_set_bg_color(&veil, COL_TEXT);
+    lv_style_set_bg_opa(&veil, LV_OPA_40);
+    lv_style_init(&fill);
+    lv_style_set_bg_color(&fill, COL_CYAN);  // a PRESSED style outranks the local default-state bg set by uiTilePaint
+    lv_style_set_bg_opa(&fill, LV_OPA_COVER);
+    lv_style_set_text_color(&fill, COL_BG);
+  }
+  lv_obj_add_style(obj, solid ? &fill : &veil, LV_STATE_PRESSED);
+}
+
 lv_obj_t* uiTile(lv_obj_t* p, const char* txt, int x, int y, int w, int h, lv_event_cb_t cb, intptr_t id) {
   lv_obj_t* t = lv_obj_create(p);
   lv_obj_remove_style_all(t);
@@ -30,6 +46,7 @@ lv_obj_t* uiTile(lv_obj_t* p, const char* txt, int x, int y, int w, int h, lv_ev
   lv_obj_center(l);
   lv_obj_add_flag(t, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_add_event_cb(t, cb, LV_EVENT_CLICKED, (void*)id);
+  uiPressFx(t, true);
   return t;
 }
 
@@ -56,6 +73,7 @@ lv_obj_t* uiHamburger(lv_obj_t* header, lv_event_cb_t cb) {
     lv_obj_set_style_bg_color(bar, COL_BG, 0);
   }
   lv_obj_add_event_cb(btn, cb, LV_EVENT_CLICKED, nullptr);
+  uiPressFx(btn);
   return btn;
 }
 

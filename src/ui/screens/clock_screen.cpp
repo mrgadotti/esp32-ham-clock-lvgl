@@ -45,6 +45,7 @@ class ClockScreen : public Screen {
     lv_obj_add_flag(mode_, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_ext_click_area(mode_, 20);
     lv_obj_add_event_cb(mode_, onMode, LV_EVENT_CLICKED, nullptr);
+    uiPressFx(mode_);
     date_ = uiLabel(p, &font_18, COL_TEXT, "", (SCREEN_W - DATE_W) / 2, 142, DATE_W, LV_TEXT_ALIGN_CENTER);
     lv_label_set_long_mode(date_, LV_LABEL_LONG_CLIP);
     ip_ = uiLabel(p, &font_18, COL_TEXT, "", 0, 200, SCREEN_W, LV_TEXT_ALIGN_CENTER);
@@ -63,6 +64,7 @@ class ClockScreen : public Screen {
     lv_obj_add_flag(gear, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_remove_flag(gear, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_event_cb(gear, [](lv_event_t*) { uiRequest(ScreenId::Settings); }, LV_EVENT_CLICKED, nullptr);  // deferred switch
+    uiPressFx(gear);
     lv_obj_t* g = lv_label_create(gear);
     lv_obj_set_style_text_font(g, &font_24, 0);
     lv_obj_set_style_text_color(g, lv_color_hex(0xA0A0A0), 0);

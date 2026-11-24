@@ -16,6 +16,7 @@
 #include "../theme.h"
 #include "../widgets/aprs_icon.h"
 #include "../widgets/header.h"
+#include "../widgets/ui_kit.h"
 
 namespace {
 constexpr int R_PX = 100, OX = 160, OY = HEADER_H + (SCREEN_H - HEADER_H) / 2, MAXN = kAprsStations;
@@ -204,6 +205,7 @@ class AprsRadarScreen : public Screen {
     lv_obj_set_style_radius(b, 6, 0);
     lv_obj_set_style_shadow_width(b, 0, 0);
     lv_obj_add_event_cb(b, cb, LV_EVENT_CLICKED, this);
+    uiPressFx(b, true);
     lv_obj_t* l = lv_label_create(b);
     lv_obj_set_style_text_font(l, &font_14, 0);
     lv_label_set_text(l, txt);

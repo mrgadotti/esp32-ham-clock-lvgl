@@ -75,6 +75,7 @@ lv_obj_t* hit(lv_obj_t* parent, int x, lv_event_cb_t click, lv_event_cb_t draw) 
   lv_obj_add_flag(o, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_add_event_cb(o, click, LV_EVENT_CLICKED, nullptr);
   lv_obj_add_event_cb(o, draw, LV_EVENT_DRAW_MAIN, nullptr);
+  uiPressFx(o);
   return o;
 }
 }  // namespace
@@ -128,6 +129,7 @@ void aprsMsgListOpen(void (*onExit)()) {
     lv_obj_remove_flag(row, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(row, onRow, LV_EVENT_CLICKED, (void*)(intptr_t)i);
+    uiPressFx(row);
 
     char tm[16];
     formatHmCell(tm, sizeof tm, m.utc, uiTimeOffsetSec());
