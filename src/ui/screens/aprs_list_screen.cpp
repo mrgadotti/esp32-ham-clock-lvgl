@@ -42,8 +42,11 @@ class AprsListScreen : public Screen {
     for (int i = 0; i < 5; i++) { cols_.width[i] = w[i]; cols_.color[i] = c[i]; }
     const char* cm = cfg().uart2_cmod;
     Tr title = !strcmp(cm, "aprs_tnc_kiss") ? Tr::AprsKiss : !strcmp(cm, "aprs_tnc") ? Tr::AprsTnc2 : Tr::AprsIs;
+    title_ = title;
     const Tr hd[] = {Tr::Utc, Tr::ColCall, Tr::ColKm, Tr::ColFreq, Tr::ColMsg};
     ui_ = spotListUiCreate(p, title, cols_, hd, Tr::WaitingForAprs, onMenu);
+    cfgVer_ = cfgVersion();
+    updateAprsIsTitle();
     force_ = true;
   }
 
@@ -52,6 +55,10 @@ class AprsListScreen : public Screen {
     if (force_ || (ver_ != g_store.aprs.version() && now - lastMs_ >= 1000)) refresh(now);  // table rebuild: <= 1 Hz
     headerTickUtc(ui_.hdr);
     if (spotListUiTimeSync(ui_)) force_ = true;
+    if (cfgVersion() != cfgVer_) {
+      cfgVer_ = cfgVersion();  // read before the config: a racing update only costs one extra refresh
+      updateAprsIsTitle();
+    }
   }
 
  private:
@@ -59,7 +66,8 @@ class AprsListScreen : public Screen {
   SpotTableCols cols_{};
   SpotListUi ui_{};
   int sort_;
-  uint32_t ver_ = 0, lastMs_ = 0;
+  Tr title_ = Tr::AprsIs;
+  uint32_t ver_ = 0, lastMs_ = 0, cfgVer_ = 0;
   bool force_ = false;
   uint8_t idx_[30];
   size_t n_ = 0;
@@ -115,6 +123,24 @@ class AprsListScreen : public Screen {
   static void onClear(lv_event_t*) {
     if (self_) self_->closeMenu();
     g_store.aprs.write([](AprsRing& r) { r.clear(); });
+  }
+
+  // Appends the APRS-IS login identity to the header title, matching aprs_is.cpp ("user <call>[-<ssid>]").
+  // TNC2/KISS titles are left untouched. Reads the UI snapshot; never allocates.
+  void updateAprsIsTitle() {
+    if (title_ != Tr::AprsIs) return;
+    const Config& c = cfg();
+    char buf[64];
+    if (c.aprs_callsign[0]) {
+      if (c.aprs_ssid > 0)
+        snprintf(buf, sizeof buf, "%s: %s-%d", tr(Tr::AprsIs), c.aprs_callsign, (int)c.aprs_ssid);
+      else
+        snprintf(buf, sizeof buf, "%s: %s", tr(Tr::AprsIs), c.aprs_callsign);
+    } else {
+      snprintf(buf, sizeof buf, "%s", tr(Tr::AprsIs));
+    }
+    lv_obj_t* label = headerTitle(ui_.hdr);
+    if (strcmp(lv_label_get_text(label), buf) != 0) lv_label_set_text(label, buf);
   }
 
   static void onMenu(lv_event_t*) {
